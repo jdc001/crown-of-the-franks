@@ -636,9 +636,32 @@ function eliminate(lo, win, quiet) {
 }
 const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
-function checkVictory() {
+// ================= VICTORY =================
+// The goal is chosen when a game starts. A crown only counts toward a goal if it was won at a coronation;
+// a crown handed to a coalition that rises against a leader does not count.
+const GOALS = {
+  kingdom: { n: 'King of the Franks', s: 'Short', d: 'Be crowned King of the Franks at Reims: hold 18 provinces of France, among them Reims and Paris, and pay for the coronation.' },
+  empire: { n: 'Emperor', s: 'Long', d: 'Wear the crown of the Franks and the crown of Germany or of Italy, and hold half the provinces of Charlemagne\'s empire.' },
+  conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels and any kingdom that rises against you.' },
+};
+const goalId = () => (G && G.goal) || 'conquest';
+const wears = (fid, k) => G.crowns[k] === fid && !!(G.coronated && G.coronated[k] === fid);
+const empireNeed = () => Math.ceil(EMPIRE.length / 2);
+function goalMet(fid) {
+  const g = goalId();
+  if (g === 'kingdom') return wears(fid, 'franks');
+  if (g === 'empire') return wears(fid, 'franks') && (wears(fid, 'germans') || wears(fid, 'italians')) && empireHeld(fid) >= empireNeed();
+  return false;
+}
+// the house that has won, if any
+function victor() {
   const al = alive();
-  if (al.length === 1) { G.over = true; G.winner = al[0]; FAC(al[0]).emperor = true; return; }
+  if (al.length === 1) return al[0];
+  return al.find(goalMet) || null;
+}
+function checkVictory() {
+  const w = victor();
+  if (w) { G.over = true; G.winner = w; if (goalId() !== 'kingdom') FAC(w).emperor = true; return; }
   if (!G.fac[G.player].alive) G.over = true;
 }
 
@@ -654,11 +677,12 @@ function canCrown(fid, kid) {
 function crown(fid, kid) {
   const F = G.fac[fid];
   if (!canCrown(fid, kid) || F.gold < CROWN_COST) return false;
-  F.gold -= CROWN_COST; G.crowns[kid] = fid;
+  F.gold -= CROWN_COST; G.crowns[kid] = fid; (G.coronated = G.coronated || {})[kid] = fid;
   const d = FAC(fid); d.kingOf = (d.kingOf || []).concat(kid); d.title = 'King';
   for (const id of KINGDOMS[kid].list) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
   const txt = `At ${KINGDOMS[kid].at}, ${d.pname} is crowned King of ${KINGDOMS[kid].n}. His provinces there pay more and raise double levies, his troops fight harder as the royal host, and the crown lets him field another army.`;
   if (fid === G.player) report('Long live the king!', txt); else report(`A new King of ${KINGDOMS[kid].n}`, txt);
+  checkVictory();
   return true;
 }
 

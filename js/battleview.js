@@ -32,13 +32,29 @@ function drawPreBattle() {
     <div class="stances">${['aggressive', 'balanced', 'defensive'].map(st => `<button class="btn stance${PB.st === st ? ' on' : ''}" onclick="PB.st='${st}';drawPreBattle()"><b>${ico(STANCE_ICON[st])}${STANCE[st].n}</b><small>${STANCE[st].d}</small><span class="odds">${oddsTxt(PB.odds[st])} to win</span></button>`).join('')}</div>
     ${canRes ? `<button class="btn${PB.res ? ' on' : ''}" style="width:100%;margin-top:8px" onclick="PB.res=!PB.res;for(const st of ['aggressive','balanced','defensive'])PB.odds[st]=estimateWin(PB.cfgFor(st,PB.res),40);drawPreBattle()"><span class="lbl">${ico('foot')}Hold a reserve</span><small>A third of the foot and bowmen wait behind the line. Commit them for a surge; held back, they halve the losses of a defeat.</small></button>` : ''}
     ${!cfg.castle && cfg.A.cav > 0 ? `<p class="sub" style="margin-top:8px">${ico('cav')} During the battle, while your horse still hold, you may send them at the enemy horse, at their bowmen, or round to the rear. Left alone, they charge as the lines close.</p>` : ''}
-    <div class="row ctr"><button class="btn gold big" onclick="startBattle()"><span class="lbl">${ico('swords')}Sound the advance</span></button><button class="btn" onclick="PB=null;closeModal()">Withdraw</button></div>`, 'wide');
+    <div class="row ctr"><button class="btn gold big" onclick="startBattle()"><span class="lbl">${ico('swords')}Sound the advance</span></button><button class="btn big" onclick="autoBattle()"><span class="lbl">${ico('skip')}Auto-resolve</span></button><button class="btn" onclick="PB=null;closeModal()">Withdraw</button></div>
+    <p class="sub ctr">Auto-resolve fights the same battle with your stance and reserve, without the battle scene.</p>`, 'wide');
+}
+// move the army into position for the fight; false if it can no longer reach
+function stageBattle(kind, p, A) {
+  if (kind === 'assault') { if (A.siege !== p.id) { const s = stageFor(me(), A, p); if (!s) return false; } breakPeace(p); if (p.b.castle && !p.ruined) { A.siege = p.id; A.loc = p.id; } }
+  else { if (A.siege && A.siege !== p.id) note(`You lift the siege of ${P(A.siege).name}.`); A.siege = null; if (A.loc !== p.id) { const s = strikeFrom(me(), A, p); if (s) { A.mp -= s.dist; A.loc = s.stage; } else if (canMarch(me(), A, p.id)) marchArmy(me(), A, p.id); } }
+  return true;
+}
+const battleNames = (kind, p, cfg) => { const e = kind === 'relief' ? cfg.besieger : p.owner; return [FAC(me()).name, e ? FAC(e).name : p.lord]; };
+// fight it out without the battle scene: the same battle model, your stance and reserve, the horse left to charge as the lines close
+function autoBattle() {
+  if (!PB) return;
+  const { kind, p, A } = PB;
+  if (!stageBattle(kind, p, A)) { PB = null; closeModal(); return toast('Out of reach'); }
+  const cfg = PB.cfgFor(PB.st, PB.res); PB = null;
+  const res = runBattle(cfg);
+  finishBattle({ kind, p, army: A, cfg, a0: { ...cfg.A }, d0: { ...cfg.D }, names: battleNames(kind, p, cfg) }, res, res.why);
 }
 function startBattle() {
   if (BV) { BV.dead = true; releaseScene(BV); BV = null; }
   const { kind, p, A } = PB;
-  if (kind === 'assault') { if (A.siege !== p.id) { const s = stageFor(me(), A, p); if (!s) { PB = null; closeModal(); return toast('Out of reach'); } } breakPeace(p); if (p.b.castle && !p.ruined) { A.siege = p.id; A.loc = p.id; } }
-  else { if (A.siege && A.siege !== p.id) note(`You lift the siege of ${P(A.siege).name}.`); A.siege = null; if (A.loc !== p.id) { const s = strikeFrom(me(), A, p); if (s) { A.mp -= s.dist; A.loc = s.stage; } else if (canMarch(me(), A, p.id)) marchArmy(me(), A, p.id); } }
+  if (!stageBattle(kind, p, A)) { PB = null; closeModal(); return toast('Out of reach'); }
   const cfg = PB.cfgFor(PB.st, PB.res); cfg.manualA = true;
   const B = makeBattle(cfg);
   const enemyF = kind === 'relief' ? cfg.besieger : p.owner;
@@ -244,14 +260,19 @@ function drawBattle(V) {
 }
 function bvFinish() {
   const V = BV; BV = null; V.dead = true;
-  const B = V.B, res = battleResult(B), p = V.p;
+  const res = battleResult(V.B), why = V.B.why;
+  releaseScene(V);
+  finishBattle(V, res, why);
+}
+function finishBattle(V, res, why) {
+  const p = V.p; tutorDid('battle');
   if (V.kind === 'relief') resolveRelief(me(), V.army, p, res, V.cfg); else resolveAssault(me(), V.army, p, res, V.cfg);
   if (res.won && V.kind !== 'relief') setTimeout(() => flashProv(p.id), 300);
   sfx(res.won ? 'victory' : 'defeat'); buzz(res.won ? 50 : 80);
-  const head = res.won ? (V.kind === 'relief' ? `The siege of ${p.name} is broken!` : `${p.name} is yours!`) : (B.why === 'retreat' ? 'You sound the retreat' : B.why === 'time' ? 'The attack stalls and your men fall back' : 'Your army is beaten');
-  const body = `Your losses: ${lossStr(V.a0, res.A)}. ${V.names[1]} lost ${lossStr(V.d0, res.D)}.`;
+  const head = res.won ? (V.kind === 'relief' ? `The siege of ${p.name} is broken!` : `${p.name} is yours!`) : (why === 'retreat' ? 'You sound the retreat' : why === 'time' ? 'The attack stalls and your men fall back' : 'Your army is beaten');
+  const foe = V.names[1].charAt(0).toUpperCase() + V.names[1].slice(1);
+  const body = `Your losses: ${lossStr(V.a0, res.A)}. ${foe} lost ${lossStr(V.d0, res.D)}.`;
   note(head + ' ' + body);
-  releaseScene(V);
   const row = (name, before, after) => `<tr><td>${name}</td><td>${uStr(before, true, false)}</td><td>${uStr(after, true, false)}</td></tr>`;
   showModal(`<div class="rep${res.won ? '' : ' badrep'}"><div class="sealmark">${ico(res.won ? 'star' : 'swords')}</div><h2>${head}</h2><p>${body}</p>
     <table class="stat"><tr><th></th><th>Before</th><th>After</th></tr>${row(V.names[0], V.a0, res.A)}${row(V.names[1], V.d0, res.D)}</table>

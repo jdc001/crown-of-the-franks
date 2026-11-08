@@ -11,6 +11,7 @@ function showReports() {
   if (bad) buzz(40);
   let btns = `<button class="btn gold big" onclick="nextReport()">${left ? 'Next' : 'Continue'}</button>`;
   if (r.action && r.action.kind === 'appease' && G.fac[me()].unrest) { const u = G.fac[me()].unrest; btns = `<button class="btn gold" onclick="doAppease()" ${G.fac[me()].gold >= u.cost ? '' : 'disabled'}><span class="lbl">${ico('coin')}Buy them off · ${u.cost} d</span></button><button class="btn" onclick="nextReport();goProv('${u.seed}')"><span class="lbl">${ico('eye')}Send an army</span></button><button class="btn ghost" onclick="nextReport()">Decide later</button>`; }
+  if (r.action && r.action.kind === 'raid' && G.raid) btns = raidButtons();
   if (r.action && r.action.kind === 'diplo' && G.diplo && G.diplo.id === r.action.id) btns = `<button class="btn gold" onclick="doDiplo('${r.action.id}',true)">Accept</button><button class="btn" onclick="doDiplo('${r.action.id}',false)">Decline</button><button class="btn ghost" onclick="nextReport()">Decide later</button>`;
   showModal(`<div class="rep${bad ? ' badrep' : ''}">${left ? `<div class="count">${left} MORE</div>` : ''}<div class="ribbon">${esc(dateStr(G.turn))}</div><div class="sealmark">${ico(icon)}</div><h2>${r.title}</h2><p>${r.body}</p><div class="row ctr">${btns}</div></div>`);
 }
@@ -57,7 +58,7 @@ function openPope() {
     ${sel && sel.owner && sel.owner !== me() ? btn('interdict', sel.id, `Interdict ${sel.name}`) : '<p class="sub">Select an enemy province on the map, then open the Church to lay it under interdict.</p>'}`, '', { closable: true });
 }
 function doPromote() { if (promote(me())) { sfx('bell'); toast('A new cardinal in Rome', 'bishop'); save(); render(); openPope(); } }
-function doPope(a, t) { const r = papal(me(), a, t); closeModal(); if (r) { sfx('bell'); report('Word from Rome', r); save(); render(); showReports(); } }
+function doPope(a, t) { tutorDid('pope'); const r = papal(me(), a, t); closeModal(); if (r) { sfx('bell'); report('Word from Rome', r); save(); render(); showReports(); } }
 
 // ================= COURTSHIP =================
 const CO = { price: 1, protect: false, bishop: false };
@@ -88,7 +89,7 @@ function drawCourtship(msg) {
     <div class="row ctr"><button class="btn gold big" onclick="sendSuit()" ${afford ? '' : 'disabled'}><span class="lbl">${ico('ring')}Send the suit</span></button><button class="btn" onclick="withdrawSuit()">${C.round === 2 ? 'Withdraw (she may wed a rival)' : 'Withdraw'}</button></div>`, '', {});
 }
 function sendSuit() {
-  const F = G.fac[me()];
+  const F = G.fac[me()]; tutorDid('court');
   const r = courtOffer(me(), { price: CO.price, protect: CO.protect, bishop: CO.bishop && F.bishops > 0 });
   if (!r) return closeModal();
   if (!r.done) { sfx('miss'); return drawCourtship(r.text); }
@@ -112,7 +113,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '3.3';
+const APP_VERSION = '4.0';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -123,9 +124,10 @@ function openSettings() {
     <div class="setrow"><div class="l">Tips for new players<small>Short hints on your first turns</small></div>${sw('hints')}</div>
     <div class="setrow"><div class="l">End-of-turn reminder<small>Warn when the army is idle or gold lies unspent</small></div>${sw('confirmEnd')}</div>
     <div class="setrow"><div class="l">Animations<small>Map movement and turn transitions</small></div>${sw('motion')}</div>
+    <div class="setrow"><div class="l">Rival moves<small>After you end a turn, show the other houses' marches, sieges and conquests on the map</small></div>${seg('replay', [['near', 'Near me', 'home'], ['all', 'All', 'map'], ['off', 'Off', 'close']])}</div>
     <div class="setrow" style="flex-direction:column;align-items:stretch"><div class="l">The rival houses<small>How eagerly the computer houses turn on you. Takes effect from the next turn.</small></div>${diffSeg()}</div>
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
-    <div class="row"><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
+    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
     <p class="sub ctr" style="margin-top:12px">Add this page to your iPhone home screen for a full-screen game.<br>Version ${APP_VERSION}</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
@@ -149,7 +151,7 @@ const HELP = { tab: 'goal' };
 function openHelp() {
   const rows = ['foot', 'bow', 'cav', 'cat'].map(t => `<tr><td>${ico(UNIT_ICON[t])} ${UNIT[t].n}</td><td>${UNIT[t].c} d</td><td>${UNIT[t].atk || '–'}</td><td>${UNIT[t].rng || '–'}</td><td>${UNIT[t].chg || '–'}</td><td>${UNIT[t].hp || '–'}</td></tr>`).join('');
   const T = {
-    goal: `<p><b>The goal.</b> Restore the empire of Charlemagne by breaking every rival house, including rebels and any kingdom that rises against you. The last house standing is crowned Emperor at Aachen.</p>
+    goal: `<p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be crowned at Reims. <i>Emperor</i>: wear the crown of the Franks and of Germany or Italy, and hold half of Charlemagne's empire. <i>Full conquest</i>: break every rival house. Whichever goal you choose, the first house to reach it wins, and the last house standing always wins. A crown handed to a coalition that rises against a leader does not count toward a goal; it has to be won at a coronation.</p>
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every province of theirs beside it. If the house still holds four connected provinces, an heir rallies there once: the seat moves to its best castle, it loses half its gold and a third of its armies, and its crowns are vacated. Fragments go to independent castellans. A house with no such block is destroyed.</p>
       <p><b>Crowns.</b> Hold enough of a kingdom and both its crown cities and you may be crowned King of the Franks, the English, Germany, Italy or the Danes (120 d). Each crown gives +2 d a turn from every province you hold in that kingdom, double levies there, and no resentment from French lords there. Any crown gives your whole army +10% attack as the royal host, and lets you field a third army.</p>
       <p><b>The Peace of God.</b> For the first ${TRUCE} turns the Church forbids war between the great houses. Break it and you are excommunicated.</p>
@@ -161,32 +163,49 @@ function openHelp() {
       <p><b>Battle.</b> Bowmen wear the enemy down as the lines close. The horse fight on the wings; the winners ride round and strike the enemy rear, which can break an army. Footmen in a <i>defensive</i> stance lock a shield wall that blunts arrows and cavalry; in an <i>aggressive</i> stance they advance as a deep line and hit harder. A <i>balanced</i> host outflanks a static shield wall.</p>
       <p><b>Horse orders.</b> While your horse still hold, you may send them at the enemy horse (the usual charge), at the enemy bowmen (a raid; if the enemy horse are holding they intercept), or round to the rear (if the enemy horse are holding they intercept at a heavier charge). Leave the buttons alone and your horse charge as the lines close.</p>
       <p><b>The reserve.</b> An army of 9 or more may hold back a third of its foot and bowmen. Commit them when the moment is right for a surge of +15% attack; a reserve never committed halves the losses of a beaten army and comes home intact. Reserve bowmen still shoot from behind the line.</p>
-      <p><b>Castles.</b> Wooden castle, stone castle, great walls, and a moat. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
+      <p><b>Battles and sieges, quickly.</b> Every battle can be auto-resolved from the pre-battle screen, and a siege can be auto-bombarded: the same rules, without the scene.</p>
+      <p><b>Mining.</b> Instead of bombarding, an army of 4 or more footmen can dig a mine under the walls: steer the tunnel along the foundations, clear of rock, water and counter-mines. It brings down a section of wall whatever the walls are made of, so it is the better tool against stone.</p>
+      <p><b>Castles.</b> Wooden castle, stone castle, great walls, and a moat. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls, fire for the men inside, carcasses to spread plague, or volleys of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
       <p><b>War buildings.</b> One forge (+15% hit points), one armory (+15% attack) and one royal stables (+25% cavalry) serve your whole realm.</p>
       <p><b>Captured lords.</b> If your lord's host is destroyed he is captured and his host cannot take the field. His captor may hold him up to three turns: a ransom after one turn costs twice your income, after two your full income, then half, and after three turns it must be accepted. Your generals' armies fight on.</p>`,
     court: `<p><b>Unrest.</b> Realms of 10 or more provinces breed unrest. When the lords around a far province mutter, you have two turns to put an army of at least 8 men in that province or buy them off (40 d + 4 per province). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
       <p><b>Courtship.</b> To win an heiress (${ico('ring')}) you make a suit: your standing, a bride price, a promise of protection (footmen for her garrison) and a bishop's blessing. Her guardians set a minimum; rival houses may bid. If outbid you may raise once. A son is spent only when she accepts. One courtship a turn.</p>
       <p><b>Envoys.</b> Computer houses send envoys: a marriage from a weaker neighbour (peace for ${PACT_TURNS} turns), or a joint war against a house that threatens you both (peace between you for ${JOINT_TURNS} turns while they attack it). An envoy waits until the end of your turn. The same two houses cannot renew a truce or pact within ${TRUCE_COOL} turns of the last one lapsing.</p>
       <p><b>The Church.</b> Bishops sit in your council; raise them to cardinal to win votes in the college. Your share of the college decides how often the Pope agrees: blessings, mercenaries, absolution, dispensations, excommunication, a Truce of God or an interdict.</p>
+      <p><b>Forged charters.</b> With a bishop in your council, your scriptorium can forge an old charter for a lesser lord who borders you (25 d, once every 4 turns). Trace the old hand and press the seal at the right moment: a good copy makes him swear to you for nothing; a poor one may be exposed, and the Pope excommunicates you.</p>
+      <p><b>Ransoms.</b> When your lord is a prisoner, his captor's envoy names a price you can haggle down. When you hold a prisoner, you can haggle his house up. Push too hard and the envoy rides home for the turn.</p>
+      <p><b>The fair at Troyes.</b> Each summer, if you hold a market town, you may take a purse to the fair: six days of buying and selling cloth, wine, salt, spices, furs and wax. Rumours are right more often than not.</p>
+      <p><b>Raiders.</b> Longships sometimes fall on a coastal province. Meet them on the beach yourself, leave it to the garrison, or pay them to go.</p>
       <p><b>Minor lords and generals.</b> Ally with minor lords for half their income; your armies march through their land. Generals lead your armies or command a castle. If one house grows too mighty, the lords of a whole region may unite under a new king against it.</p>`,
     map: `<p><b>Reading the map.</b></p>
       <p>${ico('crown')} a house's seat · ${ico('ring')} an heiress of marrying age · ${ico('hammer')} building under way · ${ico('skull')} plague · ${ico('interdict')} under interdict · ${ico('fleur')} a general in command · ${ico('fire')} unrest.</p>
       <p>Every army is a banner with its strength; your banners carry their number, and the one you command wears a gold ring. A tent beside a banner marks a siege. Ships with a number are fleets on a sea lane. Diagonal hatching marks a minor lord sworn to a house. Chevrons mark hill country, where mines can be dug.</p>
       <p>A thick coloured outline marks your own holdings. Green dots mark where the chosen army can march this turn; red dashes mark what it can strike.</p>
       <p><b>Controls.</b> Tap to select. Drag to pan, pinch or scroll to zoom, double-tap to zoom in. The army tabs over the map switch which army you command. On a phone, drag the sheet up for the full province page; the main action always sits at its foot.</p>
+      <p><b>Rival moves.</b> After you end a turn, the marches, sieges and conquests of the houses near you are drawn on the map, one house at a time. Tap to skip, or change it in Settings (near me, all, or off).</p>
+      <p><b>Saved games.</b> The game saves itself after every move. Settings, the realm panel and the title screen also have three save slots, and you can export a campaign as a file or a code to back it up or move it to another device.</p>
       <p><b>Keyboard.</b> <span class="kbd">E</span> end turn · <span class="kbd">H</span> my lands · <span class="kbd">L</span> chronicle · <span class="kbd">C</span> court · <span class="kbd">1</span>–<span class="kbd">3</span> choose an army · <span class="kbd">+</span>/<span class="kbd">−</span> zoom · <span class="kbd">Esc</span> back.</p>`,
   };
   const tabs = [['goal', 'The game', 'crown'], ['war', 'War', 'swords'], ['court', 'Court & Church', 'church'], ['map', 'The map', 'map']];
   showModal(`<h2>${ico('info')} How to play</h2><div class="tabs">${tabs.map(([id, n, i]) => `<button class="${HELP.tab === id ? 'on' : ''}" onclick="HELP.tab='${id}';openHelp()">${ico(i)}${n}</button>`).join('')}</div>${T[HELP.tab]}
     <div class="row ctr"><button class="btn gold" onclick="closeModal()">${G ? 'To war' : 'Close'}</button></div>`, '', { closable: true });
 }
+function goalSeg() {
+  const cur = SET.goal || 'empire';
+  return `<div class="seg" style="display:flex">${Object.keys(GOALS).map(k => `<button class="${cur === k ? 'on' : ''}" style="flex:1" onclick="SET.goal='${k}';saveSettings();document.getElementById('goald').textContent=GOALS['${k}'].d;this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${GOALS[k].n}<br><small style="font-family:var(--body);font-weight:400">${GOALS[k].s}</small></button>`).join('')}</div><p class="sub" id="goald" style="min-height:40px">${GOALS[cur].d}</p>`;
+}
 function confirmNew() { showModal(`<div class="rep"><div class="sealmark badrep">${ico('flag')}</div><h2>Abandon this war?</h2><p class="ctr">Your campaign will be lost.</p><div class="grid2"><button class="btn red" onclick="clearSave();closeModal();showTitle()">New game</button><button class="btn" onclick="closeModal()">Cancel</button></div></div>`); }
 function gameOver() {
-  const won = G.winner === me();
-  if (won && !G.crownedShown) { G.crownedShown = true; return showCoronation(me(), 'emperor', () => gameOver()); }
+  const won = G.winner === me(), king = goalId() === 'kingdom' && alive().length > 1, lastStanding = alive().length === 1;
+  // the King of the Franks has just seen his own coronation at Reims
+  if (won && !G.crownedShown) { G.crownedShown = true; if (!king) return showCoronation(me(), 'emperor', () => gameOver()); }
   clearSave(); sfx(won ? 'victory' : 'defeat');
-  showModal(`<div class="rep${won ? '' : ' badrep'}"><div class="sealmark">${ico(won ? 'crown' : 'swords')}</div><h2>${won ? 'Imperator Romanorum' : G.winner ? `${FAC(G.winner).name} restores the empire` : 'Your house has fallen'}</h2>
-    <p>${won ? `In ${dateStr(G.turn)}, the last rival house falls. At Aachen, beside the tomb of Charlemagne, ${FAC(me()).pname} is crowned Emperor. The empire of the Franks is whole again.` : G.winner ? `${FAC(G.winner).pname} is crowned Emperor at Aachen.` : `${rulerOf(me())}'s line is broken. Another will restore the empire.`}</p>
+  const W = G.winner ? FAC(G.winner) : null;
+  const wonTxt = king ? `In ${dateStr(G.turn)}, at Reims, ${FAC(me()).pname} is anointed King of the Franks. The lords of Francia bend the knee, and the crown of the western Franks is his.`
+    : lastStanding ? `In ${dateStr(G.turn)}, the last rival house falls. At Aachen, beside the tomb of Charlemagne, ${FAC(me()).pname} is crowned Emperor. The empire of the Franks is whole again.`
+    : `In ${dateStr(G.turn)}, with two crowns and half of Charlemagne's lands in his hand, ${FAC(me()).pname} is crowned Emperor at Aachen. The rival houses that remain must bow or be broken.`;
+  showModal(`<div class="rep${won ? '' : ' badrep'}"><div class="sealmark">${ico(won ? 'crown' : 'swords')}</div><h2>${won ? (king ? 'Rex Francorum' : 'Imperator Romanorum') : W ? `${W.name} ${king ? 'takes the crown of the Franks' : 'restores the empire'}` : 'Your house has fallen'}</h2>
+    <p>${won ? wonTxt : W ? `${W.pname} is crowned ${king ? 'King of the Franks at Reims' : 'Emperor at Aachen'}.` : `${rulerOf(me())}'s line is broken. Another will restore the empire.`}</p>
     <p class="sub ctr">${dateStr(G.turn)} · ${G.turn} turns</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();showTitle()">Play again</button></div></div>`);
 }
@@ -201,8 +220,8 @@ function showTitle() {
     ${s && !s.over && s.v === 7 ? `<div class="contbox"><button class="btn gold big" onclick="continueGame()"><span class="lbl">${shield(s.player, 20)} Continue as ${s.fdefs.find(d => d.id === s.player).name}</span><small>${dateStr(s.turn)} · ${s.fdefs.filter(d => s.fac[d.id].alive).length - 1} rivals left</small></button></div>` : ''}
     <h2>The houses of France</h2><div class="facs">${FACTIONS.filter(f => f.realm === 'France').map(card).join('')}</div>
     <h2>Powers beyond</h2><div class="facs">${FACTIONS.filter(f => f.realm !== 'France').map(card).join('')}</div>
-    <p class="sub ctr" style="opacity:.8;margin-top:18px">New games face ${DIFF[SET.diff || 'gentle'].n.toLowerCase()} rivals · change it on a house's page or in Settings</p>
-    <div class="foot"><button onclick="openHelp()">How to play</button><button onclick="openSettings()">Settings</button><span>Tap anywhere to enable music</span></div></div>`;
+    <p class="sub ctr" style="opacity:.8;margin-top:18px">New games: ${GOALS[SET.goal || 'empire'].n.toLowerCase()} · ${DIFF[SET.diff || 'gentle'].n.toLowerCase()} rivals · change them on a house's page</p>
+    <div class="foot"><button onclick="openSaves()">Saved games</button><button onclick="openHelp()">How to play</button><button onclick="openSettings()">Settings</button><span>Tap anywhere to enable music</span></div></div>`;
 }
 function diffSeg() {
   const cur = SET.diff || 'gentle';
@@ -217,10 +236,12 @@ function openFaction(fid) {
     <p>${f.blurb}</p>
     <div class="notebox good">${ico('star')} <b>House trait.</b> ${f.trait}</div>
     <p class="sub">Seat at <b>${home[1]}</b>. Starting lands: ${lands.join(', ')}. ${f.realm === 'France' ? 'French lands pay more and lie in the heart of the old empire, but every neighbour is a rival.' : 'A foreign house: French lords resent your rule (-30% income there) until you wear a crown of the Franks, and minor lords ask double for alliance.'}</p>
+    <div class="setrow"><div class="l">Guided first campaign<small>One objective at a time, with a hint, for your first few years</small></div><div class="sw${SET.guided !== false ? ' on' : ''}" onclick="SET.guided=!(SET.guided!==false);saveSettings();this.classList.toggle('on',SET.guided)"></div></div>
+    <h3>Your goal</h3>${goalSeg()}
     <h3>The rival houses</h3>${diffSeg()}
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();startGame('${fid}')"><span class="lbl">${ico('flag')}Raise the banner of ${f.name}</span></button></div></div>`, '', { closable: true });
 }
-function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
+function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; G.goal = SET.goal || 'empire'; G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
 function continueGame() { sndUnlock(); G = loadSave(); if (!G || G.v !== 7) { G = null; return showTitle(); } rebuildFmap(); if (!G.army) G.army = 'a0'; $('#title').style.display = 'none'; applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek'); }
 
 // ================= SPLASH SCENES (Jeff's) =================
@@ -279,7 +300,7 @@ function showCoronation(fid, kid, onDone) {
   const K = KINGDOMS[kid];
   const title = kid === 'emperor' ? 'Imperator Romanorum' : `King of ${K.n}`;
   const body = kid === 'emperor'
-    ? `In ${dateStr(G.turn)}, the last rival house has fallen. Beneath the dome of Charlemagne's chapel at Aachen, the Pope sets the imperial crown on the head of ${FAC(fid).pname}. The empire of the Franks is whole again.`
+    ? `In ${dateStr(G.turn)}, ${alive().length === 1 ? 'the last rival house has fallen' : 'two crowns and half of Charlemagne\'s lands are his'}. Beneath the dome of Charlemagne's chapel at Aachen, the Pope sets the imperial crown on the head of ${FAC(fid).pname}. ${alive().length === 1 ? 'The empire of the Franks is whole again.' : 'The empire of the Franks lives again.'}`
     : `At ${K.at}, before the bishops of the realm, the Pope anoints ${FAC(fid).pname} and sets the crown of ${K.n} upon his head. His provinces there now pay +2 d each a turn and raise double levies, and his host fights 10% harder.`;
   window._coronDone = onDone || null;
   showModal(`<div class="splash">${coronationScene(fid, kid)}<div class="splashtxt"><h2>${title}</h2><p>${body}</p>

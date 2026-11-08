@@ -3,11 +3,11 @@ const fs=require('fs');
 let src='';for(const f of ['data','core','battle','ai','difficulty'])src+=fs.readFileSync(__dirname + '/../js/'+f+'.js','utf8')+'\n';
 src=src.replace(/'use strict';/g,'').replace(/^const (\w+)/gm,'var $1').replace(/^let (\w+)/gm,'var $1');
 (0,eval)(src);
-checkVictory=function(){const al=alive();if(al.length===1){G.over=true;G.winner=al[0];FAC(al[0]).emperor=true;}};
-const NG=+process.argv[2]||16, MAXT=+process.argv[3]||160;
+checkVictory=function(){const w=victor();if(w){G.over=true;G.winner=w;}};
+const NG=+process.argv[2]||16, MAXT=+process.argv[3]||160, GOAL=process.argv[4]||'conquest';
 const stats={alive40:[],len:[],winners:{},rebels:[],heirs:[],unions:[],deserts:0};
 for(let g=0;g<NG;g++){
-  newGame('aquitaine'); G.diff='original';
+  newGame('aquitaine'); G.diff='original'; G.goal=GOAL;
   let rebels=0, heirs=0, unions=0;
   while(!G.over && G.turn<MAXT){
     aiTurn(G.player); endTurn(G.player); runAITurns();

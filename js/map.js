@@ -92,7 +92,8 @@ function buildMap() {
   <g transform="translate(${px(-10.6)},${py(58.3)})"><rect width="250" height="66" rx="4" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/><rect x="5" y="5" width="240" height="56" fill="none" stroke="#b8892c" stroke-width="1.2"/><text x="125" y="31" class="cart">Francia et Regna Vicina</text><text x="125" y="50" class="cart2">Anno Domini 987</text></g>
   <rect id="tint" x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#000" fill-opacity="0" pointer-events="none"/>
   <g id="ovsel" pointer-events="none"></g>
-  <g id="ov"></g>`;
+  <g id="ov"></g>
+  <g id="ovmoves" pointer-events="none"></g>`;
   mapEl.innerHTML = h;
   initMapInput();
 }

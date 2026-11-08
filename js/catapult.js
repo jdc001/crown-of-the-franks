@@ -2,7 +2,9 @@
 // ================= CATAPULT =================
 let CT = null;
 const CW = 800, CH = 440, GY = 380, CBW = 20, CBH = 20, WXE = 640, GRAV = 500;
-const AMMO = [['stone', 'Stone', 'stone'], ['triple', 'Three stones', 'stones'], ['oil', 'Flaming oil', 'oil'], ['plague', 'Plague carcass', 'skull']];
+const AMMO = [['stone', 'Stone', 'stone'], ['triple', 'Three stones', 'stones'], ['oil', 'Flaming oil', 'oil'], ['oil3', 'Three fires', 'oil'], ['plague', 'Plague carcass', 'skull'], ['plague3', 'Three carcasses', 'skull']];
+// a volley of three: smaller shots, spread a little, each weaker than a single
+const VOLLEY = { triple: 'triple', oil3: 'oil', plague3: 'plague' };
 function openCatapult(p) {
   if (CT) { CT.dead = true; releaseScene(CT); CT = null; }
   const A = myA(), lv = Math.max(1, castleLv(p));
@@ -23,7 +25,7 @@ function openCatapult(p) {
     <div class="ctbar"><div id="ctmsg"></div>
       <div class="ammo">${AMMO.map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
-    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; three stones scatter wider. Flaming oil burns defenders inside at once, and sets wooden walls alight. A plague carcass inside spreads sickness over the coming turns. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
+    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; three stones scatter wider. Flaming oil burns defenders inside at once, and sets wooden walls alight. A plague carcass inside spreads sickness over the coming turns. A volley of three fires or three carcasses spreads its effect wider, each shot weaker. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
   const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
@@ -45,8 +47,9 @@ function openCatapult(p) {
     if (!CT || !CT.drag) return;
     const d = CT.drag; CT.drag = null;
     const v = launchVec(d); if (!v) return;
-    const mk = (vx, vy, r) => ({ x: 112, y: 300, vx, vy, r, type: CT.ammo, trail: [] });
-    if (CT.ammo === 'triple') { const ang = Math.atan2(v.vy, v.vx), sp = Math.hypot(v.vx, v.vy); [-0.07, 0, 0.07].forEach((da, i) => { const s2 = sp * (1 + (i - 1) * 0.05); CT.projs.push(mk(Math.cos(ang + da) * s2, Math.sin(ang + da) * s2, 4.5)); }); }
+    const vt = VOLLEY[CT.ammo];
+    const mk = (vx, vy, r) => ({ x: 112, y: 300, vx, vy, r, type: vt || CT.ammo, small: !!vt && vt !== 'triple', trail: [] });
+    if (vt) { const ang = Math.atan2(v.vy, v.vx), sp = Math.hypot(v.vx, v.vy); [-0.07, 0, 0.07].forEach((da, i) => { const s2 = sp * (1 + (i - 1) * 0.05); CT.projs.push(mk(Math.cos(ang + da) * s2, Math.sin(ang + da) * s2, 4.5)); }); }
     else CT.projs.push(mk(v.vx, v.vy, 7));
     CT.shots--; sfx('launch'); buzz(20);
   };
@@ -64,6 +67,10 @@ function ctHitWall(c, q) {
   const wood = CT.lv === 1;
   if (q.type === 'stone') { ctHit(c, 3); if (c > 0 && Math.random() < .7) ctHit(c - 1, 1); if (c < CT.cols - 1 && Math.random() < .7) ctHit(c + 1, 1); ctBurst(q.x, q.y, wood ? '#7a5530' : '#8a816e', 26); CT.msg = 'Direct hit! A section of wall collapses.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple') { ctHit(c, 1); if (Math.random() < .35) { const n = c + (Math.random() < .5 ? -1 : 1); if (n >= 0 && n < CT.cols) ctHit(n, 1); } ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = 'Stones hammer the wall.'; sfx('wall'); buzz(20); }
+  else if (q.type === 'oil' && q.small) {
+    if (wood) { ctHit(c, 1); CT.fires.push({ x: q.x, y: q.y, t: 3 }); CT.msg = 'A pot of fire catches on the palisade.'; }
+    else { if (Math.random() < 0.4) ctHit(c, 1); CT.msg = 'The fire splashes on the stone. Aim over the top to burn the defenders.'; }
+  }
   else if (q.type === 'oil') {
     if (wood) { ctHit(c, 2); if (c > 0) ctHit(c - 1, 1); if (c < CT.cols - 1) ctHit(c + 1, 1); CT.fires.push({ x: q.x, y: q.y, t: 5 }); CT.msg = 'The palisade catches fire! The wooden wall burns.'; }
     else { ctHit(c, 1); CT.msg = 'The oil bursts against the stone and scorches it. Aim over the top to burn the defenders.'; }
@@ -74,7 +81,13 @@ function ctHitInside(q) {
   const p = CT.p; let k = 0;
   const empty = ctAlive() === 0;
   if (q.type === 'stone' || q.type === 'triple') { k = Math.random() < (q.type === 'stone' ? .5 : .25) ? killDefenders(p, 1) : 0; ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = empty ? 'The stone lands in an empty bailey.' : k ? 'The stone crashes into the bailey and crushes a defender.' : 'The stone lands in the bailey. The defenders scatter.'; sfx('wall'); }
-  else if (q.type === 'oil') { k = killDefenders(p, 2 + rnd(4)); CT.fires.push({ x: q.x, y: GY - 4, t: 4 }); ctBurst(q.x, q.y, '#ff8c1a', 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `Burning oil rains on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(40); }
+  else if (q.type === 'oil') { k = killDefenders(p, q.small ? 1 + rnd(2) : 2 + rnd(4)); CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
+  else if (q.small) {
+    k = Math.random() < 0.3 ? killDefenders(p, 1) : 0;
+    if (Math.random() < 0.5) { p.plague = { s: Math.min(3, ((p.plague && p.plague.s) || 0) + 1), t: 3 }; CT.plague++; CT.msg = `A carcass lands inside. The sickness grows (${['', 'mild', 'spreading', 'raging'][p.plague.s]}).`; }
+    else CT.msg = 'A carcass lands inside, but the defenders burn it before the sickness takes hold.';
+    ctBurst(q.x, q.y, '#6d7a3a', 14); sfx('plague');
+  }
   else {
     k = killDefenders(p, 1);
     p.plague = { s: Math.min(3, ((p.plague && p.plague.s) || 0) + 1), t: 3 };
@@ -161,7 +174,7 @@ function ctDraw() {
   const ax = 112, ay = GY - 64, L = 64 + pull * 8;
   x.strokeStyle = '#7a5530'; x.lineWidth = 7; x.beginPath(); x.moveTo(ax, ay); x.lineTo(ax + Math.cos(ang) * L, ay + Math.sin(ang) * L); x.stroke();
   x.fillStyle = '#3a2817'; x.beginPath(); x.arc(ax + Math.cos(ang) * L, ay + Math.sin(ang) * L, 8, 0, 7); x.fill();
-  if (!CT.projs.length && CT.shots > 0) { const col = CT.ammo === 'oil' ? '#ff7a00' : CT.ammo === 'plague' ? '#59672f' : '#5d564a'; x.fillStyle = col; x.beginPath(); x.arc(ax + Math.cos(ang) * L, ay + Math.sin(ang) * L - 2, 5, 0, 7); x.fill(); }
+  if (!CT.projs.length && CT.shots > 0) { const col = CT.ammo.startsWith('oil') ? '#ff7a00' : CT.ammo.startsWith('plague') ? '#59672f' : '#5d564a'; x.fillStyle = col; x.beginPath(); x.arc(ax + Math.cos(ang) * L, ay + Math.sin(ang) * L - 2, 5, 0, 7); x.fill(); }
   const myColor = FAC(me()).color;
   [56, 170].forEach((cx, i) => figure(x, { x: cx, y: GY - 10 + Math.sin(CT.t * 4 + i) }, 0, myColor, 'foot', i, false));
   drawBanner(x, me(), 30, GY - 70, 62, false, CT.t);
@@ -198,6 +211,20 @@ function ctFrame(ts, scene) {
   const dt = Math.min(0.033, CT.last ? (ts - CT.last) / 1000 : 0.016); CT.last = ts;
   ctUpdate(dt); ctDraw();
   requestAnimationFrame(t => ctFrame(t, scene));
+}
+// bombard without the catapult scene: each shot has the same chance as the computer's engineers
+function autoBombard(A, p) {
+  const w0 = p.walls; let wl = 0, kl = 0, pl = 0;
+  for (let s = 0; s < A.cat * catShots(me(), A); s++) {
+    if (Math.random() < 0.6) {
+      if (p.walls > 34 && !p.ruined && p.b.castle) { const d = Math.min(p.walls, 26 / Math.max(1, castleLv(p))); damageWalls(p, d); wl += Math.round(d); }
+      else if (Math.random() < 0.5) { p.plague = { s: Math.min(3, ((p.plague && p.plague.s) || 0) + 1), t: 3 }; pl++; }
+      else kl += killDefenders(p, 2 + rnd(3));
+    }
+  }
+  A.bombarded = true; A.acted = true;
+  const txt = `Bombardment of ${p.name}: walls ${w0}% → ${p.ruined ? 'ruined' : p.walls + '%'}, ${kl} defenders killed${pl ? ', plague sown inside' : ''}.`;
+  note(txt); toast(`Walls ${w0}% → ${p.ruined ? 'ruined' : p.walls + '%'} · ${kl} killed`, 'cat'); sfx('wall');
 }
 function finishCatapult() {
   if (!CT) return;

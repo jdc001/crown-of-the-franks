@@ -285,7 +285,7 @@ body.m .card.battle, body.m .card.ctcard { border-radius: 0; max-height: 100%; h
 .bhud .mid { text-align: center; min-width: 120px; }
 .bhud .phase { font-family: var(--head); font-weight: 600; font-size: 14px; color: var(--gold2); min-height: 18px; }
 .bhud .tot { font-size: 13px; opacity: .85; }
-.bview canvas, #ctc { will-change: transform; width: 100%; display: block; border-radius: 8px; touch-action: none; border: 1px solid #5e4515; background: #7f8f4a; }
+.bview canvas, #ctc, .mgc { will-change: transform; width: 100%; display: block; border-radius: 8px; touch-action: none; border: 1px solid #5e4515; background: #7f8f4a; }
 .bctl { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .bctl .btn { min-width: 140px; }
 .bctl .btn.dark.sm { min-width: 0; }
@@ -297,7 +297,7 @@ body.m .bhud .nm { font-size: 13px; } body.m .bhud .cnts { font-size: 12px; } bo
 .cthud .ct .v { font-family: var(--head); font-weight: 700; font-size: 17px; color: var(--gold3); }
 .cthud .ct .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; font-family: var(--head); }
 .ctbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
-.ctbar .ammo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; flex: 1 1 100%; }
+.ctbar .ammo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; flex: 1 1 100%; }
 .ctbar .ammo .btn { min-height: 48px; padding: 4px 6px; font-size: 12px; }
 .ctbar .ammo .btn .ic { width: 20px; height: 20px; }
 #ctmsg { flex-basis: 100%; font-size: 15px; min-height: 22px; padding: 4px 2px; font-style: italic; color: var(--ink); }
@@ -306,6 +306,17 @@ body.m .ctcard .sub { display: none; }
 body.m .ctcard .cthud { margin-top: 6px; }
 body.m .ctcard::after { content: 'Turn your phone sideways for a bigger field.'; display: block; text-align: center; font-style: italic; color: var(--ink2); font-size: 13px; margin-top: 8px; }
 @media (orientation: landscape) { body.m .ctcard::after { display: none; } }
+
+/* mini-games */
+.mgmsg { font-size: 15px; min-height: 22px; padding: 6px 2px 0; font-style: italic; color: var(--ink); }
+.ftab { display: grid; gap: 4px; margin: 8px 0; }
+.frow { display: grid; grid-template-columns: 12px 1fr 58px 30px 68px 50px; gap: 6px; align-items: center; background: #efe2bf; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 14.5px; }
+.frow.fhead { background: none; border: 0; font-family: var(--head); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); padding: 0 8px; }
+.fdot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #0005; }
+.fpr { font-size: 16px; } .fpr small { font-family: var(--body); font-size: 11px; margin-left: 2px; }
+.fheld { text-align: center; font-family: var(--head); font-weight: 700; }
+.frow .btn.sm { min-height: 34px; padding: 3px 4px; font-size: 11.5px; }
+@media (max-width: 430px) { .frow { grid-template-columns: 10px 1fr 50px 24px 62px 44px; gap: 4px; font-size: 13px; padding: 5px 6px; } }
 
 /* court / church / lists */
 .gens { display: grid; gap: 8px; }
@@ -351,6 +362,31 @@ body.m #drawer { left: 0; right: 0; bottom: 0; top: calc(var(--sat) + 40px); bor
 #turnov .hs.dead { opacity: .15; filter: grayscale(1); }
 #turnov .line { font-style: italic; font-size: 16px; min-height: 24px; text-align: center; max-width: 520px; opacity: .9; }
 #turnov .skip { margin-top: 10px; font-size: 12px; opacity: .6; font-family: var(--head); letter-spacing: .1em; }
+
+/* ---------- the houses move (replay strip over the map) ---------- */
+#turnov.strip { inset: auto 0 auto 0; top: calc(var(--sat) + 6px); background: none; padding: 0 10px; gap: 0; display: block; animation: none; pointer-events: auto; }
+#turnov.strip .rpbar { max-width: 520px; margin: 0 auto; display: flex; gap: 10px; align-items: center; background: #1a120bee; border: 1px solid var(--gold); border-radius: 12px; padding: 8px 12px; box-shadow: 0 6px 20px #0009; color: var(--vel); animation: cardin .25s; }
+#turnov.strip .rpname { font-family: var(--head); font-weight: 700; color: var(--gold3); font-size: 15px; }
+#turnov.strip .rpdate { font-family: var(--body); font-weight: 400; font-style: italic; color: var(--vel); opacity: .7; font-size: 12.5px; margin-left: 4px; }
+#turnov.strip .rpline { font-size: 14px; font-style: italic; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#turnov.strip .rpskip { margin-left: auto; font-family: var(--head); font-size: 10.5px; letter-spacing: .06em; opacity: .7; text-align: right; flex: none; }
+#turncatch { position: fixed; inset: 0; z-index: 49; background: transparent; }
+.mvline { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mvdraw .7s ease-out forwards; }
+@keyframes mvdraw { to { stroke-dashoffset: 0; } }
+.mvhead { opacity: 0; animation: mvfade .3s .55s forwards; }
+@keyframes mvfade { to { opacity: 1; } }
+.mvcap { animation: mvflash 1.3s ease-out; }
+@keyframes mvflash { 0% { fill-opacity: .8; } 100% { } }
+body.nomotion .mvline { stroke-dashoffset: 0; } body.nomotion .mvhead { opacity: 1; }
+
+/* ---------- guided campaign card ---------- */
+#tutor { position: absolute; z-index: 4; left: calc(10px + var(--sal)); right: calc(10px + var(--sar)); bottom: calc(var(--sheet-peek) + 10px); display: flex; gap: 10px; align-items: flex-start; background: #23407af2; color: #eaf0ff; border: 1px solid #8fb0ff; border-radius: 12px; padding: 9px 12px; box-shadow: 0 6px 20px #0009; font-size: 14.5px; line-height: 1.35; animation: cardin .3s; }
+body.d #tutor { right: auto; width: 380px; bottom: 14px; }
+#tutor .tn { font-family: var(--head); font-size: 12px; color: var(--gold3); flex: none; padding-top: 2px; }
+#tutor .tb { flex: 1; min-width: 0; }
+#tutor b { font-family: var(--head); font-size: 13.5px; letter-spacing: .04em; display: block; color: #fff; }
+#tutor .tx { display: flex; flex-direction: column; gap: 6px; flex: none; }
+#tutor button { background: none; border: 1px solid #8fb0ff88; border-radius: 6px; color: #cfe0ff; font-family: var(--head); font-size: 11px; letter-spacing: .05em; padding: 4px 7px; cursor: pointer; }
 
 /* ---------- hints ---------- */
 #hintbox { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); top: calc(var(--sat) + var(--hdr-h) + 10px); width: min(420px, 92vw); background: #23407aee; color: #eaf0ff; border: 1px solid #8fb0ff; border-radius: 12px; padding: 10px 14px 10px 12px; font-size: 14.5px; line-height: 1.35; box-shadow: 0 6px 20px #0009; display: flex; gap: 10px; align-items: flex-start; animation: cardin .3s; }

@@ -7,7 +7,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // ---------- settings ----------
 const SETTINGS_KEY = 'cotf-settings-v1';
-const SET = Object.assign({ layout: 'auto', hints: true, confirmEnd: true, motion: true, music: true, sfxOn: true, speed: 1, seenHints: {} }, (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } })());
+const SET = Object.assign({ replay: 'near', layout: 'auto', hints: true, confirmEnd: true, motion: true, music: true, sfxOn: true, speed: 1, seenHints: {} }, (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SET)); } catch (e) { } }
 
 // ---------- layout ----------
@@ -108,6 +108,7 @@ function closeModal() {
   $('#modal').classList.add('hidden');
   if (typeof CT !== 'undefined' && CT) { CT.dead = true; releaseScene(CT); CT = null; }
   if (typeof BV !== 'undefined' && BV) { BV.dead = true; releaseScene(BV); BV = null; }
+  if (typeof MG !== 'undefined' && MG) { MG.dead = true; releaseScene(MG); MG = null; }
   setMusic('map');
 }
 const modalOpen = () => !$('#modal').classList.contains('hidden');
@@ -207,29 +208,9 @@ const ACC = Object.assign({ crowns: false, army: true, marriage: false, realm: f
 function acc(id, title, icon, body, count) {
   return `<div class="acc${ACC[id] ? ' open' : ''}" id="acc-${id}"><div class="ah" onclick="toggleAcc('${id}')">${ico(icon)}${title}${count !== undefined ? `<span class="cnt">${count}</span>` : ''}${ico('next', 'car')}</div><div class="ab">${body}</div></div>`;
 }
-function toggleAcc(id) { ACC[id] = !ACC[id]; try { localStorage.setItem('cotf-acc', JSON.stringify(ACC)); } catch (e) { } const el = $('#acc-' + id); if (el) el.classList.toggle('open', ACC[id]); }
+function toggleAcc(id) { if (id === 'road') { tutorDid('goal'); setTimeout(renderTutor, 0); } ACC[id] = !ACC[id]; try { localStorage.setItem('cotf-acc', JSON.stringify(ACC)); } catch (e) { } const el = $('#acc-' + id); if (el) el.classList.toggle('open', ACC[id]); }
 
-// ---------- turn overlay ----------
-function runTurnOverlay(order, lines, done) {
-  const ov = $('#turnov');
-  if (!SET.motion) { ov.classList.add('hidden'); return done(); }
-  const houses = order.filter(f => f !== me());
-  ov.innerHTML = `<div class="tt">${esc(dateStr(G.turn))}</div><h2>The houses move</h2><div class="houses">${houses.map(f => `<div class="hs${G.fac[f].alive ? '' : ' dead'}" id="hs-${f}">${shield(f, 34)}<span>${esc(FAC(f).name)}</span></div>`).join('')}</div><div class="line" id="tline"></div><div class="skip">tap to skip</div>`;
-  ov.classList.remove('hidden');
-  let i = 0, stop = false;
-  const live = houses.filter(f => G.fac[f].alive);
-  const step = () => {
-    if (stop) return;
-    if (i > 0) { const prev = $('#hs-' + live[i - 1]); if (prev) { prev.classList.remove('lit'); prev.classList.add('done'); } }
-    if (i >= live.length) { stop = true; ov.classList.add('hidden'); return done(); }
-    const el = $('#hs-' + live[i]); if (el) el.classList.add('lit');
-    const l = lines.find(x => x.f === live[i]); $('#tline').textContent = l ? l.t : '';
-    i++;
-    setTimeout(step, Math.max(90, Math.min(260, 1600 / live.length)));
-  };
-  ov.onclick = () => { if (!stop) { stop = true; ov.classList.add('hidden'); done(); } };
-  step();
-}
+// ---------- turn overlay: see replay.js ----------
 
 // ---------- hints ----------
 const HINTS = {
@@ -242,7 +223,7 @@ const HINTS = {
   endturn: { t: 'Ending the turn', b: 'When you are done, press End turn. The other houses move, then the chronicle tells you what happened.' },
 };
 function hint(id) {
-  if (!SET.hints || SET.seenHints[id] || modalOpen()) return;
+  if (!SET.hints || SET.seenHints[id] || modalOpen() || (G && G.tut)) return;
   const h = HINTS[id]; if (!h) return;
   SET.seenHints[id] = true; saveSettings();
   const el = $('#hintbox');

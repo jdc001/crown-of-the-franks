@@ -35,6 +35,7 @@ function renderHeader() {
   const chips = [`<span class="chip" title="Treasury: income +${gross}, upkeep −${up}">${ico('coin')}<span class="num">${F.gold}</span><small>+${gross}${up ? ` <s>−${up}</s>` : ''}</small></span>`];
   if (truce()) chips.push(`<span class="chip peace" title="No war between the great houses until ${dateStr(TRUCE)}">${ico('dove')}<small>Peace</small></span>`);
   if (F.unrest) chips.push(`<span class="chip warn btn-like" onclick="goProv('${F.unrest.seed}')" title="Unrest at ${P(F.unrest.seed).name}">${ico('fire')}<small>${Math.max(0, F.unrest.at - G.turn)}</small></span>`);
+  if (fairOpen()) chips.push(`<span class="chip ok btn-like" onclick="openFair()" title="The summer fair at Troyes is open">${ico('market')}<small>Fair</small></span>`);
   if (G.diplo) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="An envoy waits">${ico('handshake')}</span>`);
   if (F.bless) chips.push(`<span class="chip ok" title="Blessed: your troops fight 12% harder">${ico('bless')}${F.bless}</span>`);
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
@@ -88,7 +89,7 @@ function prisonersHtml() {
   for (const f of held) {
     const n = ransomHeld(f), o = G.offers.find(x => x.fid === f);
     h += `<div class="statcard"><p style="margin:0">${ico('chain')} <b>${rulerOf(f)}</b> <span class="sub">(held ${n} turn${n > 1 ? 's' : ''})</span></p>`;
-    if (o) h += `<p>${FAC(f).name} offers <b>${o.sum} d</b>.${n >= 3 ? ' After three turns you must accept.' : ' Hold him and the next offer will be lower, but his house stays without its lord.'}</p><div class="grid2"><button class="btn gold" onclick="doOffer('${f}',true)">Accept ${coin(o.sum)}</button>${n < 3 ? `<button class="btn" onclick="doOffer('${f}',false)">Keep him another turn</button>` : ''}</div>`;
+    if (o) h += `<p>${FAC(f).name} offers <b>${o.sum} d</b>.${n >= 3 ? ' After three turns you must accept.' : ' Hold him and the next offer will be lower, but his house stays without its lord.'}</p><div class="grid2"><button class="btn gold" onclick="doOffer('${f}',true)">Accept ${coin(o.sum)}</button>${n < 3 ? `<button class="btn" onclick="openHagglePrisoner('${f}')">Haggle for more</button><button class="btn" onclick="doOffer('${f}',false)">Keep him another turn</button>` : ''}</div>`;
     else h += `<p class="sub">No ransom has been offered yet.</p>`;
     h += '</div>';
   }
@@ -125,7 +126,7 @@ function overviewPanel() {
   const wb = ['forge', 'armory', 'stables'].filter(t => owned(me()).some(p => p.b[t]));
   const men = totalMen(me()), net = netIncome(me());
   let ransom = '';
-  if (F.captive) { const price = ransomPrice(me()), n = ransomHeld(me()); ransom = `<button class="btn red" onclick="doRansom()" ${F.gold >= price ? '' : 'disabled'}><span class="lbl">${ico('chain')}Offer the ransom · ${coin(price)}</span></button><p class="sub">Held ${n} turn${n > 1 ? 's' : ''}. The price is twice your income after one turn, your full income after two, then half; after three turns his captor must accept.</p>`; }
+  if (F.captive) { const price = ransomPrice(me()), n = ransomHeld(me()); ransom = `${canHaggleRansom(F) ? `<button class="btn gold" onclick="openHaggleRansom()"><span class="lbl">${ico('chain')}Receive the captor's envoy</span><small>haggle over the price</small></button>` : F.haggled === G.turn ? '<p class="sub">The envoy has gone home; he will return next turn.</p>' : ''}<button class="btn red" onclick="doRansom()" ${F.gold >= price ? '' : 'disabled'}><span class="lbl">${ico('chain')}Offer the usual ransom · ${coin(price)}</span></button><p class="sub">Held ${n} turn${n > 1 ? 's' : ''}. The price is twice your income after one turn, your full income after two, then half; after three turns his captor must accept.</p>`; }
   const tiles = `<div class="tiles">
     <div class="tile${net < 0 ? ' warn' : ''}" onclick="goProv('${homeOf(me())}')">${ico('coin')}<div class="v">${F.gold}<small style="${net < 0 ? 'color:var(--red)' : ''}"> ${net >= 0 ? '+' : ''}${net}</small></div><div class="k">Deniers</div></div>
     <div class="tile${!men && !F.captive ? ' warn' : ''}" onclick="ACC.armies=true;render();document.getElementById('acc-armies').scrollIntoView({behavior:'smooth'})">${ico(F.captive ? 'chain' : 'sword')}<div class="v">${men}<small> ${usableArmies(me()).length}/${armyMax(me())}</small></div><div class="k">Men · armies</div></div>
@@ -137,11 +138,11 @@ function overviewPanel() {
   const prisoners = prisonersHtml();
   return `<div class="phead">${shield(me(), 46)}<div><h2>${esc(rulerOf(me()))}</h2><span class="sub">${esc(f.trait || (f.realm === 'Rebel' ? 'A rebel house, risen in civil war.' : ''))}</span></div></div>
     ${tiles}
-    ${unrestBox()}${envoyBox()}
+    ${unrestBox()}${envoyBox()}${fairOpen() ? `<div class="notebox good">${ico('market')} <b>The summer fair at Troyes is open</b> this turn only. Bring a purse of up to ${fairCap()} d and trade.<div class="row" style="margin-top:6px"><button class="btn gold sm" onclick="openFair()"><span class="lbl">${ico('market')}Go to the fair</span></button></div></div>` : ''}
     ${F.captive ? `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}` : ''}
     ${prisoners ? acc('prisoners', 'Your prisoners', 'chain', prisoners, G.offers.length ? G.offers.length + ' offer' + (G.offers.length > 1 ? 's' : '') : '') : ''}
     ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing; armies in the field are paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d). Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
-    ${acc('road', 'The road to Aachen', 'crown', `<p>Break every rival house, including rebels and any kingdom that rises against you, and you will be crowned Emperor at Aachen in Charlemagne's place. Take a house's seat (${ico('crown')}) and you win it and every province beside it; a house with four connected provinces left rallies once under an heir, the rest falls to its castellans. <b>${alive().length - 1}</b> rival house${alive().length === 2 ? '' : 's'} still stand${alive().length === 2 ? 's' : ''}.</p><p class="sub">You hold ${held} of the ${EMPIRE.length} provinces of Charlemagne's old empire${owned(me()).length > 15 ? ` · a realm this size yields ${Math.round(adminMult(me()) * 100)}% of its income` : ''}.</p><div class="bar"><i style="width:${pct(held, EMPIRE.length)}%"></i></div>`, `${held}/${EMPIRE.length}`)}
+    ${acc('road', 'Your goal: ' + GOALS[goalId()].n, 'crown', goalHtml(held), goalCount(held))}
     ${acc('crowns', 'Crowns', 'crown', crownsHtml(), (FAC(me()).kingOf || []).length ? (FAC(me()).kingOf.length + ' worn') : '')}
     ${acc('marriage', 'Marriages', 'ring', marriageHtml(), F.sons + ' son' + (F.sons === 1 ? '' : 's'))}
     ${acc('realm', 'The realm', 'map', `
@@ -155,8 +156,25 @@ function overviewPanel() {
     ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : d.realm === 'Union' ? ' <span class="tag">kingdom</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} prov.</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
     <p class="hint" style="margin-top:14px">Tap a province or a sea. Pinch or scroll to zoom, drag to pan, double-tap to zoom in. Green dots mark where the chosen army can march; red dashes mark what it can strike this turn.</p>
     <p class="sub ctr">Rivals: ${diff().n.toLowerCase()} · ${G.turn} turn${G.turn === 1 ? '' : 's'} played</p>
-    <div class="row"><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
+    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
 }
+
+// progress toward the goal chosen at the start
+function crownLine(k) {
+  const K = KINGDOMS[k], pr = crownProgress(me(), k);
+  if (wears(me(), k)) return `<p>${ico('crown')} <b>King of ${K.n}</b> <span class="good">done</span></p>`;
+  if (G.crowns[k]) return `<p>${ico('crown')} King of ${K.n}: <span class="bad">worn by ${fname(G.crowns[k])}</span>. Take its crown cities to win it back.</p>`;
+  return `<p>${ico('crown')} King of ${K.n}: ${pr.have} of ${K.need} provinces, ${pr.keys} of ${K.keys.length} crown cities (${K.keys.map(id => P(id).name).join(', ')})</p><div class="bar"><i style="width:${pct(Math.min(pr.have, K.need) + pr.keys * 3, K.need + K.keys.length * 3)}%"></i></div>`;
+}
+function goalHtml(held) {
+  const g = goalId(), rivals = alive().length - 1;
+  const fall = `<p class="sub">Take a house's seat (${ico('crown')}) and you win it and every province beside it; a house with four connected provinces left rallies once under an heir, the rest falls to its castellans.</p>`;
+  const size = owned(me()).length > 15 ? `<p class="sub">A realm this size yields ${Math.round(adminMult(me()) * 100)}% of its income.</p>` : '';
+  if (g === 'kingdom') return `<p>${GOALS.kingdom.d}</p>${crownLine('franks')}<p class="sub">Any house that is crowned King of the Franks first wins. Breaking every rival also wins.</p>${size}`;
+  if (g === 'empire') return `<p>${GOALS.empire.d}</p>${crownLine('franks')}${crownLine('germans')}${crownLine('italians')}<p>Empire: ${held} of ${empireNeed()} provinces needed (of ${EMPIRE.length})</p><div class="bar"><i style="width:${pct(Math.min(held, empireNeed()), empireNeed())}%"></i></div><p class="sub">You need the Franks and one of Germany or Italy. Any house that gets there first wins.</p>${size}`;
+  return `<p>Break every rival house, including rebels and any kingdom that rises against you, and you will be crowned Emperor at Aachen in Charlemagne's place. <b>${rivals}</b> rival house${rivals === 1 ? '' : 's'} still stand${rivals === 1 ? 's' : ''}.</p>${fall}<p class="sub">You hold ${held} of the ${EMPIRE.length} provinces of Charlemagne's old empire.</p><div class="bar"><i style="width:${pct(held, EMPIRE.length)}%"></i></div>${size}`;
+}
+function goalCount(held) { const g = goalId(); return g === 'kingdom' ? (wears(me(), 'franks') ? 'crowned' : `${crownProgress(me(), 'franks').have}/${KINGDOMS.franks.need}`) : g === 'empire' ? `${held}/${empireNeed()}` : `${alive().length - 1} left`; }
 
 // ================= PROVINCE =================
 const PANEL = { tab: null };
@@ -318,6 +336,7 @@ function foreignPanel(p, F, A) {
       h += `<div class="notebox">${ico('tent')} Army ${ARMY_NUM(A)} besieges ${p.name}. Each turn the garrison starves and the walls weaken.</div><p class="units">${uStr(A, false)}</p>`;
       cta += `<div class="grid2" style="margin:0"><button class="btn" onclick="act('bombard')" ${A.cat && !A.bombarded && !p.ruined && p.b.castle ? '' : 'disabled'}><span class="lbl">${ico('cat')}Bombard</span><small>${A.cat ? A.cat * catShots(me(), A) + ' shots' : 'no catapults'}${A.bombarded ? ' · done' : ''}${p.ruined ? ' · walls already down' : ''}</small></button>
         <button class="btn red" onclick="openPreBattle('assault','${p.id}')" ${A.stormed ? 'disabled' : ''}><span class="lbl">${ico('swords')}Storm the walls</span><small>odds ${oddsTxt(estimateWin(assaultCfg(me(), A, p, 'balanced'), 30))}</small></button></div>
+        <div class="grid2" style="margin:0"><button class="btn sm" onclick="openMine('${p.id}')" ${canMine(A, p) ? '' : 'disabled'}><span class="lbl">${ico('mine')}Dig a mine</span><small>${A.foot >= 4 ? 'instead of bombarding' : 'needs 4 footmen'}</small></button><button class="btn sm" onclick="act('autobomb')" ${A.cat && !A.bombarded && !p.ruined && p.b.castle ? '' : 'disabled'}><span class="lbl">${ico('skip')}Auto-bombard</span></button></div>
         <button class="btn sm ghost" onclick="act('lift')">Lift the siege</button>`;
     } else if (bz && bz.fid === me()) { h += `<p class="sub">Army ${ARMY_NUM(bz.a)} is besieging ${p.name}.</p>`; cta += `<button class="btn gold" onclick="pickArmy('${bz.a.id}')"><span class="lbl">${ico('tent')}Command army ${ARMY_NUM(bz.a)}</span></button>`; }
     else if (bz) h += `<p class="sub">${FAC(bz.fid).name} is already besieging it.</p>`;
@@ -340,7 +359,11 @@ function foreignPanel(p, F, A) {
     if (!p.ally) {
       const c = allyCost(me(), p);
       h += `<h3>Alliance</h3><p>Pay ${p.lord} to swear to you. You take half the income, control the buildings and can buy troops for the garrison. Allies count toward the empire, and your armies may march through their land.</p>`;
-      if (canAlly(me(), p)) cta += `<button class="btn gold" onclick="act('ally')" ${F.gold >= c ? '' : 'disabled'}><span class="lbl">${ico('handshake')}Offer alliance</span><small>${c} d${foreign(me()) && p.r === 'fr' ? ' (French lords ask double of foreigners)' : ''}</small></button>`;
+      if (canAlly(me(), p)) {
+        cta += `<button class="btn gold" onclick="act('ally')" ${F.gold >= c ? '' : 'disabled'}><span class="lbl">${ico('handshake')}Offer alliance</span><small>${c} d${foreign(me()) && p.r === 'fr' ? ' (French lords ask double of foreigners)' : ''}</small></button>`;
+        h += `<h3>A charter</h3><p class="sub">${forgeNote(p, F)}</p>`;
+        cta += `<button class="btn" onclick="openCharter('${p.id}')" ${canForge(p, F) ? '' : 'disabled'}><span class="lbl">${ico('scroll')}Forge an old charter</span><small>${FORGE_COST} d · needs a bishop · may be discovered</small></button>`;
+      }
       else h += `<p class="sub">You must border them by land or share a coast to treat with them${besiegerOf(p) ? ', and they must not be under siege' : ''}.</p>`;
     } else h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}.</p>`;
     if (p.heiress) { h += courtshipIntro(p, F); cta += courtshipBtn(p, F); }
@@ -377,6 +400,7 @@ function render() {
   else if (G.sel && G.sel[0] === 's') h = seaPanel(G.sel.slice(2));
   else h = overviewPanel();
   setHTML($('#pbody'), h);
+  renderTutor();
 }
 
 // ================= ACTIONS =================
@@ -388,6 +412,7 @@ function breakPeace(p) {
 }
 function act(c, a) {
   const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null, F = G.fac[me()], A = myA();
+  tutorDid(c);
   switch (c) {
     case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a) }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('coin'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
     case 'raise': {
@@ -406,6 +431,7 @@ function act(c, a) {
     case 'move': { const was = A.siege; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; toast(`Army ${ARMY_NUM(A)} marches to ${p.name}`, 'flag'); hint('army'); } break; }
     case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
+    case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;
     case 'lift': note(`You lift the siege of ${p.name}.`); A.siege = null; A.loc = nearestHeld(me(), p.id); break;
     case 'ally': if (makeAlly(me(), p)) { sfx('bell'); flashProv(p.id); report('A new ally', `${p.lord} of ${p.name} swears to you. Half of the province's income is yours.`); } break;
     case 'ship': if (buildShip(me(), p, a)) { sfx('ship'); toast('A longship is launched', 'ship'); } break;
@@ -443,17 +469,21 @@ function playerEndTurn(force) {
     }
   }
   closeModal(); closeDrawer(); closeHint();
+  tutorDid('end');
+  if (G.raid) raidAutoQuiet();
   for (const o of [...G.offers]) answerOffer(o.fid, false);
   if (G.diplo) answerDiplo(G.diplo.id, false);
   if (G.court) cancelCourt(me());
   endTurn(me());
   const firstLog = G.log[0];
+  const snap = replaySnap();
   runAITurns();
+  maybeRaid();
   const idx = firstLog ? G.log.indexOf(firstLog) : G.log.length;
   const fresh = G.log.slice(0, idx < 0 ? G.log.length : idx).map(l => l.text).reverse();
   const lines = G.order.filter(f => f !== me()).map(f => ({ f, t: fresh.find(t => t.startsWith(FAC(f).name + ' ') || t.includes(FAC(f).name)) || '' }));
   G.unread = (G.unread || 0) + fresh.length;
   G.sel = null; G.endWarned = false; PANEL.tab = null;
   save();
-  runTurnOverlay(G.order, lines, () => { render(); sfx('bell'); buzz(20); if (isPhone()) setSheet('peek'); showReports(); if (G.turn === TRUCE) hint('endturn'); });
+  runTurnOverlay(G.order, lines, () => { render(); sfx('bell'); buzz(20); if (isPhone()) setSheet('peek'); showReports(); if (G.turn === TRUCE) hint('endturn'); }, snap);
 }
