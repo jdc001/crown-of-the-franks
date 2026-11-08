@@ -15,12 +15,23 @@ function assaultCfg(fid, A, p, aSt, dSt) {
   return { A: armySide(A), D: defenders(p), castle: !!p.b.castle, wallLvl: wallLvl(p), castleLv: castleLv(p), moat: !!(p.b.moat && !p.ruined), ruined: !!p.ruined,
     aSt, dSt: dSt || defStance(p, power(armySide(A))), aGen: armyGen(fid, A), dGen: defGen(p), aMod: mods(fid), dMod: mods(p.owner), aBon, dBon, dRes: armySize(A) >= 9 && fighters(defenders(p)) >= 9 && !p.b.castle };
 }
+// a lord whose host is beaten may be taken in the rout, even if some of his men get away: the worse the defeat, the likelier
+function maybeTakeLord(fid, A, captor, s0) {
+  if (A.id !== 'a0' || !armySize(A) || !captor || !G.fac[captor] || !G.fac[captor].alive || G.fac[fid].captive) return false;
+  const lost = 1 - armySize(A) / Math.max(1, s0);
+  if (Math.random() > clamp(0.2 + 0.5 * lost, 0, 0.6)) return false;
+  const back = P(nearestHeld(fid, A.loc || homeOf(fid)) || homeOf(fid));
+  if (back && back.owner === fid) for (const u of ['foot', 'bow', 'cav', 'cat']) back.gar[u] += A[u];
+  loseArmy(fid, A, captor);
+  return true;
+}
 function resolveAssault(fid, A, p, res, cfg) {
-  const prev = p.owner, prevAlly = p.ally;
+  const prev = p.owner, prevAlly = p.ally, s0 = armySize(A);
   setArmy(A, res.A); applyDefLoss(p, cfg.D, res.D);
   A.acted = true; A.stormed = true; A.idle = 0;
   if (res.won) capture(p, fid);
   else if (armySize(A) === 0) loseArmy(fid, A, prev);
+  else maybeTakeLord(fid, A, prev, s0);
   return { prev, prevAlly };
 }
 function reliefCfg(fid, A, p, aSt) {
@@ -29,11 +40,11 @@ function reliefCfg(fid, A, p, aSt) {
     aGen: armyGen(fid, A), dGen: armyGen(b.fid, Bz), aMod: mods(fid), dMod: mods(b.fid), aBon: bonus(fid), dBon: bonus(b.fid), besieger: b.fid, bArmy: Bz.id, dRes: armySize(Bz) >= 9 };
 }
 function resolveRelief(fid, A, p, res, cfg) {
-  const b = cfg.besieger, Bz = army(b, cfg.bArmy);
+  const b = cfg.besieger, Bz = army(b, cfg.bArmy), sA = armySize(A), sB = armySize(Bz);
   setArmy(A, res.A); setArmy(Bz, res.D); A.acted = true; A.siege = null; A.idle = 0;
-  if (res.won) { A.loc = p.id; if (armySize(Bz) === 0) loseArmy(b, Bz, fid); else { Bz.siege = null; Bz.loc = nearestHeld(b, p.id); } }
+  if (res.won) { A.loc = p.id; if (armySize(Bz) === 0) loseArmy(b, Bz, fid); else { Bz.siege = null; Bz.loc = nearestHeld(b, p.id); maybeTakeLord(b, Bz, fid, sB); } }
   else if (armySize(A) === 0) loseArmy(fid, A, b);
-  else A.loc = nearestHeld(fid, p.id);
+  else { A.loc = nearestHeld(fid, p.id); maybeTakeLord(fid, A, b, sA); }
 }
 function aiStanceAtt(ap, dp, castle) { return castle ? (ap > dp * 1.8 ? 'aggressive' : 'balanced') : autoStance(ap, dp, false, false); }
 
