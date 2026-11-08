@@ -242,6 +242,7 @@ function renderDock() {
   setHTML(d, `
     <button class="dk${!sel && !drawerOpen() ? ' on' : ''}" onclick="dockRealm()">${ico('map')}Realm</button>
     <button class="dk" onclick="openCourt()">${ico('fleur')}Court</button>
+    <button class="dk" onclick="openDiplo()">${ico('handshake')}Envoys</button>
     <button class="dk" onclick="openPope()">${ico('church')}Church</button>
     <button class="dk${drawerOpen() ? ' on' : ''}" onclick="openLog()">${ico('scroll')}Chronicle${G.unread ? `<span class="badge">${G.unread}</span>` : ''}</button>
     <button class="dk end${endTurnReady() ? ' pulse' : ''}" onclick="playerEndTurn()">${ico('next')}End turn</button>`);

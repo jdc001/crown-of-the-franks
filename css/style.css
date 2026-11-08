@@ -486,3 +486,9 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .bhud .tag { background: #00000066; border-color: #e2b33c88; color: var(--vel); }
 
 .garb text { font: 700 14px var(--body, Georgia, serif); fill: #2a1d12; }
+
+.dpick { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+.dpick button { position: relative; display: inline-flex; align-items: center; gap: 4px; background: #fff3; border: 2px solid var(--line2, #c9b48a); border-radius: 10px; padding: 3px 8px 3px 4px; cursor: pointer; font: 600 13px var(--body); color: var(--ink); }
+.dpick button.on { border-color: var(--gold2); background: #fff6; }
+.dpick button i { position: absolute; right: -2px; bottom: -2px; font-style: normal; font-size: 11px; line-height: 16px; width: 16px; height: 16px; border-radius: 8px; background: var(--ink2); color: #fff; }
+.seg button:disabled { opacity: .4; }

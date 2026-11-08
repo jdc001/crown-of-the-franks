@@ -45,6 +45,7 @@ function renderHeader() {
     <div class="hchips">${chips.join('')}</div>
     <div class="hbtns">
       <button class="btn sm desk" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>
+      <button class="btn sm desk" onclick="openDiplo()"><span class="lbl">${ico('handshake')}Diplomacy</span></button>
       <button class="btn sm desk" onclick="openPope()"><span class="lbl">${ico('church')}Church</span></button>
       <button class="btn sm desk ibtn" onclick="openLog()" title="Chronicle" style="position:relative">${ico('scroll')}${G.unread ? `<span style="position:absolute;top:-4px;right:-4px;background:#b8342c;color:#fff;border-radius:9px;font-size:10px;padding:1px 5px">${G.unread}</span>` : ''}</button>
       <button class="btn sm ibtn" onclick="openSettings()" title="Settings">${ico('gear')}</button>
@@ -344,7 +345,7 @@ function courtshipBtn(p, F) {
 function foreignPanel(p, F, A) {
   const tabs = [{ id: 'war', n: 'War', ic: 'swords' }];
   if (!p.owner) tabs.push({ id: 'dip', n: 'Diplomacy', ic: 'handshake', dot: (p.heiress && F.sons && !F.proposed) || (canAlly(me(), p) && F.gold >= allyCost(me(), p)) });
-  if (p.owner && p.owner !== me()) tabs.push({ id: 'church', n: 'Church', ic: 'church' });
+  if (p.owner && p.owner !== me()) tabs.push({ id: 'treaty', n: 'Envoys', ic: 'handshake' }, { id: 'church', n: 'Church', ic: 'church' });
   const cur = PANEL.tab && tabs.some(t => t.id === PANEL.tab) ? PANEL.tab : 'war';
   let h = tabsHtml(tabs, cur), cta = '';
   if (cur === 'war') {
@@ -353,7 +354,7 @@ function foreignPanel(p, F, A) {
     const s = strikeFrom(me(), A, p);
     const peace = p.owner && truce() && F.excom < 1;
     const tr = p.owner ? G.truces.filter(t => (t.a === me() && t.b === p.owner) || (t.b === me() && t.a === p.owner)) : [];
-    if (p.owner && atPeace(me(), p.owner)) h += tr.length ? `<div class="notebox">${ico('dove')} ${tr[0].pact ? 'A marriage' : 'A Truce of God'} binds you and ${FAC(p.owner).name}. Neither may attack the other until ${dateStr(tr.reduce((a, t) => Math.max(a, t.until), 0))}.</div>`
+    if (p.owner && atPeace(me(), p.owner)) h += tr.length ? `<div class="notebox">${ico('dove')} ${tr.some(x => x.treaty) ? 'A sworn truce' : tr[0].pact ? 'A marriage' : 'A Truce of God'} binds you and ${FAC(p.owner).name}. Neither may attack the other until ${dateStr(tr.reduce((a, t) => Math.max(a, t.until), 0))}.</div>`
       : isKing(me()) ? `<div class="notebox">${ico('handshake')} ${FAC(p.owner).name} is your sworn man. Declare his fiefs forfeit under the crown before you make war on him.</div>`
       : `<div class="notebox">${ico('handshake')} You have done homage to ${FAC(p.owner).name}, your king. Renounce it under the crown before you make war on him.</div>`;
     else if (slotState(A) !== 'active') h += `<p class="sub">${slotState(A) === 'captive' ? 'Your lord is a prisoner. Pay his ransom, or command another army.' : 'This army is not in the field.'}</p>`;
@@ -392,6 +393,10 @@ function foreignPanel(p, F, A) {
       else h += `<p class="sub">You must border them to treat with them${besiegerOf(p) ? ', and they must not be under siege' : ''}.</p>`;
     } else h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}.</p>`;
     if (p.heiress) { h += courtshipIntro(p, F); cta += courtshipBtn(p, F); }
+  } else if (cur === 'treaty') {
+    const o = p.owner, pu = peaceUntil(me(), o);
+    h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.${atPeace(me(), o) ? (pu > G.turn ? ` You are at peace until ${dateStr(pu)}.` : ' An oath of homage binds you.') : ' No truce binds you.'}</p><p class="sub">Send envoys to offer a truce of one to five years, or to ask them to join a war on a third house. Silver or a county can sweeten either.</p>`;
+    cta += `<button class="btn gold" onclick="openDiplo('${o}')"><span class="lbl">${ico('handshake')}Send envoys to ${esc(FAC(o).name)}</span><small>${sentTo(o) ? 'already sent this turn' : 'truce · joint war · marriage'}</small></button>`;
   } else {
     h += `<h3>Interdict</h3><p>${ico('interdict')} Ask the Pope to lay ${p.name} under interdict: the churches close and the province pays nothing for 4 turns.</p><p class="sub">${popeCost(me(), 'interdict')} d · ${Math.round(popeChance(me(), 'interdict', p.id) * 100)}% chance. One petition a turn.${F.popeUsed ? ' <span class="bad">You have already petitioned this turn.</span>' : ''}</p>`;
     cta += `<button class="btn" onclick="doPope('interdict','${p.id}')" ${!F.popeUsed && F.gold >= popeCost(me(), 'interdict') ? '' : 'disabled'}><span class="lbl">${ico('interdict')}Interdict ${p.name}</span><small>${popeCost(me(), 'interdict')} d</small></button><button class="btn sm ghost" onclick="openPope()">Open the Church</button>`;
