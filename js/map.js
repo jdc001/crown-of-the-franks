@@ -150,10 +150,13 @@ function initMapInput() {
 }
 function tapMap(t) {
   if (!t || !t.closest) return;
+  // tapping one of your banners commands that army and opens its county
+  const mb = t.closest('[id^="mb-"]'), ma = mb ? army(me(), mb.id.slice(3)) : null;
   const c = t.closest('[data-id]');
-  const sel = c ? 'p:' + c.dataset.id : null;
+  const sel = ma && ma.loc ? 'p:' + ma.loc : c ? 'p:' + c.dataset.id : null;
   const same = sel === G.sel;
   G.sel = sel;
+  if (ma) G.army = ma.id; else if (sel) armyAt(sel.slice(2));
   sfx('click'); buzz(8);
   // the open tab (army, build, raise...) stays open from one county to the next
   render(); $('#pbody').scrollTop = 0;

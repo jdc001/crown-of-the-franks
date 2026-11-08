@@ -6,6 +6,13 @@ function myA() {
   if (!a || !armyUsable(me(), a)) a = usableArmies(me())[0] || lordArmy(me());
   G.army = a.id; return a;
 }
+// selecting a county where one of your armies stands (or lays siege) puts that army under command,
+// unless the army you already command is there
+function armyAt(id) {
+  const here = usableArmies(me()).filter(a => a.loc === id || a.siege === id);
+  if (!here.length || here.some(a => a.id === G.army)) return;
+  G.army = (here.find(a => !a.acted) || here[0]).id;
+}
 function pickArmy(id) { G.army = id; sfx('click'); render(); const a = army(me(), id); if (a.loc && !G.sel) focusProv(a.loc, VIEW.w); }
 const ARMY_NUM = a => ARMY_IDS.indexOf(a.id) + 1;
 function armyPay(a) { let u = 0; for (const t of ['foot', 'bow', 'cav', 'cat']) u += a[t] * UPKEEP[t]; return Math.ceil(u); }
@@ -124,7 +131,7 @@ function marriageHtml() {
   h += `<p class="sub" style="margin-top:10px">Marriage pacts with rival houses (${PACT_COST} d in gifts; peace for ${PACT_TURNS} turns, neither may attack the other):</p><div class="grid">${foes.map(f => `<button class="btn" onclick="doPact('${f}')" ${canPact(me(), f) && F.gold >= PACT_COST ? '' : 'disabled'}><span class="lbl">${shield(f, 14)} ${FAC(f).name}</span><small>${atPeace(me(), f) ? 'already at peace' : recentPeace(me(), f) ? 'too soon after the last peace' : Math.round(pactChance(me(), f) * 100) + '% chance'}</small></button>`).join('')}</div>`;
   return h;
 }
-function goProv(id) { G.sel = 'p:' + id; render(); focusProv(id); if (isPhone()) setSheet('half'); }
+function goProv(id) { G.sel = 'p:' + id; armyAt(id); render(); focusProv(id); if (isPhone()) setSheet('half'); }
 function unrestBox(p) {
   const F = G.fac[me()], u = F.unrest; if (!u || (p && u.seed !== p.id)) return '';
   const left = u.at - G.turn, covered = unrestCovered(me());
