@@ -250,10 +250,16 @@ function runBattle(cfg) {
   if (!B.done) endBattle(B, 1, 'time');
   return battleResult(B);
 }
+// the odds shown on buttons are re-asked on every redraw; the same battle gets the same answer from a small cache
+const EWC = new Map();
 function estimateWin(cfg, n = 40) {
+  const key = n + JSON.stringify(cfg);
+  if (EWC.has(key)) return EWC.get(key);
   let w = 0;
   for (let i = 0; i < n; i++) if (runBattle(cfg).won) w++;
-  return Math.round(w / n * 100);
+  const v = Math.round(w / n * 100);
+  if (EWC.size > 300) EWC.clear();
+  EWC.set(key, v); return v;
 }
 function autoStance(myPow, theirPow, defending, castle) {
   if (defending && castle) return 'defensive';

@@ -82,4 +82,5 @@ function injectIconSprite() {
   document.body.insertBefore(s, document.body.firstChild);
 }
 // standalone svg for use inside the map overlay (which is its own SVG, so <use> works there too)
-const mapIco = (name, x, y, size, extra = '') => `<use href="#i-${name}" x="${x - size / 2}" y="${y - size / 2}" width="${size}" height="${size}" ${extra}/>`;
+// drawn inline rather than as <use>: every <use> clones its symbol into a hidden copy, which makes the map slow to rebuild
+const mapIco = (name, x, y, size, extra = '') => `<g transform="translate(${(x - size / 2).toFixed(1)},${(y - size / 2).toFixed(1)}) scale(${(size / 24).toFixed(3)})" ${extra}>${ICONS[name]}</g>`;

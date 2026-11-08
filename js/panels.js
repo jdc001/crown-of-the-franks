@@ -20,12 +20,12 @@ function renderArmyBar() {
   let el = $('#armybar');
   if (!el) { el = document.createElement('div'); el.id = 'armybar'; $('#mapwrap').appendChild(el); }
   const A = myA();
-  el.innerHTML = armiesOf(me()).map(a => {
+  setHTML(el, armiesOf(me()).map(a => {
     const st = slotState(a), n = armySize(a), on = a.id === A.id;
     if (st === 'locked') return `<button class="ab lock" onclick="openCourt()" title="${ARMY_IDS.indexOf(a.id) === 1 ? 'Hold 8 provinces to field a second army' : 'Wear a crown to field a third army'}">${ico('lock')}<span>${ARMY_NUM(a)}</span></button>`;
     if (st === 'nogen') return `<button class="ab lock" onclick="openCourt()" title="Needs a general">${ico('fleur')}<span>${ARMY_NUM(a)}</span></button>`;
     return `<button class="ab${on ? ' on' : ''}${a.acted ? ' done' : ''}" onclick="pickArmy('${a.id}')"><b>${ARMY_NUM(a)}</b><span class="n">${st === 'captive' ? ico('chain') : ico('foot') + n}</span><small>${st === 'captive' ? 'captive' : (a.loc ? P(a.loc).name : '—')}${a.siege ? ' ⚔' : ''}</small><small class="mv">${st === 'captive' ? '' : a.acted ? 'done' : a.mp + '/' + MOVES + ' mv'}</small></button>`;
-  }).join('');
+  }).join(''));
 }
 
 // ================= HEADER =================
@@ -40,7 +40,7 @@ function renderHeader() {
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
   if (F.captive) chips.push(`<span class="chip warn btn-like" onclick="G.sel=null;render();setSheet('full')" title="Your lord is a prisoner">${ico('chain')}</span>`);
   if (G.offers.length) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="Ransom offers">${ico('coin')}${G.offers.length}</span>`);
-  $('#hdr').innerHTML = `<div class="hfac">${shield(me(), 30)}<div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))} · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</div></div></div>
+  setHTML($('#hdr'), `<div class="hfac">${shield(me(), 30)}<div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))} · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</div></div></div>
     <div class="hchips">${chips.join('')}</div>
     <div class="hbtns">
       <button class="btn sm desk" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>
@@ -48,7 +48,7 @@ function renderHeader() {
       <button class="btn sm desk ibtn" onclick="openLog()" title="Chronicle" style="position:relative">${ico('scroll')}${G.unread ? `<span style="position:absolute;top:-4px;right:-4px;background:#b8342c;color:#fff;border-radius:9px;font-size:10px;padding:1px 5px">${G.unread}</span>` : ''}</button>
       <button class="btn sm ibtn" onclick="openSettings()" title="Settings">${ico('gear')}</button>
       <button class="btn sm gold desk" onclick="playerEndTurn()"><span class="lbl">End turn ${ico('next')}</span></button>
-    </div>`;
+    </div>`);
 }
 
 // ================= SHARED FRAGMENTS =================
@@ -376,7 +376,7 @@ function render() {
   if (G.sel && G.sel[0] === 'p') h = provPanel(P(G.sel.slice(2)));
   else if (G.sel && G.sel[0] === 's') h = seaPanel(G.sel.slice(2));
   else h = overviewPanel();
-  $('#pbody').innerHTML = h;
+  setHTML($('#pbody'), h);
 }
 
 // ================= ACTIONS =================

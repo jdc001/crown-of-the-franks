@@ -151,6 +151,8 @@ function shield(fid, size = 26, flag) {
   return `<svg xmlns="http://www.w3.org/2000/svg" class="shield" viewBox="0 0 40 48" width="${size}" height="${Math.round(size * 1.2)}"><defs><clipPath id="${id}"><path d="${path}"/></clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs><g clip-path="url(#${id})"><rect width="40" height="48" fill="${a.f}"/>${ch}<rect width="40" height="48" fill="url(#${id}g)"/></g><path d="${path}" fill="none" stroke="#2a1d12" stroke-width="2.4"/></svg>`;
 }
 const fname = fid => fid ? FAC(fid).name : '';
+// replace an element's contents only when they changed (each shield carries a fresh id, so ids are ignored in the comparison)
+function setHTML(el, h) { if (!el) return false; const k = h.replace(/sh\d+/g, ''); if (el._h === k) return false; el._h = k; el.innerHTML = h; return true; }
 const armsCache = {};
 function armsImage(fid) {
   const key = fid || '_';
@@ -256,12 +258,12 @@ function renderDock() {
   const sel = G.sel;
   const F = G.fac[me()];
   const alerts = (G.offers.length || 0) + (F.captive ? 1 : 0);
-  d.innerHTML = `
+  setHTML(d, `
     <button class="dk${!sel && !drawerOpen() ? ' on' : ''}" onclick="dockRealm()">${ico('map')}Realm</button>
     <button class="dk" onclick="openCourt()">${ico('fleur')}Court</button>
     <button class="dk" onclick="openPope()">${ico('church')}Church</button>
     <button class="dk${drawerOpen() ? ' on' : ''}" onclick="openLog()">${ico('scroll')}Chronicle${G.unread ? `<span class="badge">${G.unread}</span>` : ''}</button>
-    <button class="dk end${endTurnReady() ? ' pulse' : ''}" onclick="playerEndTurn()">${ico('next')}End turn</button>`;
+    <button class="dk end${endTurnReady() ? ' pulse' : ''}" onclick="playerEndTurn()">${ico('next')}End turn</button>`);
 }
 function dockRealm() { closeDrawer(); if (G.sel) { G.sel = null; render(); } setSheet(SHEET.state === 'peek' ? 'half' : SHEET.state === 'half' ? 'full' : 'half'); }
 function endTurnReady() { return usableArmies(me()).every(a => a.acted || armySize(a) === 0); }

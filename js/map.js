@@ -91,6 +91,7 @@ function buildMap() {
   <g transform="translate(${px(-9.4)},${py(47.6)})" class="rose"><circle r="36" fill="#efe3c4aa" stroke="#3a2b1b" stroke-width="1.2"/><circle r="30" fill="none" stroke="#b8892c" stroke-width="1"/><path d="M0,-46 L7,0 L0,46 L-7,0Z M-46,0 L0,-7 L46,0 L0,7Z" fill="#8e1f1b" stroke="#2a1d12" stroke-width="1"/><path d="M0,-46 L7,0 L0,0Z M46,0 L0,7 L0,0Z M0,46 L-7,0 L0,0Z M-46,0 L0,-7 L0,0Z" fill="#e2b33c"/><text y="-52" text-anchor="middle" class="rosel">N</text></g>
   <g transform="translate(${px(-10.6)},${py(58.3)})"><rect width="250" height="66" rx="4" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/><rect x="5" y="5" width="240" height="56" fill="none" stroke="#b8892c" stroke-width="1.2"/><text x="125" y="31" class="cart">Francia et Regna Vicina</text><text x="125" y="50" class="cart2">Anno Domini 987</text></g>
   <rect id="tint" x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#000" fill-opacity="0" pointer-events="none"/>
+  <g id="ovsel" pointer-events="none"></g>
   <g id="ov"></g>`;
   mapEl.innerHTML = h;
   initMapInput();
@@ -157,7 +158,15 @@ function tapMap(t) {
     if (sel) { if (SHEET.state === 'peek' || same) setSheet('half'); }
     else setSheet('peek');
   }
-  if (sel && sel[0] === 'p') { hint('firstSel'); if (isPhone()) { const p = P(sel.slice(2)); centerOn(p.x, p.y, VIEW.w); } }
+  if (sel && sel[0] === 'p') {
+    hint('firstSel');
+    if (isPhone()) {
+      // re-centre only when the province would be near an edge or hidden by the sheet: every re-centre redraws the map
+      const p = P(sel.slice(2)), r = mapRect(), [sx, sy] = fromMap(p.x, p.y), { cy } = visibleCenter(), visH = r.height * cy * 2;
+      const inView = sx > r.left + r.width * 0.15 && sx < r.right - r.width * 0.15 && sy > r.top + visH * 0.15 && sy < r.top + visH * 0.85;
+      if (!inView) centerOn(p.x, p.y, VIEW.w);
+    }
+  }
 }
 
 // ---------- tooltip (desktop hover) ----------
@@ -216,9 +225,11 @@ function renderOverlay() {
     for (const id in md) if (md[id] > 0 && md[id] <= A.mp) o += `<path class="mrch" d="${CELLD[id]}" style="stroke-width:${3 * s}px"/>`;
     if (armySize(A) > 0) for (const p of provList()) { if (p.owner && truce()) continue; const bz = besieging(p); if (bz && bz.fid !== me()) continue; if (strikeFrom(me(), A, p)) o += `<path class="tgt" d="${CELLD[p.id]}" style="stroke-width:${3 * s}px"/>`; }
   }
-  if (G.sel && G.sel[0] === 'p') o += `<path class="selp" d="${CELLD[G.sel.slice(2)]}" style="stroke-width:${5 * s}px"/>`;
   o += '</g>';
-  if (G.sel && G.sel[0] === 's') o += `<g clip-path="url(#seaclip)"><path class="sels" d="${SEA_CELLD[G.sel.slice(2)]}" style="stroke-width:${4 * s}px"/></g>`;
+  // the selection lives in its own small layer, so tapping a province does not rebuild the whole overlay
+  const sel = G.sel && G.sel[0] === 'p' ? `<g clip-path="url(#landclip)"><path class="selp" d="${CELLD[G.sel.slice(2)]}" style="stroke-width:${5 * s}px"/></g>`
+    : G.sel && G.sel[0] === 's' ? `<g clip-path="url(#seaclip)"><path class="sels" d="${SEA_CELLD[G.sel.slice(2)]}" style="stroke-width:${4 * s}px"/></g>` : '';
+  setHTML($('#ovsel'), sel);
   const unrest = G.fac[me()].unrest;
   for (const p of provList()) {
     const T = (dx, dy, inner) => `<g class="pin" transform="translate(${(p.x + dx * s).toFixed(1)},${(p.y + dy * s).toFixed(1)}) scale(${s.toFixed(2)})">${inner}</g>`;
@@ -251,7 +262,7 @@ function renderOverlay() {
       o += `<g class="pin" transform="translate(${(x + k * 64 * s).toFixed(1)},${(y - 8 * s).toFixed(1)}) scale(${s.toFixed(2)})">${shipSvg(FAC(fid).color, f[fid])}</g>`; k++;
     }
   }
-  $('#ov').innerHTML = o;
+  setHTML($('#ov'), o);
   renderMyBanners(s, at); seasonTint();
 }
 // a small static map of a faction's starting lands, for the title-screen detail sheet

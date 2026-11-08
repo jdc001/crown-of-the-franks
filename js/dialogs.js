@@ -112,6 +112,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
+const APP_VERSION = '3.3';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -125,7 +126,7 @@ function openSettings() {
     <div class="setrow" style="flex-direction:column;align-items:stretch"><div class="l">The rival houses<small>How eagerly the computer houses turn on you. Takes effect from the next turn.</small></div>${diffSeg()}</div>
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
     <div class="row"><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
-    <p class="sub ctr" style="margin-top:12px">Add this page to your iPhone home screen for a full-screen game.</p>`, '', { closable: true });
+    <p class="sub ctr" style="margin-top:12px">Add this page to your iPhone home screen for a full-screen game.<br>Version ${APP_VERSION}</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
   if (k === 'speed') v = Number(v);

@@ -20,6 +20,8 @@
 html, body { margin: 0; height: 100%; background: var(--leather2); color: var(--ink); font-family: var(--body); overscroll-behavior: none; overflow: hidden; font-size: 16px; -webkit-text-size-adjust: 100%; }
 body { -webkit-user-select: none; user-select: none; }
 button { font: inherit; color: inherit; }
+/* no double-tap-zoom wait on taps anywhere (the map keeps its own touch-action: none) */
+html, body { touch-action: manipulation; }
 .ic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.22em; fill: currentColor; flex: none; }
 .ic.lg { width: 1.5em; height: 1.5em; }
 .ic.xl { width: 2.2em; height: 2.2em; }
