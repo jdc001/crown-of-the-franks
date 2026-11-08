@@ -34,7 +34,7 @@ Computer-only games with `tools/gsim.js 16 200 <goal>`: median length 108 turns 
 
 ## v3 notes
 
-v3 implements Jeff's edit notes in full. Every number in the notes is used as written.
+v3 implements the design notes in full. Every number in the notes is used as written.
 
 ## Files
 - `js/data.js` — houses (now 11, with Bavaria), provinces, constants (`TRUCE = 6`, `MOVES = 2`, `UPKEEP`)
@@ -42,7 +42,7 @@ v3 implements Jeff's edit notes in full. Every number in the notes is used as wr
 - `js/battle.js` — the battle model with reserve, horse orders, `startFight`, `commitReserve`, `orderCav`, `manualA`
 - `js/ai.js` — computer players: per-army war, difficulty knobs, idle marching, seat defence, concentration, recruiting with upkeep limits, generals, navy, courtship, envoys
 - `js/difficulty.js` — only `DIFF` and `diff()`
-- `js/audio.js` — unchanged from Jeff's original
+- `js/audio.js` — unchanged from the original
 - Presentation: `index.html`, `css/style.css`, `js/icons.js`, `js/view.js`, `js/map.js`, `js/panels.js`, `js/dialogs.js`, `js/battleview.js`, `js/catapult.js`, `js/app.js`, `service-worker.js` (bump `VERSION` and `APP_VERSION` in `dialogs.js` whenever a file changes)
 - v4 additions: `js/saves.js`, `js/replay.js`, `js/tutor.js`, `js/minigames.js`, `js/dealings.js`
 
@@ -52,7 +52,7 @@ v3 implements Jeff's edit notes in full. Every number in the notes is used as wr
 3. **Army concentration.** When a house has gained no province for six turns, its armies march to the strongest one and merge into it. Without it, two large houses traded empty border provinces for hundreds of turns, each capital untouchable by any single army. This is what makes the 2.4× capital-siege rule in section 8 ever fire late in a game.
 4. **Navy before recruiting** in the AI's turn order, so a house with nothing left to take by land funds ships before it spends the treasury on men.
 5. **Seat guard.** The smallest adequate army guards the seat, not the first one considered; otherwise the strongest army stood guard every turn.
-6. The second difficulty is labelled "Standard" in the interface (Jeff's name for it, "original", is kept in the code).
+6. The second difficulty is labelled "Standard" in the interface (the internal name, "original", is kept in the code).
 
 ## Measured against the notes
 Battle (equal 12/4/3 armies, balanced, 800 runs each): baseline 51% (notes: about 50); charge their horse 52 (50); raid the bowmen with their horse alive 28 (28); ride to the rear early 19 (14). Big 24/8/6 armies: no reserve 48 (50); commit at contact 57 (55); commit at +8 s 44 (44); never commit 32 (43).

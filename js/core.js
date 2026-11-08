@@ -11,6 +11,8 @@ const provList = () => Object.values(G.provs);
 const facIds = () => G.fdefs.map(f => f.id);
 const owned = fid => provList().filter(p => p.owner === fid);
 const allies = fid => provList().filter(p => !p.owner && p.ally === fid);
+// men kept in a county's garrison (not the levy, which every county raises by itself)
+const garMen = p => p.gar.foot + p.gar.bow + p.gar.cav;
 const holds = (fid, id) => { const p = P(id); return p.owner === fid || (!p.owner && p.ally === fid); };
 const homeOf = fid => FAC(fid).home;
 const adjTo = (p, fid) => ADJ[p.id].some(n => holds(fid, n));

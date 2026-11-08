@@ -234,6 +234,7 @@ function renderOverlay() {
   for (const p of provList()) {
     const T = (dx, dy, inner) => `<g class="pin" transform="translate(${(p.x + dx * s).toFixed(1)},${(p.y + dy * s).toFixed(1)}) scale(${s.toFixed(2)})">${inner}</g>`;
     if (p.b.castle) o += T(0, -6, castleIcon(p));
+    if (holds(me(), p.id) && (garMen(p) || p.gar.cat)) { const n = garMen(p), w = n > 99 ? 32 : n > 9 ? 25 : 19; o += T(-27, 0, `<g class="garb"><path d="M${-w / 2},-11 H${w / 2} V3 Q${w / 2},10 0,13 Q${-w / 2},10 ${-w / 2},3 Z" fill="#f3e8cc" stroke="#2a1d12" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle">${n}</text></g>`); }
     if (isCap(p)) o += T(0, -32, mapIco('crown', 0, 0, 24));
     if (p.heiress) o += T(-30, -2, mapIco('ring', 0, 0, 21));
     if (p.build) o += T(28, 0, mapIco('hammer', 0, 0, 18, 'style="color:#5c4630"'));

@@ -484,3 +484,5 @@ body.m .bord { min-height: 84px; }
 .ab.lock .ic { width: 16px; height: 16px; }
 body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4px 5px 3px; } body.m .ab small { max-width: 64px; }
 .bhud .tag { background: #00000066; border-color: #e2b33c88; color: var(--vel); }
+
+.garb text { font: 700 14px var(--body, Georgia, serif); fill: #2a1d12; }

@@ -70,6 +70,10 @@ function armiesHtml() {
     return `<div class="statcard${a.id === A.id && st === 'active' ? ' on' : ''}"><b>${ARMY_NUM(a)} · ${armyLabel(me(), a)}</b>${st === 'active' && a.acted ? ' <span class="tag">done</span>' : ''}${body}</div>`;
   }).join('');
 }
+function garrisonsHtml() {
+  const ps = provList().filter(p => holds(me(), p.id)).sort((a, b) => garMen(b) - garMen(a) || a.name.localeCompare(b.name));
+  return `<p class="sub">Men in a garrison stay put when your armies march. The number beside a castle on the map is its garrison. The levy is raised by each county and defends it too.</p><div class="rivals">${ps.map(p => `<div class="rival" onclick="goProv('${p.id}')"><div style="min-width:0"><b>${p.name}</b>${isCap(p) ? ' ' + ico('crown') : ''}<div class="sub" style="font-size:13px">${p.b.castle ? (p.ruined ? 'ruined castle' : CASTLE_N[castleLv(p)].toLowerCase() + ' · walls ' + p.walls + '%') : 'no castle'}${besieging(p) ? ' · <span class="bad">besieged</span>' : ''}</div></div><div class="pw"><b>${garMen(p)}</b>${p.gar.cat ? p.gar.cat + ' cat. · ' : ''}levy ${p.militia}</div></div>`).join('')}</div>`;
+}
 function crownsHtml() {
   const F = G.fac[me()], k = king(), others = alive().filter(f => f !== me());
   let h = '';
@@ -155,6 +159,7 @@ function overviewPanel() {
     ${unrestBox()}${envoyBox()}${fairOpen() ? `<div class="notebox good">${ico('market')} <b>The summer fair at Troyes is open</b> this turn only. Bring a purse of up to ${fairCap()} d and trade.<div class="row" style="margin-top:6px"><button class="btn gold sm" onclick="openFair()"><span class="lbl">${ico('market')}Go to the fair</span></button></div></div>` : ''}
     ${F.captive ? `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}` : ''}
     ${prisoners ? acc('prisoners', 'Your prisoners', 'chain', prisoners, G.offers.length ? G.offers.length + ' offer' + (G.offers.length > 1 ? 's' : '') : '') : ''}
+    ${acc('garrisons', 'Your garrisons', 'castle', garrisonsHtml(), owned(me()).reduce((a, p) => a + garMen(p), 0) + ' men')}
     ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing; armies in the field are paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d). Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
     ${acc('road', 'Your goal: ' + GOALS[goalId()].n, 'crown', goalHtml(held), goalCount(held))}
     ${acc('crowns', 'The crown and homage', 'crown', crownsHtml(), isKing(me()) ? vassals().length + ' sworn' : vassal(me()) ? 'sworn' : '')}
@@ -208,6 +213,7 @@ function provHead(p) {
   if (p.owner) tags.push(`<span class="tag">${ico('coin')}${provIncome(p)} d a turn${bz ? ' (blockaded)' : ''}${p.interdict > 0 ? ' (interdict)' : ''}</span>`);
   else if (p.ally) tags.push(`<span class="tag">${ico('coin')}${minorIncome(p)} d · half to ${fname(p.ally)}</span>`);
   else tags.push(`<span class="tag">${ico('coin')}worth ${p.base} d a turn</span>`);
+  if (holds(me(), p.id)) tags.push(`<span class="tag on">${ico('foot')}garrison ${garMen(p)}${p.gar.cat ? ' + ' + p.gar.cat + ' catapult' + (p.gar.cat > 1 ? 's' : '') : ''} · levy ${p.militia}</span>`);
   if (p.b.castle) tags.push(`<span class="tag">${ico('castle')}${p.ruined ? 'ruined' : CASTLE_N[castleLv(p)].replace(' castle', '')}${!p.ruined && p.walls < 100 ? ' ' + p.walls + '%' : ''}</span>`);
   for (const t of ['farm', 'market', 'port', 'mine', 'forge', 'armory', 'stables']) if (p.b[t]) tags.push(`<span class="tag on">${ico(BLD_ICON[t])}${BLD[t].n}${BLD[t].realm ? '' : ROMAN[p.b[t]]}</span>`);
   if (p.build) tags.push(`<span class="tag">${ico('hammer')}${p.build.type === 'castle' ? CASTLE_N[castleLv(p) + 1] : p.build.type === 'rebuild' ? 'Rebuilding' : BLD[p.build.type].n}: ${p.build.left} turn${p.build.left > 1 ? 's' : ''}</span>`);
@@ -225,7 +231,7 @@ function provHead(p) {
   return h;
 }
 function defenceHtml(p) {
-  let h = `<h3>Defences</h3>` + castleText(p) + `<p class="units">${uStr({ ...p.gar, militia: p.militia }, true)}</p>`;
+  let h = `<h3>Defences</h3>` + castleText(p) + `<p class="sub" style="margin:4px 0 0">Garrison: ${garMen(p)} men who stay when armies march away${p.b.castle ? '' : ' (no castle: only the levy holds it)'}. Levy: ${p.militia}, raised by the county itself.</p><p class="units">${uStr({ ...p.gar, militia: p.militia }, true)}</p>`;
   const dg = p.owner ? genAt(p.owner, p.id) : null;
   if (dg) h += `<p>${ico('fleur')} ${dg.n} commands here <span class="sub">(${genSummary(dg)})</span></p>`;
   const ao = p.owner || p.ally;
@@ -427,7 +433,7 @@ function act(c, a) {
     case 'genStay': { const g = F.gens.find(x => x.at === 'a0'); const o = F.gens.find(x => x.at === p.id); if (g) g.at = p.id; if (o) o.at = 'a0'; break; }
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
-    case 'move': { const was = A.siege; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; toast(`Army ${ARMY_NUM(A)} marches to ${p.name}`, 'flag'); hint('army'); } break; }
+    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
     case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;

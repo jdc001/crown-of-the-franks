@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -176,7 +176,7 @@ function openHelp() {
       <p><b>The reserve.</b> An army of 9 or more may hold back a third of its foot and bowmen. Commit them when the moment is right for a surge of +15% attack; a reserve never committed halves the losses of a beaten army and comes home intact. Reserve bowmen still shoot from behind the line.</p>
       <p><b>Battles and sieges, quickly.</b> Every battle can be auto-resolved from the pre-battle screen, and a siege can be auto-bombarded: the same rules, without the scene.</p>
       <p><b>Mining.</b> Instead of bombarding, an army of 4 or more footmen can dig a mine under the walls: steer the tunnel along the foundations, clear of rock, water and counter-mines. It brings down a section of wall whatever the walls are made of, so it is the better tool against stone.</p>
-      <p><b>Castles.</b> Wooden castle, stone castle, great walls, and a moat. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls, fire for the men inside, carcasses to spread plague, or volleys of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
+      <p><b>Castles.</b> Wooden castle, stone castle, great walls, and a moat. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls (one, or 3 that scatter wider), flaming oil for the men inside (one, or 3), and plague rats that gnaw at the garrison over your next few shots and may start a plague. A giant plague rat does the work of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
       <p><b>War buildings.</b> One forge (+15% hit points), one armory (+15% attack) and one royal stables (+25% cavalry) serve your whole realm.</p>
       <p><b>Captured lords.</b> If your lord's host is destroyed he is captured and his host cannot take the field. His captor may hold him up to three turns: a ransom after one turn costs twice your income, after two your full income, then half, and after three turns it must be accepted. Your generals' armies fight on.</p>`,
     court: `<p><b>Unrest.</b> Large realms breed unrest, sooner if they sprawl far from the seat. When the lords around a far province mutter, you have two turns to put an army of at least 8 men in that province or buy them off (40 d + 4 per county). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
@@ -257,7 +257,7 @@ function openFaction(fid) {
 function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; G.goal = setGoal(); G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
 function continueGame() { sndUnlock(); G = loadSave(); if (!G || G.v !== 8) { G = null; return showTitle(); } rebuildFmap(); if (!G.army) G.army = 'a0'; $('#title').style.display = 'none'; applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek'); }
 
-// ================= SPLASH SCENES (Jeff's) =================
+// ================= SPLASH SCENES =================
 const LATIN = { franks: 'REX FRANCORUM', english: 'REX ANGLORUM', germans: 'REX TEUTONICORUM', italians: 'REX ITALIAE', danes: 'REX DANORUM', emperor: 'IMPERATOR AUGUSTUS' };
 function embedShield(fid, x, y, size, flag) { return `<g transform="translate(${x},${y})">${shield(fid, size, flag)}</g>`; }
 function frame(inner, w = 600, h = 400) {

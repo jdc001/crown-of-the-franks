@@ -266,7 +266,7 @@ function aiBombard(fid, A, p) {
     }
   }
   A.bombarded = true;
-  if (p.owner === G.player || p.ally === G.player) note(`${FAC(fid).name}'s catapults pound ${p.name}: walls -${wl}%, ${kl} burned${pl ? ', and plague carcasses flung over the walls' : ''}.`);
+  if (p.owner === G.player || p.ally === G.player) note(`${FAC(fid).name}'s catapults pound ${p.name}: walls -${wl}%, ${kl} burned${pl ? ', and plague rats flung over the walls' : ''}.`);
 }
 function aiAssault(fid, A, p) {
   const ap = armyPowA(fid, A), dp = defPow(p);
