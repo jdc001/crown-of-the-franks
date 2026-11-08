@@ -1,0 +1,20 @@
+global.rnd=n=>Math.floor(Math.random()*n);global.pick=a=>a[rnd(a.length)];global.clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fs=require('fs');const src=fs.readFileSync(__dirname + '/../js/data.js','utf8')+'\n'+fs.readFileSync(__dirname + '/../js/battle.js','utf8');
+(0,eval)(src.replace(/'use strict';/g,'').replace(/\bconst (\w+) =/g,'var $1 =').replace(/\blet (\w+) =/g,'var $1 ='));
+const G_=B=>B.front[1]-B.front[0];
+const cfg=(aRes,dRes)=>({A:{militia:0,foot:12,bow:4,cav:3},D:{militia:0,foot:12,bow:4,cav:3},castle:false,aSt:'balanced',dSt:'balanced',aGen:{},dGen:{},aMod:0,dMod:0,aBon:{atk:0,hp:0,cav:0},dBon:{atk:0,hp:0,cav:0},aRes,dRes});
+const big=(aRes,dRes)=>({...cfg(aRes,dRes),A:{militia:0,foot:24,bow:8,cav:6},D:{militia:0,foot:24,bow:8,cav:6}});
+const N=800;
+function sim(c, hook){let w=0;for(let i=0;i<N;i++){const B=makeBattle(c);let g=0;while(!B.done&&g++<1000){if(hook)hook(B);battleStep(B,0.25);}if(!B.done)endBattle(B,1,'time');if(battleResult(B).won)w++;}return Math.round(100*w/N);}
+const ord=k=>B=>{if(!B.ordered[0]&&G_(B)<=300)orderCav(B,0,k)};
+console.log('baseline 12/4/3', sim(cfg(false,false)));
+console.log('manual, no orders', sim({...cfg(false,false),manualA:true}));
+console.log('order wing', sim({...cfg(false,false),manualA:true}, ord('wing')));
+console.log('raid archers (their horse alive)', sim({...cfg(false,false),manualA:true}, ord('archers')));
+console.log('ride rear early', sim({...cfg(false,false),manualA:true}, ord('rear')));
+console.log('horseless baseline', sim({...cfg(false,false),D:{militia:0,foot:12,bow:4,cav:0}}));
+console.log('raid vs horseless', sim({...cfg(false,false),manualA:true,D:{militia:0,foot:12,bow:4,cav:0}}, ord('archers')));
+console.log('big no reserve', sim(big(false,false)));
+console.log('big commit at contact', sim({...big(true,false),manualA:true}, B=>{if(B.contact&&B.res[0])commitReserve(B,0)}));
+console.log('big commit +8s', sim({...big(true,false),manualA:true}, B=>{if(B.contact&&B.res[0]){if(!B._c)B._c=B.t; if(B.t-B._c>=8)commitReserve(B,0)}}));
+console.log('big never commit', sim({...big(true,false),manualA:true}, B=>{if(B.res[0]){B._hold=1}}, ));
