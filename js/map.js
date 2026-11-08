@@ -2,7 +2,21 @@
 // ================= MAP =================
 const VIEW = { x: 0, y: 0, w: 600, h: 600 };
 let mapEl = null, ovQueued = false, viewAnim = null, ovScale = 0;
-function svgSize() { const r = mapEl.getBoundingClientRect(); return { w: Math.max(1, r.width), h: Math.max(1, r.height) }; }
+// measure the frame around the map, not the map itself: the map may be mid-gesture under a CSS transform
+const mapRect = () => $('#mapwrap').getBoundingClientRect();
+function svgSize() { const r = mapRect(); return { w: Math.max(1, r.width), h: Math.max(1, r.height) }; }
+// While a finger pans or pinches, the drawn map is slid and scaled as a picture (cheap, done by the GPU).
+// The real view is changed once, when the gesture ends, so the SVG is redrawn once instead of every frame.
+let GX = { dx: 0, dy: 0, k: 1 };
+function setMapTransform(dx, dy, k) { GX = { dx, dy, k }; mapEl.style.transform = (dx || dy || k !== 1) ? `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${k.toFixed(4)})` : ''; }
+function commitGesture() {
+  if (!GX.dx && !GX.dy && GX.k === 1) return;
+  const ppu = svgSize().w / VIEW.w;
+  VIEW.x -= GX.dx / (GX.k * ppu); VIEW.y -= GX.dy / (GX.k * ppu); VIEW.w /= GX.k;
+  applyView(); setMapTransform(0, 0, 1);
+}
+let animCur = null;
+function stopViewAnim() { if (viewAnim) { cancelAnimationFrame(viewAnim); viewAnim = null; } if (animCur) { Object.assign(VIEW, animCur); animCur = null; applyView(); setMapTransform(0, 0, 1); } }
 function applyView() {
   const s = svgSize();
   VIEW.h = VIEW.w * s.h / s.w;
@@ -22,24 +36,28 @@ function visibleCenter() {
 function centerOn(x, y, w, animate = true) {
   const s = svgSize(), { cx, cy } = visibleCenter();
   const nw = clamp(w || VIEW.w, 220, MW * 1.15), nh = nw * s.h / s.w;
-  const target = { x: x - nw * cx, y: y - nh * cy, w: nw };
-  if (!animate || !SET.motion) { Object.assign(VIEW, target); applyView(); return; }
-  const from = { x: VIEW.x, y: VIEW.y, w: VIEW.w }, t0 = performance.now(), dur = 420;
-  if (viewAnim) cancelAnimationFrame(viewAnim);
+  const target = { x: clamp(x - nw * cx, -150, MW - nw + 150), y: clamp(y - nh * cy, -150, MH - nh + 150), w: nw };
+  stopViewAnim(); commitGesture();
+  // a long jump is made at once: sliding the old picture would show empty edges for most of the way
+  const far = Math.hypot(target.x + nw / 2 - VIEW.x - VIEW.w / 2, target.y + nh / 2 - VIEW.y - VIEW.h / 2) > VIEW.w * 0.6 || nw / VIEW.w > 1.6 || VIEW.w / nw > 1.6;
+  if (!animate || !SET.motion || far) { Object.assign(VIEW, target); applyView(); return; }
+  const from = { x: VIEW.x, y: VIEW.y, w: VIEW.w }, ppu = s.w / VIEW.w, t0 = performance.now(), dur = 380;
   const tick = now => {
     const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    VIEW.x = from.x + (target.x - from.x) * e; VIEW.y = from.y + (target.y - from.y) * e; VIEW.w = from.w + (target.w - from.w) * e;
-    applyView();
-    if (k < 1) viewAnim = requestAnimationFrame(tick); else viewAnim = null;
+    const v = { x: from.x + (target.x - from.x) * e, y: from.y + (target.y - from.y) * e, w: from.w + (target.w - from.w) * e }, sc = from.w / v.w;
+    animCur = v; setMapTransform((from.x - v.x) * sc * ppu, (from.y - v.y) * sc * ppu, sc);
+    if (k < 1) viewAnim = requestAnimationFrame(tick);
+    else { viewAnim = null; animCur = null; Object.assign(VIEW, target); applyView(); setMapTransform(0, 0, 1); }
   };
   viewAnim = requestAnimationFrame(tick);
 }
 function zoomAt(f, cx, cy) {
+  stopViewAnim(); commitGesture();
   const nw = clamp(VIEW.w * f, 220, MW * 1.15), k = nw / VIEW.w;
   VIEW.x = cx - (cx - VIEW.x) * k; VIEW.y = cy - (cy - VIEW.y) * k; VIEW.w = nw; applyView();
 }
-function toMap(cx, cy) { const r = mapEl.getBoundingClientRect(); return [VIEW.x + (cx - r.left) / r.width * VIEW.w, VIEW.y + (cy - r.top) / r.height * VIEW.h]; }
-function fromMap(x, y) { const r = mapEl.getBoundingClientRect(); return [r.left + (x - VIEW.x) / VIEW.w * r.width, r.top + (y - VIEW.y) / VIEW.h * r.height]; }
+function toMap(cx, cy) { const r = mapRect(); return [VIEW.x + (cx - r.left) / r.width * VIEW.w, VIEW.y + (cy - r.top) / r.height * VIEW.h]; }
+function fromMap(x, y) { const r = mapRect(); return [r.left + (x - VIEW.x) / VIEW.w * r.width, r.top + (y - VIEW.y) / VIEW.h * r.height]; }
 function homeView(animate) { const p = P(homeOf(me())); centerOn(p.x, p.y + 10, isPhone() ? 520 : 620, animate); }
 function focusProv(id, w) { const p = P(id); centerOn(p.x, p.y, w || Math.min(VIEW.w, isPhone() ? 460 : 560)); }
 function zoomBtn(f) { const { cx, cy } = visibleCenter(); zoomAt(f, VIEW.x + VIEW.w * cx, VIEW.y + VIEW.h * cy); }
@@ -82,34 +100,38 @@ function ensureAllyPattern(fid) { if (document.getElementById('al-' + fid)) retu
 
 function initMapInput() {
   const ptrs = new Map(); let pinch = null, moved = false, downT = 0, downTarget = null, sx = 0, sy = 0, lastTap = 0, lastTapPos = null;
+  const startPinch = () => {
+    const [a, b] = [...ptrs.values()], r = mapRect();
+    const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+    pinch = { d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), k: GX.k, sx: (mx - GX.dx) / GX.k, sy: (my - GX.dy) / GX.k };
+  };
   mapEl.addEventListener('pointerdown', e => {
     sndUnlock(); hideTip();
-    if (viewAnim) { cancelAnimationFrame(viewAnim); viewAnim = null; }
+    stopViewAnim();
     mapEl.setPointerCapture(e.pointerId);
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 1) { moved = false; downT = Date.now(); downTarget = e.target; sx = e.clientX; sy = e.clientY; }
-    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), w: VIEW.w }; moved = true; }
+    if (ptrs.size === 2) { startPinch(); moved = true; }
   });
   mapEl.addEventListener('pointermove', e => {
     const p = ptrs.get(e.pointerId);
     if (!p) { if (e.pointerType === 'mouse' && !isPhone()) hoverTip(e); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
     if (ptrs.size === 1) {
       if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) moved = true;
-      const r = mapEl.getBoundingClientRect();
-      VIEW.x -= dx / r.width * VIEW.w; VIEW.y -= dy / r.height * VIEW.h; applyView();
-    }
-    p.x = e.clientX; p.y = e.clientY;
-    if (ptrs.size === 2 && pinch) {
-      const [a, b] = [...ptrs.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      const [cx, cy] = toMap((a.x + b.x) / 2, (a.y + b.y) / 2);
-      zoomAt((pinch.w * pinch.d / d) / VIEW.w, cx, cy);
+      if (moved) setMapTransform(GX.dx + dx, GX.dy + dy, GX.k);
+    } else if (ptrs.size === 2 && pinch) {
+      const [a, b] = [...ptrs.values()], r = mapRect();
+      const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+      const k = clamp(pinch.k * d / pinch.d, VIEW.w / (MW * 1.15), VIEW.w / 220);
+      setMapTransform(mx - k * pinch.sx, my - k * pinch.sy, k);
     }
   });
   const up = e => {
     ptrs.delete(e.pointerId);
     if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 0) commitGesture();
     if (ptrs.size === 0 && !moved && Date.now() - downT < 600) {
       const now = Date.now();
       if (now - lastTap < 320 && lastTapPos && Math.hypot(lastTapPos[0] - e.clientX, lastTapPos[1] - e.clientY) < 30) { const [cx, cy] = toMap(e.clientX, e.clientY); zoomAt(0.6, cx, cy); lastTap = 0; return; }
@@ -117,7 +139,7 @@ function initMapInput() {
       tapMap(downTarget);
     }
   };
-  mapEl.addEventListener('pointerup', up); mapEl.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = null; });
+  mapEl.addEventListener('pointerup', up); mapEl.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = null; if (!ptrs.size) commitGesture(); });
   mapEl.addEventListener('pointerleave', hideTip);
   mapEl.addEventListener('wheel', e => { e.preventDefault(); const [cx, cy] = toMap(e.clientX, e.clientY); zoomAt(Math.exp(e.deltaY * 0.0015), cx, cy); }, { passive: false });
   window.addEventListener('resize', () => { applyLayout(); if (G) applyView(); });

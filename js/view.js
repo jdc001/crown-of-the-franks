@@ -94,6 +94,8 @@ function showModal(html, cls, opts = {}) {
   c.innerHTML = (opts.closable ? `<button class="x" onclick="closeModal()" aria-label="Close">${ico('close')}</button>` : '') + html;
   $('#modal').classList.remove('hidden'); c.scrollTop = 0;
 }
+// an offscreen canvas for parts of a scene that do not change from frame to frame
+function makeLayer(w, h, dpr, fn) { const c = document.createElement('canvas'); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const g = c.getContext('2d'); g.scale(dpr, dpr); if (fn) fn(g); return c; }
 function closeModal() {
   $('#modal').classList.add('hidden');
   if (typeof CT !== 'undefined' && CT) { CT.dead = true; CT = null; }
@@ -147,10 +149,37 @@ function armsImage(fid) {
   if (!armsCache[key]) { const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(shield(fid, 40, true)); armsCache[key] = img; }
   return armsCache[key];
 }
+// the arms as a bitmap: drawing an SVG image into a canvas every frame is very slow on iOS
+const armsBmp = {};
+function armsSprite(fid) {
+  const key = fid || '_'; if (armsBmp[key]) return armsBmp[key];
+  const img = armsImage(fid); if (!img.complete || !img.naturalWidth) return null;
+  const d = Math.min(2, window.devicePixelRatio || 1);
+  return (armsBmp[key] = makeLayer(30, 36, d, g => g.drawImage(img, 0, 0, 30, 36)));
+}
+const MIXC = new Map();
 function mix(h1, h2, t) {
+  const key = h1 + h2 + t; const hit = MIXC.get(key); if (hit) return hit;
   const a = parseInt(h1.slice(1), 16), b = parseInt(h2.slice(1), 16);
   const c = s => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t);
-  return '#' + ((1 << 24) | (c(16) << 16) | (c(8) << 8) | c(0)).toString(16).slice(1);
+  const v = '#' + ((1 << 24) | (c(16) << 16) | (c(8) << 8) | c(0)).toString(16).slice(1);
+  MIXC.set(key, v); return v;
+}
+// the parchment grain, drawn once into a small PNG (an SVG noise filter re-renders on every repaint, which iOS does slowly)
+function makeTex() {
+  try {
+    const S = 240, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d'), img = g.createImageData(S, S), d = img.data;
+    const octs = [[10, 0.45], [30, 0.35], [80, 0.2]].map(([n, w]) => { const v = new Float32Array(n * n); for (let i = 0; i < v.length; i++) v[i] = Math.random(); return { n, w, v }; });
+    const samp = (o, x, y) => { const fx = x * o.n / S, fy = y * o.n / S, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, n = o.n;
+      const at = (i, j) => o.v[((j % n) * n) + (i % n)]; const a = at(x0, y0) * (1 - tx) + at(x0 + 1, y0) * tx, b = at(x0, y0 + 1) * (1 - tx) + at(x0 + 1, y0 + 1) * tx; return a * (1 - ty) + b * ty; };
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      let v = 0; for (const o of octs) v += samp(o, x, y) * o.w;
+      const k = (y * S + x) * 4; d[k] = 107; d[k + 1] = 77; d[k + 2] = 38; d[k + 3] = Math.round(0.11 * 255 * clamp((v - 0.5) * 1.8 + 0.5, 0, 1));
+    }
+    g.putImageData(img, 0, 0);
+    document.documentElement.style.setProperty('--tex', `url(${c.toDataURL('image/png')})`);
+  } catch (e) { }
 }
 const coin = n => `<b class="num">${n}</b>&thinsp;d`;
 const pct = (n, d) => Math.round(100 * n / Math.max(1, d));

@@ -47,9 +47,16 @@ function startBattle() {
   showModal(`<div class="bview"><div class="bhud">${side(0, 'l')}<div class="mid"><div class="phase" id="bphase">The armies advance</div><div class="tot" id="btot"></div></div>${side(1, 'r')}</div><canvas id="bvc"></canvas>
     <div class="bord" id="bord"></div>
     <div class="bctl" id="bvbtns"><button class="btn dark sm" onclick="bvSpeed()" id="bvspd"><span class="lbl">${ico('speed')}${BV.speed}×</span></button><button class="btn" onclick="bvRetreat()"><span class="lbl">${ico('retreat')}Sound the retreat</span></button><button class="btn" onclick="bvSkip()"><span class="lbl">${ico('skip')}Skip to the end</span></button></div></div>`, 'wide battle');
-  const cv = $('#bvc'), dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = BW_ * dpr; cv.height = BH_ * dpr; BV.ctx = cv.getContext('2d'); BV.ctx.scale(dpr, dpr);
+  const cv = $('#bvc');
   fitCanvas(cv, BW_, BH_);
+  // draw no finer than the screen can show: the field is shown smaller than 1000 points on a phone
+  const shown = (() => { const r = cv.getBoundingClientRect(); return Math.max(r.width, r.height) || BW_; })();
+  const dpr = clamp(shown * (window.devicePixelRatio || 1) / BW_, 1, 2);
+  cv.width = Math.round(BW_ * dpr); cv.height = Math.round(BH_ * dpr); BV.ctx = cv.getContext('2d'); BV.ctx.scale(dpr, dpr);
+  // the field, the vignette and the fallen are drawn once into their own layers
+  BV.ground = makeLayer(BW_, BH_, dpr, g => drawGround(g, BV));
+  BV.vig = makeLayer(BW_, BH_, dpr, g => { const vg = g.createRadialGradient(BW_ / 2, BH_ / 2, BH_ * 0.5, BW_ / 2, BH_ / 2, BW_ * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,15,5,.35)'); g.fillStyle = vg; g.fillRect(0, 0, BW_, BH_); });
+  BV.corpC = makeLayer(BW_, BH_, dpr); BV.corpX = BV.corpC.getContext('2d'); BV.corpN = 0;
   sfx('horn'); buzz(30);
   requestAnimationFrame(bvFrame);
 }
@@ -88,9 +95,10 @@ function bvFrame(ts) {
 }
 function drawHud(V) {
   const B = V.B, tot = s => sideAll(B, s);
+  // touch the page only when a number actually changes; rewriting it every frame forces a relayout
   for (const s of [0, 1]) {
-    const hb = $('#hb' + s); if (hb) hb.style.width = (100 * tot(s) / Math.max(1, B.n0[s])).toFixed(1) + '%';
-    const cn = $('#cn' + s); if (cn) cn.innerHTML = SIDE_T.filter(t => B.u0[s][t] > 0).map(t => `<span>${ico(UNIT_ICON[t])}${Math.round(B.u[s][t] + (B.res[s] ? (B.res[s][t] || 0) : 0))}</span>`).join('') + (B.res[s] ? `<span class="tag" style="font-size:11px;padding:1px 6px;margin:0">reserve ${resN(B, s)}</span>` : '');
+    const hb = $('#hb' + s), w = Math.round(100 * tot(s) / Math.max(1, B.n0[s])) + '%'; if (hb && hb._w !== w) { hb._w = w; hb.style.width = w; }
+    const cn = $('#cn' + s); if (cn) { const h = SIDE_T.filter(t => B.u0[s][t] > 0).map(t => `<span>${ico(UNIT_ICON[t])}${Math.round(B.u[s][t] + (B.res[s] ? (B.res[s][t] || 0) : 0))}</span>`).join('') + (B.res[s] ? `<span class="tag" style="font-size:11px;padding:1px 6px;margin:0">reserve ${resN(B, s)}</span>` : ''); if (cn._h !== h) { cn._h = h; cn.innerHTML = h; } }
   }
   const ob = $('#bord');
   if (ob) {
@@ -106,11 +114,19 @@ function drawHud(V) {
   const phase = B.done ? (B.win === 0 ? 'VICTORY' : B.why === 'retreat' ? 'RETREAT' : 'DEFEAT')
     : B.wing.some(w => w.s === 'flank') ? 'The horse strike the rear!' : B.wing[0].s === 'fight' ? 'The horse clash on the wings' : B.contact ? 'The lines clash' : (B.castle ? B.front[0] > WALLX - 330 : gap(B) <= 300) ? 'Arrows fly' : 'The armies advance';
   if (phase !== V.lastPhase) { if (phase.includes('rear') || phase.includes('clash')) { const cv = $('#bvc'), box = cv && (cv.closest('.rotbox') || cv); if (box && SET.motion) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); } } V.lastPhase = phase; const el = $('#bphase'); if (el) { el.textContent = phase; el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } if (phase.includes('rear')) buzz(25); }
-  const bt = $('#btot'); if (bt) bt.textContent = `${Math.round(tot(0))} vs ${Math.round(tot(1))}`;
+  const bt = $('#btot'), tt = `${Math.round(tot(0))} vs ${Math.round(tot(1))}`; if (bt && bt.textContent !== tt) bt.textContent = tt;
 }
 
 // ---------- figures ----------
+// each figure is drawn once per colour, type, pose and facing into a small bitmap, then stamped
+const SPR = new Map(), SPR_W = 64, SPR_H = 52, SPR_OX = 32, SPR_OY = 30;
 function figure(x, t, side, color, type, k, flip) {
+  const kk = type === 'cav' ? k % 6 : 0, key = color + type + kk + (flip ? 1 : 0);
+  let c = SPR.get(key);
+  if (!c) { c = makeLayer(SPR_W, SPR_H, Math.min(2, window.devicePixelRatio || 1), g => figureRaw(g, { x: SPR_OX, y: SPR_OY }, side, color, type, kk, flip)); SPR.set(key, c); }
+  x.drawImage(c, t.x - SPR_OX, t.y - SPR_OY, SPR_W, SPR_H);
+}
+function figureRaw(x, t, side, color, type, k, flip) {
   const s = flip ? -1 : 1;
   const dark = mix(color, '#000000', 0.3);
   x.save(); x.translate(t.x, t.y); x.scale(s * 1.75, 1.75);
@@ -161,26 +177,33 @@ function drawCastle(x, V) {
 function drawBanner(x, fid, px, py, h, flip, t) {
   x.strokeStyle = '#2a1d12'; x.lineWidth = 3; x.beginPath(); x.moveTo(px, py + h); x.lineTo(px, py - 4); x.stroke();
   x.fillStyle = '#e2b33c'; x.beginPath(); x.arc(px, py - 6, 3.5, 0, 7); x.fill();
-  const img = armsImage(fid), w = 30, hh = 36, bx = flip ? px - w - 1 : px + 1;
+  const spr = armsSprite(fid), w = 30, hh = 36, bx = flip ? px - w - 1 : px + 1;
   x.save(); x.translate(bx + w / 2, py); x.rotate(Math.sin((t || 0) * 3) * 0.04); x.translate(-(bx + w / 2), -py);
-  if (img.complete && img.naturalWidth) x.drawImage(img, bx, py, w, hh); else { x.fillStyle = '#ccc'; x.fillRect(bx, py, w, hh); }
+  if (spr) x.drawImage(spr, bx, py, w, hh); else { x.fillStyle = '#ccc'; x.fillRect(bx, py, w, hh); }
   x.strokeStyle = '#2a1d12'; x.lineWidth = 1; x.beginPath(); x.moveTo(bx - 2, py); x.lineTo(bx + w + 2, py); x.stroke();
   x.restore();
 }
-function drawBattle(V) {
-  const x = V.ctx, B = V.B, bg = V.bg;
+function drawGround(x, V) {
+  const B = V.B, bg = V.bg;
   const gr = x.createLinearGradient(0, 0, 0, BH_); gr.addColorStop(0, '#8a9a52'); gr.addColorStop(1, '#6f8040');
   x.fillStyle = gr; x.fillRect(0, 0, BW_, BH_);
   for (const [px_, py_, r, v] of bg.patches) { x.fillStyle = v < .5 ? 'rgba(60,80,30,.16)' : 'rgba(150,150,80,.14)'; x.beginPath(); x.ellipse(px_, py_, r, r * 0.5, 0, 0, 7); x.fill(); }
   // a cart track across the field
   x.strokeStyle = 'rgba(110,90,50,.22)'; x.lineWidth = 10; x.beginPath(); x.moveTo(0, bg.road); x.bezierCurveTo(300, bg.road + 40, 600, bg.road - 40, B.castle ? WALLX - 20 : BW_, bg.road + 10); x.stroke();
   x.strokeStyle = 'rgba(70,90,35,.5)'; x.lineWidth = 1;
-  for (const [tx, ty, v] of bg.tufts) { if (B.castle && tx > WALLX - 60) continue; x.beginPath(); x.moveTo(tx, ty); x.lineTo(tx - 2, ty - 5); x.moveTo(tx, ty); x.lineTo(tx + 2 + v, ty - 4); x.stroke(); }
+  x.beginPath();
+  for (const [tx, ty, v] of bg.tufts) { if (B.castle && tx > WALLX - 60) continue; x.moveTo(tx, ty); x.lineTo(tx - 2, ty - 5); x.moveTo(tx, ty); x.lineTo(tx + 2 + v, ty - 4); }
+  x.stroke();
   for (const [tx, ty, r, v] of bg.trees) { if (B.castle && tx > WALLX - 60) continue; x.fillStyle = 'rgba(0,0,0,.15)'; x.beginPath(); x.ellipse(tx + 3, ty + r * 0.8, r, r * 0.45, 0, 0, 7); x.fill(); x.fillStyle = v < .5 ? '#3e4f25' : '#46582a'; x.beginPath(); x.arc(tx, ty, r, 0, 7); x.fill(); x.fillStyle = '#546a33'; x.beginPath(); x.arc(tx - 3, ty - 3, r * 0.6, 0, 7); x.fill(); }
+}
+function drawBattle(V) {
+  const x = V.ctx, B = V.B;
+  x.drawImage(V.ground, 0, 0, BW_, BH_);
   if (B.castle) drawCastle(x, V);
-  x.globalAlpha = 0.55;
-  for (const c of B.corpses) { x.save(); x.translate(c.x, c.y); x.rotate(c.r); x.fillStyle = V.colors[c.s]; x.fillRect(-5, -2, 10, 4); x.fillStyle = '#3a2b1b'; x.fillRect(5, -2, 3, 4); x.restore(); }
-  x.globalAlpha = 1;
+  // new bodies are added to the layer of the fallen; the old ones are never redrawn
+  const cx = V.corpX;
+  while (V.corpN < B.corpses.length) { const c = B.corpses[V.corpN++]; cx.save(); cx.translate(c.x, c.y); cx.rotate(c.r); cx.fillStyle = V.colors[c.s]; cx.fillRect(-5, -2, 10, 4); cx.fillStyle = '#3a2b1b'; cx.fillRect(5, -2, 3, 4); cx.restore(); }
+  x.globalAlpha = 0.55; x.drawImage(V.corpC, 0, 0, BW_, BH_); x.globalAlpha = 1;
   for (const d of V.dust) { x.fillStyle = `rgba(170,150,100,${0.35 * (1 - d.t)})`; x.beginPath(); x.arc(d.x, d.y - d.t * 8, d.r + d.t * 10, 0, 7); x.fill(); }
   const time = B.t;
   for (const q of B.sq) {
@@ -202,7 +225,9 @@ function drawBattle(V) {
   }
   if (B.castle) drawBanner(x, V.fids[1], 926, 96, 84, true, time);
   x.strokeStyle = '#2a1d12'; x.lineWidth = 1.3;
-  for (const a of B.arrows) { const t = a.t, ax = a.x + (a.tx - a.x) * t, ay = a.y + (a.ty - a.y) * t - Math.sin(t * Math.PI) * 40; const t2 = Math.max(0, t - .05), bx = a.x + (a.tx - a.x) * t2, by = a.y + (a.ty - a.y) * t2 - Math.sin(t2 * Math.PI) * 40; x.beginPath(); x.moveTo(bx, by); x.lineTo(ax, ay); x.stroke(); }
+  x.beginPath();
+  for (const a of B.arrows) { const t = a.t, ax = a.x + (a.tx - a.x) * t, ay = a.y + (a.ty - a.y) * t - Math.sin(t * Math.PI) * 40; const t2 = Math.max(0, t - .05), bx = a.x + (a.tx - a.x) * t2, by = a.y + (a.ty - a.y) * t2 - Math.sin(t2 * Math.PI) * 40; x.moveTo(bx, by); x.lineTo(ax, ay); }
+  x.stroke();
   for (const s of B.stones) if (s.tx !== undefined) { const t = s.t, sx = s.x + (s.tx - s.x) * t, sy = s.y + (s.ty - s.y) * t - Math.sin(t * Math.PI) * 120; x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(sx, s.y + (s.ty - s.y) * t + 4, 6, 2.5, 0, 0, 7); x.fill(); x.fillStyle = '#4a4338'; x.beginPath(); x.arc(sx, sy, 5.5, 0, 7); x.fill(); x.fillStyle = '#6a6358'; x.beginPath(); x.arc(sx - 1.5, sy - 1.5, 2, 0, 7); x.fill(); }
   for (const f of B.fx) if (f.k === 'charge') { x.fillStyle = `rgba(160,130,80,${0.45 * (1 - f.t / 1.5)})`; for (let i = 0; i < 5; i++) { x.beginPath(); x.arc(B.front[1 - f.s] + (f.s === 0 ? 70 : -70), 150 + i * 60, 18 + f.t * 40, 0, 7); x.fill(); } }
   if ((B.contact || B.wing[0].s === 'fight') && !B.done) {
@@ -213,9 +238,7 @@ function drawBattle(V) {
     for (const [sx, sy] of spots) { x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx + (Math.random() - .5) * 16, sy + (Math.random() - .5) * 16); x.stroke(); }
   }
   if (B.done) { x.fillStyle = B.win === 0 ? 'rgba(226,179,60,.12)' : 'rgba(80,20,10,.22)'; x.fillRect(0, 0, BW_, BH_); }
-  // vignette
-  const vg = x.createRadialGradient(BW_ / 2, BH_ / 2, BH_ * 0.5, BW_ / 2, BH_ / 2, BW_ * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,15,5,.35)');
-  x.fillStyle = vg; x.fillRect(0, 0, BW_, BH_);
+  x.drawImage(V.vig, 0, 0, BW_, BH_);
 }
 function bvFinish() {
   const V = BV; BV = null;

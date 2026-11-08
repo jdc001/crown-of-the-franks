@@ -23,9 +23,18 @@ function openCatapult(p) {
       <div class="ammo">${AMMO.map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
     <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; three stones scatter wider. Flaming oil burns defenders inside at once, and sets wooden walls alight. A plague carcass inside spreads sickness over the coming turns. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
-  const cv = $('#ctc'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
+  // sky and land do not change during a bombardment, so they are painted once
+  CT.sky = makeLayer(CW, CH, dpr, x => { const sky = x.createLinearGradient(0, 0, 0, GY); sky.addColorStop(0, '#8fb0c4'); sky.addColorStop(.6, '#d9d2b8'); sky.addColorStop(1, '#efe2c2'); x.fillStyle = sky; x.fillRect(0, 0, CW, CH); });
+  CT.land = makeLayer(CW, CH, dpr, x => {
+    x.fillStyle = '#9fae9a'; x.beginPath(); x.moveTo(0, 300); x.quadraticCurveTo(120, 250, 260, 290); x.quadraticCurveTo(400, 240, 560, 285); x.quadraticCurveTo(700, 262, 800, 290); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
+    x.fillStyle = '#b4b79a'; x.beginPath(); x.moveTo(0, 330); x.quadraticCurveTo(200, 270, 420, 320); x.quadraticCurveTo(620, 280, 800, 310); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
+    const gg = x.createLinearGradient(0, GY, 0, CH); gg.addColorStop(0, '#86944f'); gg.addColorStop(1, '#6a7a3c');
+    x.fillStyle = gg; x.fillRect(0, GY, CW, CH - GY); x.fillStyle = '#6c7740'; x.fillRect(0, GY, CW, 5);
+    x.strokeStyle = 'rgba(60,80,30,.5)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < 60; i++) { const tx = (i * 53) % CW; x.moveTo(tx, GY + 8 + (i % 3) * 9); x.lineTo(tx + 2, GY + 2 + (i % 3) * 9); } x.stroke();
+  });
   const fit = { pt: e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * CW / r.width, y: (e.clientY - r.top) * CH / r.height }; } };
   $$('[data-am]').forEach(b => b.onclick = () => { CT.ammo = b.dataset.am; $$('[data-am]').forEach(x => x.classList.toggle('on', x === b)); sfx('click'); buzz(6); });
   const pt = fit.pt;
@@ -107,15 +116,10 @@ function ctUpdate(dt) {
 }
 function ctDraw() {
   const x = CT.ctx, p = CT.p, wood = CT.lv === 1;
-  const sky = x.createLinearGradient(0, 0, 0, GY); sky.addColorStop(0, '#8fb0c4'); sky.addColorStop(.6, '#d9d2b8'); sky.addColorStop(1, '#efe2c2');
-  x.fillStyle = sky; x.fillRect(0, 0, CW, CH);
+  x.drawImage(CT.sky, 0, 0, CW, CH);
   x.fillStyle = 'rgba(255,255,255,.75)';
   for (const [cx, cy, w, h] of CT.clouds) { x.beginPath(); x.ellipse(cx, cy, w, h, 0, 0, 7); x.ellipse(cx + w * 0.5, cy - h * 0.4, w * 0.6, h * 0.9, 0, 0, 7); x.ellipse(cx - w * 0.5, cy - h * 0.2, w * 0.5, h * 0.8, 0, 0, 7); x.fill(); }
-  x.fillStyle = '#9fae9a'; x.beginPath(); x.moveTo(0, 300); x.quadraticCurveTo(120, 250, 260, 290); x.quadraticCurveTo(400, 240, 560, 285); x.quadraticCurveTo(700, 262, 800, 290); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
-  x.fillStyle = '#b4b79a'; x.beginPath(); x.moveTo(0, 330); x.quadraticCurveTo(200, 270, 420, 320); x.quadraticCurveTo(620, 280, 800, 310); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
-  const gg = x.createLinearGradient(0, GY, 0, CH); gg.addColorStop(0, '#86944f'); gg.addColorStop(1, '#6a7a3c');
-  x.fillStyle = gg; x.fillRect(0, GY, CW, CH - GY); x.fillStyle = '#6c7740'; x.fillRect(0, GY, CW, 5);
-  x.strokeStyle = 'rgba(60,80,30,.5)'; x.lineWidth = 1; for (let i = 0; i < 60; i++) { const tx = (i * 53) % CW; x.beginPath(); x.moveTo(tx, GY + 8 + (i % 3) * 9); x.lineTo(tx + 2, GY + 2 + (i % 3) * 9); x.stroke(); }
+  x.drawImage(CT.land, 0, 0, CW, CH);
   if (p.b.moat) { x.fillStyle = '#4f7f8a'; x.fillRect(CT.wx - 46, GY, 38, 24); x.fillStyle = '#8fb5bb'; for (let i = 0; i < 3; i++) x.fillRect(CT.wx - 42 + i * 12 + Math.sin(CT.t * 2 + i) * 2, GY + 6 + i * 5, 8, 2); }
   // keep and banner
   x.fillStyle = wood ? '#5a3e24' : '#7a7262'; x.fillRect(703, GY - 122, 54, 122);
@@ -166,7 +170,9 @@ function ctDraw() {
     x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(40, 60, 14, 120); x.fillStyle = v.pow > .8 ? '#c0392b' : v.pow > .5 ? '#d4a017' : '#5c8a3a'; x.fillRect(40, 180 - 120 * v.pow, 14, 120 * v.pow); x.strokeStyle = '#2a1d12'; x.lineWidth = 1.5; x.strokeRect(40, 60, 14, 120); } }
   // wind flag on the keep
   x.strokeStyle = '#2a1d12'; x.lineWidth = 1.2;
-  for (const a of CT.arrows) { const t = a.t, ax2 = a.x + (a.tx - a.x) * t, ay2 = a.y + (a.ty - a.y) * t - Math.sin(t * Math.PI) * 70; const t2 = Math.max(0, t - .04), bx = a.x + (a.tx - a.x) * t2, by = a.y + (a.ty - a.y) * t2 - Math.sin(t2 * Math.PI) * 70; x.beginPath(); x.moveTo(bx, by); x.lineTo(ax2, ay2); x.stroke(); }
+  x.beginPath();
+  for (const a of CT.arrows) { const t = a.t, ax2 = a.x + (a.tx - a.x) * t, ay2 = a.y + (a.ty - a.y) * t - Math.sin(t * Math.PI) * 70; const t2 = Math.max(0, t - .04), bx = a.x + (a.tx - a.x) * t2, by = a.y + (a.ty - a.y) * t2 - Math.sin(t2 * Math.PI) * 70; x.moveTo(bx, by); x.lineTo(ax2, ay2); }
+  x.stroke();
   for (const q of CT.projs) {
     if (q.dead) continue;
     const col = q.type === 'oil' ? '#ff7a00' : q.type === 'plague' ? '#59672f' : '#5d564a';

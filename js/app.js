@@ -1,5 +1,6 @@
 'use strict';
 // ================= BOOT =================
+makeTex();
 injectIconSprite();
 buildMap();
 initSheet();
