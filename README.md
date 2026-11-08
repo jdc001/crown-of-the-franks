@@ -2,7 +2,7 @@
 
 Play it at https://jdc001.github.io/crown-of-the-franks/ (open in Safari, then Share → Add to Home Screen).
 
-The old map of Europe (v4) lives on as **Emperor: 1000 AD**: https://jdc001.github.io/emperor-1000/ . It picks up campaigns saved under v4 on the same device by itself.
+The old map of Europe (v4) lives on as **Emperor: 1000 AD**: https://jdc001.github.io/Emperor-1000/ . It picks up campaigns saved under v4 on the same device by itself.
 
 ## New in v5: France in 987
 - **The map** is France and its edges: 103 counties (`PROV` in `data.js`), regions France, Lorraine, Arles and Catalonia. England, the Empire, Italy, Pamplona and Córdoba are hatched edge lands, not for conquest. No seas to sail: fleets and longships are gone; Danish raids are the sea.
