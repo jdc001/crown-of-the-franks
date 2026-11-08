@@ -1,5 +1,5 @@
 // Offline cache: app shell + fonts. Bump VERSION when files change.
-const VERSION = 'cotf-v3.1';
+const VERSION = 'cotf-v3.2';
 const SHELL = ['./', './index.html', './css/style.css', './manifest.webmanifest', './icon.svg', './icon-180.png', './icon-512.png',
   './js/icons.js', './js/data.js', './js/core.js', './js/battle.js', './js/ai.js', './js/audio.js', './js/view.js', './js/map.js',
   './js/panels.js', './js/dialogs.js', './js/battleview.js', './js/catapult.js', './js/difficulty.js', './js/app.js'];

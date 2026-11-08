@@ -35,6 +35,7 @@ function drawPreBattle() {
     <div class="row ctr"><button class="btn gold big" onclick="startBattle()"><span class="lbl">${ico('swords')}Sound the advance</span></button><button class="btn" onclick="PB=null;closeModal()">Withdraw</button></div>`, 'wide');
 }
 function startBattle() {
+  if (BV) { BV.dead = true; releaseScene(BV); BV = null; }
   const { kind, p, A } = PB;
   if (kind === 'assault') { if (A.siege !== p.id) { const s = stageFor(me(), A, p); if (!s) { PB = null; closeModal(); return toast('Out of reach'); } } breakPeace(p); if (p.b.castle && !p.ruined) { A.siege = p.id; A.loc = p.id; } }
   else { if (A.siege && A.siege !== p.id) note(`You lift the siege of ${P(A.siege).name}.`); A.siege = null; if (A.loc !== p.id) { const s = strikeFrom(me(), A, p); if (s) { A.mp -= s.dist; A.loc = s.stage; } else if (canMarch(me(), A, p.id)) marchArmy(me(), A, p.id); } }
@@ -58,7 +59,7 @@ function startBattle() {
   BV.vig = makeLayer(BW_, BH_, dpr, g => { const vg = g.createRadialGradient(BW_ / 2, BH_ / 2, BH_ * 0.5, BW_ / 2, BH_ / 2, BW_ * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,15,5,.35)'); g.fillStyle = vg; g.fillRect(0, 0, BW_, BH_); });
   BV.corpC = makeLayer(BW_, BH_, dpr); BV.corpX = BV.corpC.getContext('2d'); BV.corpN = 0;
   sfx('horn'); buzz(30);
-  requestAnimationFrame(bvFrame);
+  const scene = BV; requestAnimationFrame(t => bvFrame(t, scene));
 }
 function battleBg() {
   const patches = [], trees = [], gaps = [], tufts = [];
@@ -78,8 +79,9 @@ function bvOrder(k) {
 function bvSpeed() { if (!BV) return; BV.speed = BV.speed >= 4 ? 1 : BV.speed * 2; SET.speed = BV.speed; saveSettings(); $('#bvspd').innerHTML = `<span class="lbl">${ico('speed')}${BV.speed}×</span>`; }
 function bvRetreat() { if (!BV || BV.B.done) return; endBattle(BV.B, 1, 'retreat'); BV.endT = 0.01; }
 function bvSkip() { if (!BV) return; const B = BV.B; let g = 0; while (!B.done && g++ < 2000) battleStep(B, 0.25); if (!B.done) endBattle(B, 1, 'time'); for (let i = 0; i < 40; i++) animateSquads(B, 0.1); BV.endT = 2; }
-function bvFrame(ts) {
-  if (!BV || BV.dead) return;
+// each battle owns its own loop, so an old loop can never carry on drawing into a newer battle
+function bvFrame(ts, scene) {
+  if (!BV || BV !== scene || BV.dead) return;
   const dt = Math.min(0.05, BV.last ? (ts - BV.last) / 1000 : 0.016); BV.last = ts;
   const B = BV.B, sim = dt * 2.4 * BV.speed;
   if (!B.done) { let left = sim; while (left > 0 && !B.done) { const s = Math.min(0.1, left); battleStep(B, s); left -= s; } }
@@ -91,7 +93,7 @@ function bvFrame(ts) {
   BV.dust.forEach(d => d.t += dt); BV.dust = BV.dust.filter(d => d.t < 1.1);
   drawBattle(BV); drawHud(BV);
   if (B.done) { BV.endT += dt; if (BV.endT > 2.2) return bvFinish(); }
-  requestAnimationFrame(bvFrame);
+  requestAnimationFrame(t => bvFrame(t, scene));
 }
 function drawHud(V) {
   const B = V.B, tot = s => sideAll(B, s);
@@ -241,7 +243,7 @@ function drawBattle(V) {
   x.drawImage(V.vig, 0, 0, BW_, BH_);
 }
 function bvFinish() {
-  const V = BV; BV = null;
+  const V = BV; BV = null; V.dead = true;
   const B = V.B, res = battleResult(B), p = V.p;
   if (V.kind === 'relief') resolveRelief(me(), V.army, p, res, V.cfg); else resolveAssault(me(), V.army, p, res, V.cfg);
   if (res.won && V.kind !== 'relief') setTimeout(() => flashProv(p.id), 300);
@@ -249,6 +251,7 @@ function bvFinish() {
   const head = res.won ? (V.kind === 'relief' ? `The siege of ${p.name} is broken!` : `${p.name} is yours!`) : (B.why === 'retreat' ? 'You sound the retreat' : B.why === 'time' ? 'The attack stalls and your men fall back' : 'Your army is beaten');
   const body = `Your losses: ${lossStr(V.a0, res.A)}. ${V.names[1]} lost ${lossStr(V.d0, res.D)}.`;
   note(head + ' ' + body);
+  releaseScene(V);
   const row = (name, before, after) => `<tr><td>${name}</td><td>${uStr(before, true, false)}</td><td>${uStr(after, true, false)}</td></tr>`;
   showModal(`<div class="rep${res.won ? '' : ' badrep'}"><div class="sealmark">${ico(res.won ? 'star' : 'swords')}</div><h2>${head}</h2><p>${body}</p>
     <table class="stat"><tr><th></th><th>Before</th><th>After</th></tr>${row(V.names[0], V.a0, res.A)}${row(V.names[1], V.d0, res.D)}</table>

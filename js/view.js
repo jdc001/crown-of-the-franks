@@ -96,10 +96,18 @@ function showModal(html, cls, opts = {}) {
 }
 // an offscreen canvas for parts of a scene that do not change from frame to frame
 function makeLayer(w, h, dpr, fn) { const c = document.createElement('canvas'); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const g = c.getContext('2d'); g.scale(dpr, dpr); if (fn) fn(g); return c; }
+// iOS keeps a closed canvas's memory until it gets round to collecting it, and once its graphics budget
+// is used up, new canvases are drawn without the GPU and crawl. So a scene's canvases are emptied the moment it ends.
+function releaseScene(S) {
+  if (!S) return;
+  for (const k of ['ground', 'vig', 'corpC', 'sky', 'land']) if (S[k]) { S[k].width = S[k].height = 0; S[k] = null; }
+  if (S.ctx && S.ctx.canvas) { S.ctx.canvas.width = S.ctx.canvas.height = 0; }
+  S.ctx = S.corpX = null;
+}
 function closeModal() {
   $('#modal').classList.add('hidden');
-  if (typeof CT !== 'undefined' && CT) { CT.dead = true; CT = null; }
-  if (typeof BV !== 'undefined' && BV) { BV.dead = true; BV = null; }
+  if (typeof CT !== 'undefined' && CT) { CT.dead = true; releaseScene(CT); CT = null; }
+  if (typeof BV !== 'undefined' && BV) { BV.dead = true; releaseScene(BV); BV = null; }
   setMusic('map');
 }
 const modalOpen = () => !$('#modal').classList.contains('hidden');

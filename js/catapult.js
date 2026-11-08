@@ -4,6 +4,7 @@ let CT = null;
 const CW = 800, CH = 440, GY = 380, CBW = 20, CBH = 20, WXE = 640, GRAV = 500;
 const AMMO = [['stone', 'Stone', 'stone'], ['triple', 'Three stones', 'stones'], ['oil', 'Flaming oil', 'oil'], ['plague', 'Plague carcass', 'skull']];
 function openCatapult(p) {
+  if (CT) { CT.dead = true; releaseScene(CT); CT = null; }
   const A = myA(), lv = Math.max(1, castleLv(p));
   const cols = 4 + lv, rows = 3 + 2 * lv, total = cols * rows, h = Array(cols).fill(0);
   let target = Math.round(total * p.walls / 100);
@@ -49,7 +50,7 @@ function openCatapult(p) {
     else CT.projs.push(mk(v.vx, v.vy, 7));
     CT.shots--; sfx('launch'); buzz(20);
   };
-  requestAnimationFrame(ctFrame);
+  const scene = CT; requestAnimationFrame(t => ctFrame(t, scene));
 }
 function launchVec(d) {
   let dx = d.s.x - d.c.x, dy = d.s.y - d.c.y;
@@ -190,11 +191,13 @@ function ctDraw() {
   set('ct-wind', `${CT.wind < 0 ? '◂' : CT.wind > 0 ? '▸' : '·'} ${Math.abs(CT.wind)}`);
   const m = document.getElementById('ctmsg'); if (m && m.textContent !== CT.msg) m.textContent = CT.msg;
 }
-function ctFrame(ts) {
-  if (!CT || CT.dead) return;
+// each bombardment owns its own loop: a loop that finds a different (newer) bombardment in CT stops at once,
+// so loops can never pile up from one siege to the next
+function ctFrame(ts, scene) {
+  if (!CT || CT !== scene || CT.dead) return;
   const dt = Math.min(0.033, CT.last ? (ts - CT.last) / 1000 : 0.016); CT.last = ts;
   ctUpdate(dt); ctDraw();
-  requestAnimationFrame(ctFrame);
+  requestAnimationFrame(t => ctFrame(t, scene));
 }
 function finishCatapult() {
   if (!CT) return;
@@ -203,6 +206,6 @@ function finishCatapult() {
   if (w <= 0) { p.walls = 1; damageWalls(p, 5); } else p.walls = w;
   A.bombarded = true; A.acted = true;
   note(`Bombardment of ${p.name}: walls ${c.w0}% → ${p.ruined ? 'ruined' : p.walls + '%'}, ${c.killed} defenders killed${c.plague ? ', plague sown inside' : ''}.`);
-  c.dead = true; CT = null; closeModal(); save(); render();
+  c.dead = true; releaseScene(c); CT = null; closeModal(); save(); render();
   toast(`Walls ${c.w0}% → ${p.ruined ? 'ruined' : p.walls + '%'} · ${c.killed} killed`, 'cat');
 }
