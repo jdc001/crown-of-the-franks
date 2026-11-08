@@ -42,8 +42,9 @@ const lordArmy = fid => army(fid, 'a0');
 const armySize = a => fighters(armySide(a));
 const armySide = a => ({ militia: 0, foot: a.foot, bow: a.bow, cav: a.cav });
 const setArmy = (a, s) => { a.foot = s.foot; a.bow = s.bow; a.cav = s.cav; };
-// a third army only for a king the princes recognise: two of them sworn to him
-const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (isKing(fid) && vassals().length >= 2 ? 1 : 0);
+// a third army for a great realm, or for a king the princes recognise (two of them sworn to him)
+const ARMY3_LANDS = 25;
+const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (owned(fid).length >= ARMY3_LANDS || (isKing(fid) && vassals().length >= 2) ? 1 : 0);
 function armyGen(fid, a) { const g = G.fac[fid].gens.find(x => x.at === a.id); return g ? GENMAP[g.id] : null; }
 function armyUsable(fid, a) {
   const F = G.fac[fid]; if (!F.alive) return false;
@@ -407,6 +408,7 @@ function plagueTick() {
   }
 }
 function endRound() {
+  fixSieges();
   plagueTick();
   for (const p of provList()) {
     const s = besiegerOf(p);
@@ -433,6 +435,10 @@ function endRound() {
   if (!G.over) { for (const f of alive()) unrestTick(f); maybeLeague(); if (typeof powersTick === 'function') powersTick(); }
   G.turn++;
 }
+// no army goes on besieging a county its own house has come to hold, by marriage, conquest or treaty
+function fixSieges() {
+  for (const o in G.armies) for (const a of G.armies[o]) if (a.siege) { const q = P(a.siege); if (!q || holds(o, q.id) || (q.owner && atPeace(o, q.owner))) { a.siege = null; if (q && holds(o, q.id)) a.loc = q.id; } }
+}
 function capture(p, fid) {
   const prev = p.owner, prevAlly = p.ally;
   if (prev) loseGeneral(prev, p.id, 'was taken in the fall of ' + p.name);
@@ -441,6 +447,7 @@ function capture(p, fid) {
   for (const o in G.armies) if (o !== fid && G.fac[o].alive) for (const b of G.armies[o]) if (b.loc === p.id && !b.siege && armySize(b) > 0) loseArmy(o, b, fid);
   if (prevAlly && prevAlly === G.player && fid !== G.player) report('An ally has fallen', `${FAC(fid).name} has taken ${p.name}. Your alliance there is ended.`);
   if (prev && p.cap === prev) collapse(prev, fid, p);
+  fixSieges();
   checkVictory();
 }
 

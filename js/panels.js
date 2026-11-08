@@ -22,7 +22,7 @@ function renderArmyBar() {
   const A = myA();
   setHTML(el, armiesOf(me()).map(a => {
     const st = slotState(a), n = armySize(a), on = a.id === A.id;
-    if (st === 'locked') return `<button class="ab lock" onclick="openCourt()" title="${ARMY_IDS.indexOf(a.id) === 1 ? 'Hold 9 counties to field a second army' : 'A king with two princes sworn to him fields a third army'}">${ico('lock')}<span>${ARMY_NUM(a)}</span></button>`;
+    if (st === 'locked') return `<button class="ab lock" onclick="openCourt()" title="${ARMY_IDS.indexOf(a.id) === 1 ? 'Hold 9 counties to field a second army' : 'Hold 25 counties, or be a king with two princes sworn to you, to field a third army'}">${ico('lock')}<span>${ARMY_NUM(a)}</span></button>`;
     if (st === 'nogen') return `<button class="ab lock" onclick="openCourt()" title="Needs a general">${ico('fleur')}<span>${ARMY_NUM(a)}</span></button>`;
     return `<button class="ab${on ? ' on' : ''}${a.acted ? ' done' : ''}" onclick="pickArmy('${a.id}')"><b>${ARMY_NUM(a)}</b><span class="n">${st === 'captive' ? ico('chain') : ico('foot') + n}</span><small>${st === 'captive' ? 'captive' : (a.loc ? P(a.loc).name : '—')}${a.siege ? ' ⚔' : ''}</small><small class="mv">${st === 'captive' ? '' : a.acted ? 'done' : a.mp + '/' + MOVES + ' mv'}</small></button>`;
   }).join(''));
@@ -66,7 +66,7 @@ function armiesHtml() {
   return armiesOf(me()).map(a => {
     const st = slotState(a), i = ARMY_IDS.indexOf(a.id);
     let body;
-    if (st === 'locked') body = `<p class="sub">${i === 1 ? 'Hold 9 counties to field a second army.' : 'A king with two princes sworn to him fields a third army.'} <span class="muted">(${owned(me()).length} counties${isKing(me()) ? ', crowned' : ', no crown'})</span></p>`;
+    if (st === 'locked') body = `<p class="sub">${i === 1 ? 'Hold 9 counties to field a second army.' : 'Hold 25 counties, or be a king with two princes sworn to you, to field a third army.'} <span class="muted">(${owned(me()).length} counties${isKing(me()) ? ', crowned' : ', no crown'})</span></p>`;
     else if (st === 'nogen') body = `<p class="sub">Waiting for a general. Hire one at court, or post an idle strategist here.</p><button class="btn sm" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>`;
     else body = armyLine(a) + (st === 'active' ? `<div class="row" style="margin-top:6px">${a.id !== A.id ? `<button class="btn sm" onclick="pickArmy('${a.id}')"><span class="lbl">${ico('flag')}Command</span></button>` : ''}${a.loc ? `<button class="btn sm ghost" onclick="goProv('${a.loc}')"><span class="lbl">${ico('eye')}Go there</span></button>` : ''}</div>` : '');
     return `<div class="statcard${a.id === A.id && st === 'active' ? ' on' : ''}"><b>${ARMY_NUM(a)} · ${armyLabel(me(), a)}</b>${st === 'active' && a.acted ? ' <span class="tag">done</span>' : ''}${body}</div>`;
@@ -81,7 +81,7 @@ function crownsHtml() {
   let h = '';
   if (isKing(me())) {
     const n = crownIncome(me());
-    h += `<div class="statcard on"><b>${ico('crown')} King of the Franks</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${vassals().length >= 2 ? ', and a third army' : '. A third army once two princes have sworn to you'}</li><li>Princes who do homage are at peace with you</li></ul></div>`;
+    h += `<div class="statcard on"><b>${ico('crown')} King of the Franks</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${vassals().length >= 2 ? ', and a third army' : '. A third army once two princes have sworn to you (or at 25 counties)'}</li><li>Princes who do homage are at peace with you</li></ul></div>`;
     const vs = vassals();
     h += `<p><b>Sworn to you:</b> ${vs.length ? vs.map(f => `<span class="tag on">${shield(f, 14)} ${esc(FAC(f).name)}</span>`).join('') : '<span class="sub">no one yet</span>'}</p>`;
     const free = others.filter(f => !vassal(f));
@@ -405,6 +405,7 @@ function foreignPanel(p, F, A) {
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
 }
 function render() {
+  if (G) fixSieges();
   if (!G) return;
   renderHeader(); renderMapFill(); renderOverlay(); renderArmyBar(); renderDock();
   let h;
