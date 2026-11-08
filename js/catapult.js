@@ -5,8 +5,8 @@ const CW = 800, CH = 440, GY = 380, CBW = 20, CBH = 20, WXE = 640, GRAV = 500;
 const AMMO = [['stone', 'Stone', 'stone'], ['triple', '3 stones', 'stones'], ['oil', 'Flaming oil', 'oil'], ['oil3', '3 flaming oil', 'oil'], ['rats', 'Plague rats', 'rat'], ['giant', 'Giant plague rat', 'rat']];
 // a volley of three: smaller shots, spread a little, each weaker than a single
 const VOLLEY = { triple: 'triple', oil3: 'oil' };
-// rats do not kill at once: each nest gnaws at the garrison for a few more shots
-const RAT = { small: { rounds: 3, bite: 0.25 }, giant: { rounds: 4 } };
+// rats do not kill at once: once inside, each one bites every second or so, a few times, while you keep shooting
+const RAT = { small: { rounds: 3, bite: 0.3 }, giant: { rounds: 4 }, every: 1.3 };
 const RAT_COL = '#4b4038';
 function openCatapult(p) {
   if (CT) { CT.dead = true; releaseScene(CT); CT = null; }
@@ -28,7 +28,7 @@ function openCatapult(p) {
     <div class="ctbar"><div id="ctmsg"></div>
       <div class="ammo">${AMMO.map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
-    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; 3 stones scatter wider. Flaming oil burns defenders inside at once and sets wooden walls alight; 3 flaming oil spread it wider. Plague rats fly over in a swarm and gnaw at the garrison over your next few shots, and may start a plague; a giant plague rat does the work of three and always brings the sickness. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
+    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; 3 stones scatter wider. Flaming oil burns defenders inside at once and sets wooden walls alight; 3 flaming oil spread it wider. Plague rats fly over in a swarm and keep biting the garrison while you shoot, and may start a plague; a giant plague rat does the work of three and always brings the sickness. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
   const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
@@ -50,7 +50,6 @@ function openCatapult(p) {
     if (!CT || !CT.drag) return;
     const d = CT.drag; CT.drag = null;
     const v = launchVec(d); if (!v) return;
-    ratsBite();
     const vt = VOLLEY[CT.ammo];
     const mk = (vx, vy, r) => ({ x: 112, y: 300, vx, vy, r, type: vt || CT.ammo, small: !!vt && vt !== 'triple', trail: [] });
     if (vt) { const ang = Math.atan2(v.vy, v.vx), sp = Math.hypot(v.vx, v.vy); [-0.07, 0, 0.07].forEach((da, i) => { const s2 = sp * (1 + (i - 1) * 0.05); CT.projs.push(mk(Math.cos(ang + da) * s2, Math.sin(ang + da) * s2, 4.5)); }); }
@@ -99,35 +98,38 @@ function ctHitInside(q) {
   else if (q.type === 'rat') {
     ratNest(q.x, false); if (Math.random() < 0.12) ratPlague();
     ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague');
-    CT.msg = empty ? 'The rats land in an empty bailey and find nothing to eat.' : `Rats rain into the bailey and scurry for the stores. They will gnaw at the garrison over your next ${RAT.small.rounds} shots.${CT.plague ? ' The sickness spreads.' : ''}`;
+    CT.msg = empty ? 'The rats land in an empty bailey and find nothing to eat.' : `Rats rain into the bailey and scurry for the stores. They bite as they run: watch the garrison shrink.${CT.plague ? ' The sickness spreads.' : ''}`;
   }
   else {
     ratNest(q.x, true); ratPlague();
     ctBurst(q.x, q.y, RAT_COL, 26); sfx('plague'); buzz(40);
-    CT.msg = empty ? 'The giant rat thuds into an empty bailey.' : `A giant plague rat lands in the bailey! It will savage the garrison over your next ${RAT.giant.rounds} shots, and the sickness takes hold (${['', 'mild', 'spreading', 'raging'][p.plague.s]}).`;
+    CT.msg = empty ? 'The giant rat thuds into an empty bailey.' : `A giant plague rat lands in the bailey! It savages the garrison as it runs, and the sickness takes hold (${['', 'mild', 'spreading', 'raging'][p.plague.s]}).`;
   }
   CT.killed += k;
 }
-function ratNest(x, big) { CT.rats.push({ x: clamp(x, 664, 786), v: (Math.random() < .5 ? -1 : 1) * (big ? 30 : 55), big, left: big ? RAT.giant.rounds : RAT.small.rounds, ph: Math.random() * 6 }); }
+function ratNest(x, big) { CT.rats.push({ x: clamp(x, 664, 786), v: (Math.random() < .5 ? -1 : 1) * (big ? 30 : 55), big, left: big ? RAT.giant.rounds : RAT.small.rounds, ph: Math.random() * 6, cd: RAT.every * (0.6 + Math.random() * 0.6) }); }
 function ratPlague() { const p = CT.p; p.plague = { s: Math.min(3, ((p.plague && p.plague.s) || 0) + 1), t: 3 }; CT.plague++; }
-// each new shot, every rat inside bites; a giant rat bites harder
-function ratsBite(all) {
-  if (!CT.rats.length) return;
-  let k = 0;
-  do {
-    for (const r of CT.rats) {
-      if (r.left <= 0) continue;
-      r.left--;
-      if (ctAlive() === 0) continue;
-      const n = r.big ? 1 + (Math.random() < 0.5 ? 1 : 0) : (Math.random() < RAT.small.bite ? 1 : 0);
-      if (n) k += killDefenders(CT.p, n);
-    }
-    CT.rats = CT.rats.filter(r => r.left > 0);
-  } while (all && CT.rats.length);
-  CT.killed += k;
-  if (!all && k) { CT.bit = k; CT.msg = `The rats are at work: ${k} defender${k === 1 ? '' : 's'} sicken${k === 1 ? 's' : ''} and die${k === 1 ? 's' : ''}.`; }
-  return k;
+// one bite: a small rat kills now and then, a giant rat kills one or two
+function ratBite(r) {
+  r.left--;
+  if (ctAlive() === 0) return 0;
+  const n = r.big ? 1 + (Math.random() < 0.5 ? 1 : 0) : (Math.random() < RAT.small.bite ? 1 : 0);
+  return n ? killDefenders(CT.p, n) : 0;
 }
+// while the scene runs, the rats bite on their own clock
+function ratsTick(dt) {
+  let k = 0;
+  for (const r of CT.rats) {
+    r.cd -= dt; if (r.cd > 0) continue;
+    r.cd = RAT.every * (0.7 + Math.random() * 0.6);
+    const n = ratBite(r);
+    if (n) { k += n; ctBurst(r.x, GY - 8, '#8a2a1a', 10 * n); }
+  }
+  CT.rats = CT.rats.filter(r => r.left > 0);
+  if (k) { CT.killed += k; CT.ratKills = (CT.ratKills || 0) + k; if (!CT.projs.length) CT.msg = `The rats are at work in the bailey: ${CT.ratKills} defender${CT.ratKills === 1 ? '' : 's'} dead of their bites so far.`; sfx('plague'); buzz(10); }
+}
+// when the bombardment ends, rats still inside finish their work
+function ratsFinish() { let k = 0; for (const r of CT.rats) while (r.left > 0) k += ratBite(r); CT.rats = []; CT.killed += k; return k; }
 const ctAlive = () => CT.p.militia + CT.p.gar.foot + CT.p.gar.bow + CT.p.gar.cav;
 function ctUpdate(dt) {
   CT.t += dt;
@@ -148,10 +150,11 @@ function ctUpdate(dt) {
     if (!done && (q.x > CW + 40 || q.x < -40)) { CT.msg = 'The shot flies wide.'; done = true; }
     if (done) q.dead = true;
   }
-  if (CT.projs.length && CT.projs.every(q => q.dead)) { CT.projs = []; if (CT.bit) { CT.msg += ` Meanwhile the rats kill ${CT.bit}.`; CT.bit = 0; } CT.wind = Math.round((Math.random() * 2 - 1) * 70); if (CT.shots <= 0) CT.msg += ' Out of ammunition.'; }
+  if (CT.projs.length && CT.projs.every(q => q.dead)) { CT.projs = []; CT.wind = Math.round((Math.random() * 2 - 1) * 70); if (CT.shots <= 0) CT.msg += ' Out of ammunition.'; }
   CT.parts.forEach(t => { t.vy += 600 * dt; t.x += t.vx * dt; t.y += t.vy * dt; t.life -= dt; });
   CT.parts = CT.parts.filter(t => t.life > 0 && t.y < GY + 4);
   CT.fires.forEach(f => f.t -= dt); CT.fires = CT.fires.filter(f => f.t > 0);
+  ratsTick(dt);
   for (const r of CT.rats) { r.x += r.v * dt; r.ph += dt * (r.big ? 9 : 16); if (r.x < 662 || r.x > 788) r.v = -r.v; }
   for (const c of CT.crowd) { c.x += c.v * dt; if (c.x < 652 || c.x > 790) c.v = -c.v; }
   for (const c of CT.clouds) { c[0] += CT.wind * dt * 0.15; if (c[0] > CW + 80) c[0] = -80; if (c[0] < -80) c[0] = CW + 80; }
@@ -279,7 +282,7 @@ function autoBombard(A, p) {
 }
 function finishCatapult() {
   if (!CT) return;
-  ratsBite(true);
+  ratsFinish();
   const c = CT, p = c.p, A = myA();
   const w = Math.round(c.h.reduce((s, v) => s + v, 0) / (c.cols * c.rows) * 100);
   if (w <= 0) { p.walls = 1; damageWalls(p, 5); } else p.walls = w;
