@@ -210,6 +210,8 @@ const PANEL = { tab: null };
 function setTab(t) { PANEL.tab = t; PANEL.hist = [t, ...(PANEL.hist || []).filter(x => x !== t)].slice(0, 6); render(); }
 const keptTab = tabs => [PANEL.tab, ...(PANEL.hist || [])].find(t => t && tabs.some(x => x.id === t));
 function tabsHtml(tabs, cur) { return `<div class="tabs">${tabs.map(t => `<button class="${cur === t.id ? 'on' : ''}" onclick="setTab('${t.id}')">${ico(t.ic)}${t.n}${t.dot ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>`; }
+// how many of a unit are already there, big on the button, so the next purchase is easy to judge
+const haveBadge = (n, where) => `<span class="have${n ? '' : ' none'}" title="${n} ${where}"><b>${n || 0}</b><i>${where}</i></span>`;
 function castleText(p) {
   if (!p.b.castle) return `<p class="sub">No castle. Only the levy defends, and no garrison can be kept here.</p>`;
   if (p.ruined) return `<div class="notebox bad">${ico('rebuild')} The castle lies in ruins. Its walls give no protection until it is rebuilt.</div>`;
@@ -308,8 +310,8 @@ function ownPanel(p, F, A) {
   } else if (cur === 'build') {
     h += `<h3>Build</h3>` + buildButtons(p, F);
   } else {
-    if (here && canRaiseInto(me(), A)) h += `<h3>Raise into army ${ARMY_NUM(A)}</h3><div class="grid">${['foot', 'bow', 'cav', 'cat'].map(t => `<button class="btn" onclick="act('raiseA','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}><span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${UPKEEP[t]} d a turn · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Men raised into an army are paid every turn.</p>`;
-    if (p.b.castle) h += `<h3>Raise into the garrison</h3><div class="grid">${UT_ALL.map(t => `<button class="btn" onclick="act('raise','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}><span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Garrisons cost nothing to keep. Bishops join your council of bishops.</p>`;
+    if (here && canRaiseInto(me(), A)) h += `<h3>Raise into army ${ARMY_NUM(A)}</h3><div class="grid">${['foot', 'bow', 'cav', 'cat'].map(t => `<button class="btn" onclick="act('raiseA','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}>${haveBadge(A[t], 'in army ' + ARMY_NUM(A))}<span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${UPKEEP[t]} d a turn · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Men raised into an army are paid every turn.</p>`;
+    if (p.b.castle) h += `<h3>Raise into the garrison</h3><div class="grid">${UT_ALL.map(t => `<button class="btn" onclick="act('raise','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}>${haveBadge(t === 'bishop' ? F.bishops : p.gar[t], t === 'bishop' ? 'in council' : 'in garrison')}<span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Garrisons cost nothing to keep. Bishops join your council of bishops.</p>`;
     h += defenceHtml(p);
   }
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
@@ -341,7 +343,7 @@ function allyPanel(p, F, A) {
     if (!here) cta += marchBtn(p, A);
     h += defenceHtml(p);
   } else if (cur === 'build') h += `<h3>Build</h3>` + buildButtons(p, F);
-  else if (cur === 'raise') h += `<h3>Buy troops for their garrison</h3><div class="grid">${['foot', 'bow', 'cav'].map(t => `<button class="btn" onclick="act('raise','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}><span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${statLine(t)}</small></button>`).join('')}</div>` + defenceHtml(p);
+  else if (cur === 'raise') h += `<h3>Buy troops for their garrison</h3><div class="grid">${['foot', 'bow', 'cav'].map(t => `<button class="btn" onclick="act('raise','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}>${haveBadge(p.gar[t], 'in garrison')}<span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${statLine(t)}</small></button>`).join('')}</div>` + defenceHtml(p);
   else { h += courtshipIntro(p, F); cta += courtshipBtn(p, F); }
   if (!p.b.castle && cur !== 'build') h += `<p class="sub">Build a castle here to station a garrison.</p>`;
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
