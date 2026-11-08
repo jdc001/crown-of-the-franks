@@ -1,6 +1,6 @@
 global.rnd=n=>Math.floor(Math.random()*n);global.pick=a=>a[rnd(a.length)];global.clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const fs=require('fs');
-let src='';for(const f of ['data','core','battle','ai','difficulty'])src+=fs.readFileSync(__dirname + '/../js/'+f+'.js','utf8')+'\n';
+let src='';for(const f of ['data','core','battle','ai','powers','difficulty'])src+=fs.readFileSync(__dirname + '/../js/'+f+'.js','utf8')+'\n';
 src=src.replace(/'use strict';/g,'').replace(/^const (\w+)/gm,'var $1').replace(/^let (\w+)/gm,'var $1');
 (0,eval)(src);
 checkVictory=function(){const w=victor();if(w){G.over=true;G.winner=w;}};

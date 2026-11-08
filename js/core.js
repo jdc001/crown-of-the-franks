@@ -1,7 +1,7 @@
 'use strict';
 // ================= STATE =================
 let G = null;
-const SK = 'crownOfTheFranks987v7';
+const SK = 'crownOfTheFranks987v8';
 const eu = () => ({ foot: 0, bow: 0, cav: 0, cat: 0 });
 const fighters = u => (u.militia || 0) + (u.foot || 0) + (u.bow || 0) + (u.cav || 0);
 // rough strength per company, from attack x hit points
@@ -20,13 +20,13 @@ const foreign = fid => FAC(fid).realm !== 'France';
 function rulerOf(fid) {
   const d = FAC(fid);
   if (d.emperor) return `Emperor ${d.pname}`;
-  if (d.kingOf && d.kingOf.length) return `King ${d.pname} of ${d.kingOf.map(k => KINGDOMS[k].n).join(' and ')}`;
+  if (d.kingOf && d.kingOf.length) return `King ${d.pname} of the Franks`;
   return `${d.title} ${d.pname}`;
 }
 const inCrown = (fid, p) => !!(KPROV[p.id] && (FAC(fid).kingOf || []).some(k => KPROV[p.id].includes(k)));
 function levyMax(p) {
   if (!p.owner) return (2 + Math.floor(p.base / 2)) * (p.r === 'fr' ? 1 : 2);
-  return (isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1);
+  return (isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1) * (p.owner === 'brittany' ? 2 : 1);
 }
 const bishopsOf = fid => G.fac[fid].bishops;
 
@@ -40,7 +40,8 @@ const lordArmy = fid => army(fid, 'a0');
 const armySize = a => fighters(armySide(a));
 const armySide = a => ({ militia: 0, foot: a.foot, bow: a.bow, cav: a.cav });
 const setArmy = (a, s) => { a.foot = s.foot; a.bow = s.bow; a.cav = s.cav; };
-const armyMax = fid => 1 + (owned(fid).length >= 8 ? 1 : 0) + ((FAC(fid).kingOf || []).length ? 1 : 0);
+// a third army only for a king the princes recognise: two of them sworn to him
+const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (isKing(fid) && vassals().length >= 2 ? 1 : 0);
 function armyGen(fid, a) { const g = G.fac[fid].gens.find(x => x.at === a.id); return g ? GENMAP[g.id] : null; }
 function armyUsable(fid, a) {
   const F = G.fac[fid]; if (!F.alive) return false;
@@ -88,13 +89,13 @@ function canBuild(p, t) {
   return (p.b[t] || 0) < MAXLV && (B.need === 'coast' ? p.seas.length > 0 : B.need === 'hills' ? p.hills : true);
 }
 function bldCost(p, t) {
-  if (t === 'castle') return CASTLE_C[castleLv(p)];
+  if (t === 'castle') return Math.round(CASTLE_C[castleLv(p)] * (p.owner === 'anjou' ? 0.75 : 1));
   if (t === 'rebuild') return 50;
-  if (BLD[t].realm) return p.owner === 'bavaria' ? Math.round(BLD[t].c / 2) : BLD[t].c;
+  if (BLD[t].realm) return BLD[t].c;
   if (t === 'moat') return BLD[t].c;
   return BLD[t].c * ((p.b[t] || 0) + 1);
 }
-const bldTurns = (p, t) => t === 'castle' ? CASTLE_T[castleLv(p)] : t === 'rebuild' ? 3 : BLD[t].t;
+const bldTurns = (p, t) => t === 'castle' ? Math.max(2, CASTLE_T[castleLv(p)] - (p.owner === 'anjou' ? 1 : 0)) : t === 'rebuild' ? 3 : BLD[t].t;
 function bldName(p, t) {
   if (t === 'castle') return castleLv(p) ? `Raise to ${CASTLE_N[castleLv(p) + 1].toLowerCase()}` : CASTLE_N[1];
   if (t === 'rebuild') return 'Rebuild the castle';
@@ -103,9 +104,8 @@ function bldName(p, t) {
 function bldYield(fid, t) {
   let y = BLD[t].y;
   if (t === 'market' && fid === 'champagne') y += 4;
-  if (t === 'market' && fid === 'tuscany') y += 3;
+  if (t === 'market' && fid === 'flanders') y += 3;
   if (t === 'port' && fid === 'provence') y += 3;
-  if (t === 'mine' && fid === 'saxony') y += 4;
   return y;
 }
 function bonus(fid) {
@@ -116,15 +116,15 @@ function bonus(fid) {
 const truce = () => G.turn < TRUCE;
 function unitCost(fid, t) {
   if (t === 'cav' && fid === 'normandy') return 16;
+  if (t === 'cav' && fid === 'gascony') return 17;
   if (t === 'bishop' && fid === 'burgundy') return 18;
-  if (t === 'cat' && fid === 'naples') return 15;
   return UNIT[t].c;
 }
-const shipCost = fid => fid === 'denmark' || fid === 'england' ? 20 : 30;
-const catShots = (fid, a) => 3 + (fid === 'naples' ? 1 : 0) + (a && armyGen(fid, a) && armyGen(fid, a).siege ? 1 : 0);
+const catShots = (fid, a) => 3 + (a && armyGen(fid, a) && armyGen(fid, a).siege ? 1 : 0);
 function mods(fid) { if (!fid) return 0; const F = G.fac[fid]; return (F.bless > 0 ? 1 : 0) - (F.excom > 0 ? 1 : 0); }
-const hasRome = fid => P('rome').owner === fid || P('rome').ally === fid;
-const atPeace = (a, b) => G.truces.some(t => t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+// Rome is beyond the map: its cardinals answer to no prince
+const hasRome = fid => false;
+const atPeace = (a, b) => G.truces.some(t => t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a))) || (vassal(a) && isKing(b)) || (vassal(b) && isKing(a));
 // the same two houses cannot renew a truce or pact within 10 turns of the last one lapsing
 const TRUCE_COOL = 10;
 const pairKey = (a, b) => [a, b].sort().join('|');
@@ -142,15 +142,16 @@ function loseGeneral(fid, at, why) {
 function emptyArmySlot(fid) { const max = armyMax(fid); return ARMY_IDS.slice(1, max).find(id => !genAt(fid, id)) || null; }
 function hireGeneral(fid, gid) {
   const F = G.fac[fid], g = GENMAP[gid];
-  if (!G.genPool.includes(gid) || F.gold < g.c || F.gens.length >= 3) return false;
+  if (!G.genPool.includes(gid) || F.gold < genCost(fid, g) || F.gens.length >= 3) return false;
   let at = emptyArmySlot(fid);
   if (at) { const a = army(fid, at); if (!a.loc || P(a.loc).owner !== fid) a.loc = homeOf(fid); }
   if (!at) { const c = owned(fid).find(q => q.b.castle && !genAt(fid, q.id)); at = c ? c.id : null; }
   if (!at) return false;
-  F.gold -= g.c; G.genPool = G.genPool.filter(x => x !== gid);
+  F.gold -= genCost(fid, g); G.genPool = G.genPool.filter(x => x !== gid);
   F.gens.push({ id: gid, at });
   return true;
 }
+const genCost = (fid, g) => fid === 'provence' ? Math.round(g.c * 0.75) : g.c;
 // move a general between postings: a castle, an empty army slot, or the lord's host
 function postGeneral(fid, gid, at) {
   const F = G.fac[fid], g = F.gens.find(x => x.id === gid); if (!g) return false;
@@ -175,11 +176,15 @@ function provIncome(p) {
   let v = p.base * (isCap(p) ? 2 : 1);
   for (const t of ['farm', 'market', 'port', 'mine']) v += (p.b[t] || 0) * bldYield(f, t);
   if (f === 'aquitaine') v += 2;
-  if (inCrown(f, p)) v += 2;
+  if (inCrown(f, p)) v += 1;
+  v = Math.round(v * reachMult(f, p));
   if (p.r === 'fr' && foreign(f) && !inCrown(f, p)) v = Math.floor(v * 0.7);
   return v;
 }
-function adminMult(fid) { const n = owned(fid).length; return n <= 15 ? 1 : 1 / (1 + (n - 15) * 0.025); }
+// a prince's power fades with distance from his seat: counties more than three steps away pay less
+const reachOf = (fid, p) => (HOPS[homeOf(fid)] || {})[p.id] ?? 9;
+const reachMult = (fid, p) => { const d = reachOf(fid, p); return d <= 3 ? 1 : d === 4 ? 0.85 : d === 5 ? 0.7 : 0.55; };
+function adminMult(fid) { const n = owned(fid).length; return n <= 20 ? 1 : 1 / (1 + (n - 20) * 0.025); }
 function grossIncome(fid) {
   let v = owned(fid).reduce((s, p) => s + provIncome(p), 0) + allies(fid).reduce((s, p) => s + provIncome(p), 0);
   v = Math.floor(v * adminMult(fid));
@@ -225,8 +230,7 @@ function uStr(u, withMil, withExtra = true) {
 }
 
 // ================= MOVEMENT =================
-// armies march through their own and allied land; a hostile fleet closes a sea lane
-function laneOpen(z, fid) { const f = G.fleets[z]; for (const k in f) if (k !== fid && f[k] > 0 && G.fac[k] && G.fac[k].alive && !atPeace(fid, k)) return false; return true; }
+// armies march through their own and allied land
 function marchDist(fid, from) {
   const d = { [from]: 0 }, q = [from];
   while (q.length) { const c = q.shift(); if (d[c] >= MOVES) continue; for (const n of ADJ[c]) if (!(n in d) && holds(fid, n)) { d[n] = d[c] + 1; q.push(n); } }
@@ -241,22 +245,14 @@ function marchArmy(fid, a, id) {
   if (!canMarch(fid, a, id)) return false;
   a.mp -= marchDist(fid, a.loc)[id]; a.siege = null; a.loc = id; a.idle = 0; return true;
 }
-// the nearest province reachable this turn from which p can be struck: by land, or over an open sea lane
+// the nearest province reachable this turn from which p can be struck, across a land border
 function strikeFrom(fid, a, p) {
   if (!armyUsable(fid, a) || a.acted || !a.loc || armySize(a) === 0) return null;
   if (holds(fid, p.id)) return null;
   if (p.owner && atPeace(fid, p.owner)) return null;
   const dist = a.siege ? { [a.loc]: 0 } : marchDist(fid, a.loc);
   let best = null;
-  for (const id in dist) {
-    const d = dist[id]; if (d > a.mp) continue;
-    if (id === p.id) continue;
-    const q = P(id);
-    const land = ADJ[p.id].includes(id);
-    const sea = !land && q.seas.some(z => p.seas.includes(z) && laneOpen(z, fid));
-    if (!land && !sea) continue;
-    if (!best || d < best.dist || (d === best.dist && land && best.sea)) best = { stage: id, dist: d, sea: !land };
-  }
+  for (const id of ADJ[p.id]) { const d = dist[id]; if (d === undefined || d > a.mp) continue; if (!best || d < best.dist) best = { stage: id, dist: d, sea: false }; }
   return best;
 }
 function stageFor(fid, a, p) { const s = strikeFrom(fid, a, p); if (!s) return null; a.mp -= s.dist; a.siege = null; a.loc = s.stage; return s; }
@@ -269,55 +265,6 @@ const canReachAny = (p, fid) => usableArmies(fid).some(a => strikeFrom(fid, a, p
 function canReach(p, fid) { return canReachAny(p, fid); }
 const canRaiseInto = (fid, a) => armyUsable(fid, a) && !!a.loc && !a.siege && P(a.loc).owner === fid;
 function raise(fid, t, a) { const F = G.fac[fid], c = unitCost(fid, t); if (!canRaiseInto(fid, a) || F.gold < c || t === 'bishop') return false; F.gold -= c; a[t]++; return true; }
-
-// ================= SEA =================
-function seaControl(z) {
-  const f = G.fleets[z]; let who = null;
-  for (const k in f) if (f[k] > 0) { if (who) return null; who = k; }
-  return who;
-}
-const shipsOf = fid => SEAS.reduce((s, z) => s + (G.fleets[z[0]][fid] || 0), 0);
-const coastIn = (fid, z) => provList().some(q => holds(fid, q.id) && q.seas.includes(z));
-function seaRoute(p, fid) { return p.seas.find(z => laneOpen(z, fid) && coastIn(fid, z)) || null; }
-function seaPath(from, to) {
-  if (from === to) return [from];
-  const prev = { [from]: null }, q = [from];
-  while (q.length) { const c = q.shift(); for (const n of SEA_ADJ[c]) if (!(n in prev)) { prev[n] = c; if (n === to) { const path = [n]; let k = c; while (k) { path.unshift(k); k = prev[k]; } return path; } q.push(n); } }
-  return null;
-}
-function navalBattle(af, z, an) {
-  const df = Object.keys(G.fleets[z]).find(k => k !== af && G.fleets[z][k] > 0);
-  let dn = G.fleets[z][df]; const a0 = an, d0 = dn;
-  const am = 1 + 0.15 * mods(af) + (af === 'denmark' ? 0.1 : 0), dm = 1 + 0.15 * mods(df) + (df === 'denmark' ? 0.1 : 0);
-  while (an > 0 && dn > 0) {
-    let ha = 0, hd = 0;
-    for (let i = 0; i < an; i++) if (Math.random() < 0.3 * am) ha++;
-    for (let i = 0; i < dn; i++) if (Math.random() < 0.32 * dm) hd++;
-    dn = Math.max(0, dn - ha); an = Math.max(0, an - hd);
-  }
-  G.fleets[z][df] = dn; G.fleets[z][af] = an;
-  const txt = `Sea fight in the ${SEAMAP[z]}: ${FAC(af).name} ${a0} longships against ${FAC(df).name} ${d0}. ${an > 0 ? FAC(af).name : FAC(df).name} holds the sea lane (${an > 0 ? an : dn} ships left).`;
-  if (af === G.player || df === G.player) report(an > 0 === (af === G.player) ? 'Victory at sea' : 'Defeat at sea', txt); else note(txt);
-  return an > 0;
-}
-function moveFleet(fid, from, to) {
-  const F = G.fac[fid];
-  const n = G.fleets[from][fid] || 0;
-  if (!n || !SEA_ADJ[from].includes(to) || F.moved.includes(from)) return false;
-  G.fleets[from][fid] = 0;
-  const enemy = Object.keys(G.fleets[to]).some(k => k !== fid && G.fleets[to][k] > 0);
-  if (enemy) { if (!navalBattle(fid, to, n)) return true; }
-  else G.fleets[to][fid] = (G.fleets[to][fid] || 0) + n;
-  F.moved.push(to);
-  return true;
-}
-function buildShip(fid, p, z) {
-  const F = G.fac[fid], c = shipCost(fid);
-  if (!p.b.port || p.owner !== fid || F.gold < c || !p.seas.includes(z)) return false;
-  if (Object.keys(G.fleets[z]).some(k => k !== fid && G.fleets[z][k] > 0)) return false;
-  F.gold -= c; G.fleets[z][fid] = (G.fleets[z][fid] || 0) + 1;
-  return true;
-}
 
 // ================= LOG =================
 function note(text) { G.log.unshift({ d: dateStr(G.turn), text }); if (G.log.length > 200) G.log.pop(); }
@@ -339,24 +286,24 @@ function freshColor() { const used = new Set(G.fdefs.filter(d => G.fac[d.id] && 
 
 // ================= NEW GAME =================
 function newGame(playerId) {
-  G = { v: 7, turn: 0, player: playerId, provs: {}, fac: {}, armies: {}, fleets: {}, log: [], reports: [], over: false, winner: null, sel: null, army: 'a0',
-    genPool: GENERALS.map(g => g.id), fdefs: FACTIONS.map(f => ({ ...f, arms: { ...f.arms }, kingOf: [] })), offers: [], truces: [], crowns: {}, formed: {}, lastUnion: -99, newN: 0, diplo: null, court: null };
+  G = { v: 8, turn: 0, player: playerId, provs: {}, fac: {}, armies: {}, log: [], reports: [], over: false, winner: null, sel: null, army: 'a0',
+    genPool: GENERALS.map(g => g.id), fdefs: FACTIONS.map(f => ({ ...f, arms: { ...f.arms }, kingOf: [] })), offers: [], truces: [], crowns: {}, coronated: {}, homage: {}, formed: {}, lastUnion: -99, newN: 0, diplo: null, court: null, ev: {} };
   rebuildFmap();
   PROV.forEach((r, i) => {
-    const [id, name, , , seas, hills, base, owner, castle, lord, reg] = r;
-    G.provs[id] = { id, name, x: SEEDS[i][0], y: SEEDS[i][1], seas: seas ? seas.split(',') : [], hills: !!hills, base, owner, ally: null, cap: null, r: reg,
+    const [id, name, , lat, seas, hills, base, owner, castle, lord, reg] = r;
+    G.provs[id] = { id, name, x: SEEDS[i][0], y: SEEDS[i][1], lat, seas: seas ? seas.split(',') : [], hills: !!hills, base, owner, ally: null, cap: null, r: reg,
       b: { farm: 0, market: 0, port: 0, mine: 0, castle: castle ? (base >= 6 ? 2 : 1) : 0, moat: 0, forge: 0, armory: 0, stables: 0 }, build: null, walls: castle ? 100 : 0, ruined: false,
       gar: eu(), militia: 0, heiress: null, lord, plague: null, interdict: 0 };
   });
-  SEAS.forEach(s => G.fleets[s[0]] = {});
   for (const p of provList()) {
     if (!p.owner && p.b.castle) p.gar = { foot: p.base - 1, bow: 2, cav: 1, cat: 0 };
-    if (!p.owner && p.r !== 'fr') { const k = (p.b.castle ? 2 : 1.5) * (p.r === 'it' ? 1.8 : 1); p.gar = { foot: Math.round((p.gar.foot || 2) * k) + 2, bow: Math.round((p.gar.bow || 1) * k), cav: Math.round((p.gar.cav || 1) * k), cat: 0 }; }
+    // the far south, the March, Lorraine and Arles: hard country and lords who answer to no one
+    const k = p.owner ? 1 : p.r === 'ca' ? 1.6 : p.lat < 44.6 ? 1.4 : p.r !== 'fr' ? 1.3 : 1;
+    if (k > 1) p.gar = { foot: Math.round((p.gar.foot || 2) * k) + 1, bow: Math.round((p.gar.bow || 1) * k), cav: Math.round((p.gar.cav || 1) * k), cat: 0 };
     if (!p.owner && p.b.castle && p.seas.length) p.b.port = 1;
   }
-  Object.assign(P('paris').gar, { foot: 7, bow: 4, cav: 3 });
-  Object.assign(P('rome').gar, { foot: 9, bow: 4, cav: 2 });
-  P('rome').b.castle = 3; P('paris').b.castle = 2;
+  // Reims: the archbishop who crowns kings keeps a strong household
+  P('reims').b.castle = 2; Object.assign(P('reims').gar, { foot: 9, bow: 4, cav: 2 });
   G.order = FACTIONS.map(f => f.id);
   FACTIONS.forEach(f => {
     G.fac[f.id] = Object.assign(facState(), { id: f.id });
@@ -365,15 +312,18 @@ function newGame(playerId) {
     G.armies[f.id] = ARMY_IDS.map(id => newArmy(id, f.home));
     Object.assign(G.armies[f.id][0], { foot: 5, bow: 2, cav: 1 });
   });
-  P('champagne').b.market = 1;
-  P('saxony').b.mine = 1; P('saxony').hills = true;
-  P('wessex').b.port = 1; P('jutland').b.port = 1; P('naples').b.port = 1;
-  G.crowns = { english: 'england', danes: 'denmark' };
-  FAC('england').kingOf = ['english']; FAC('denmark').kingOf = ['danes'];
+  P('troyes').b.market = 1;
+  // Hugh Capet, chosen at Senlis and crowned in July 987
+  G.crowns.franks = 'capet'; G.coronated.franks = 'capet';
+  const cd = FAC('capet'); cd.kingOf = ['franks']; cd.title = 'King';
+  G.fac.capet.cardinals = 1;
+  // the princes who did homage to the new king
+  for (const f of ['burgundy', 'barcelona']) G.homage[f] = true;
   for (const p of provList()) p.militia = levyMax(p);
+  G.start = Object.fromEntries(provList().filter(p => p.owner).map(p => [p.id, p.owner]));
   const neut = provList().filter(p => !p.owner);
-  for (let i = 0; i < 6; i++) { const c = neut.filter(p => !p.heiress); pick(c).heiress = pick(LADIES); }
-  note(`Louis V is dead without an heir. The lords of Francia cannot agree on a king, and the empire of Charlemagne lies in pieces. The bishops proclaim the Peace of God: no war between the great houses until ${dateStr(TRUCE)}.`);
+  for (let i = 0; i < 7; i++) { const c = neut.filter(p => !p.heiress); pick(c).heiress = pick(LADIES); }
+  note(`Louis V is dead without an heir. At Senlis the great men of the kingdom passed over his uncle, Charles of Lorraine, and chose Hugh, Duke of the Franks; Archbishop Adalbero of Reims crowned him in July. The new king's writ runs little further than Paris and Orléans. The bishops proclaim the Peace of God: no war between the princes until ${dateStr(TRUCE)}.`);
   beginTurn(playerId);
 }
 
@@ -463,7 +413,7 @@ function endRound() {
       p.militia = Math.min(levyMax(p), p.militia + 1);
       if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + 8);
       if (!p.owner && !p.ally && G.turn % 2 === 1 && p.gar.foot < (p.r === 'fr' ? p.base + 2 : p.base * 2 + 4) && (p.b.castle || p.r !== 'fr')) p.gar.foot++;
-      if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot++; if (G.turn % 2 === 1) p.gar.bow++; }
+      if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot += p.owner === 'toulouse' ? 2 : 1; if (G.turn % 2 === 1) p.gar.bow++; }
     }
   }
   G.truces = G.truces.filter(t => t.until > G.turn);
@@ -478,7 +428,7 @@ function endRound() {
     const back = GENERALS.filter(g => !used.has(g.id));
     if (back.length) { const g = pick(back); G.genPool.push(g.id); note(`${g.n} offers his sword to any lord who can pay.`); }
   }
-  if (!G.over) { for (const f of alive()) unrestTick(f); maybeUnion(); }
+  if (!G.over) { for (const f of alive()) unrestTick(f); maybeLeague(); if (typeof powersTick === 'function') powersTick(); }
   G.turn++;
 }
 function capture(p, fid) {
@@ -572,11 +522,11 @@ function destroyHouse(lo, win) {
   allies(lo).forEach(q => { q.ally = null; });
   for (const a of armiesOf(lo)) { a.foot = a.bow = a.cav = a.cat = 0; a.siege = null; a.loc = null; }
   F.gens.forEach(g => G.genPool.push(g.id)); F.gens = [];
-  for (const k in G.crowns) if (G.crowns[k] === lo) delete G.crowns[k];
+  for (const k in G.crowns) if (G.crowns[k] === lo) { delete G.crowns[k]; G.homage = {}; }
+  if (G.homage) delete G.homage[lo];
   for (const f of facIds()) if (G.fac[f].captive && G.fac[f].captive.by === lo) G.fac[f].captive.by = null;
   G.offers = G.offers.filter(o => o.fid !== lo);
   if (G.diplo && G.diplo.from === lo) G.diplo = null;
-  SEAS.forEach(s => { const f = G.fleets[s[0]]; if (f[lo]) { if (win) f[win] = (f[win] || 0) + f[lo]; f[lo] = 0; } });
   F.unrest = null; F.warOn = null;
 }
 function collapse(lo, win, seat) {
@@ -588,7 +538,9 @@ function collapse(lo, win, seat) {
   seat.cap = null;
   for (const b of armiesOf(lo)) if (b.loc && P(b.loc).owner === win) b.loc = null;
   const blocks = blocksOf(lo);
-  const big = blocks[0] && blocks[0].length >= 4 && !F.fallen ? blocks[0] : null;
+  // Robert, crowned beside his father, lets the Capetians rally from a single county and keep the crown
+  const big = blocks[0] && (blocks[0].length >= 4 || (F.coKing && blocks[0].length >= 1)) && !F.fallen ? blocks[0] : null;
+  const keepCrown = !!big && !!F.coKing && isKing(lo);
   if (big) {
     F.fallen = true;
     const newSeat = big.map(P).sort((a, b) => (castleLv(b) * 10 + b.base) - (castleLv(a) * 10 + a.base))[0];
@@ -596,9 +548,8 @@ function collapse(lo, win, seat) {
     newSeat.cap = lo; d.home = newSeat.id;
     const old = d.pname;
     d.pname = `${pick(PNAMES)}, heir of ${old.split(',')[0].split(' ')[0]}`;
-    d.title = FACMAP[lo] ? FACMAP[lo].title : 'Duke';
-    for (const k in G.crowns) if (G.crowns[k] === lo) delete G.crowns[k];
-    d.kingOf = [];
+    d.title = keepCrown ? 'King' : FACMAP[lo] ? FACMAP[lo].title : 'Duke';
+    if (!keepCrown) { for (const k in G.crowns) if (G.crowns[k] === lo) { delete G.crowns[k]; G.homage = {}; } d.kingOf = []; }
     F.gold = Math.floor(F.gold / 2);
     for (const a of armiesOf(lo)) { for (const t of ['foot', 'bow', 'cav', 'cat']) a[t] -= Math.round(a[t] * 0.3); if (!a.loc || !holds(lo, a.loc)) a.loc = newSeat.id; }
     if (F.captive) { /* the lord is still a prisoner; the heir rules in his name */ }
@@ -628,7 +579,6 @@ function eliminate(lo, win, quiet) {
   for (const k in G.crowns) if (G.crowns[k] === lo) delete G.crowns[k];
   for (const f of facIds()) if (G.fac[f].captive && G.fac[f].captive.by === lo) G.fac[f].captive.by = null;
   G.offers = G.offers.filter(o => o.fid !== lo);
-  SEAS.forEach(s => { const f = G.fleets[s[0]]; if (f[lo]) { f[win] = (f[win] || 0) + f[lo]; f[lo] = 0; } });
   for (const o in G.armies) for (const b of G.armies[o]) if (b.siege && P(b.siege).owner === o) b.siege = null;
   if (quiet) return;
   const msg = `${rulerOf(lo)}'s seat has fallen. ${FAC(win).name} takes all ${n + 1} of ${FAC(lo).name}'s provinces and its fleet.`;
@@ -637,53 +587,109 @@ function eliminate(lo, win, quiet) {
 const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
-// The goal is chosen when a game starts. A crown only counts toward a goal if it was won at a coronation;
-// a crown handed to a coalition that rises against a leader does not count.
 const GOALS = {
-  kingdom: { n: 'King of the Franks', s: 'Short', d: 'Be crowned King of the Franks at Reims: hold 18 provinces of France, among them Reims and Paris, and pay for the coronation.' },
-  empire: { n: 'Emperor', s: 'Long', d: 'Wear the crown of the Franks and the crown of Germany or of Italy, and hold half the provinces of Charlemagne\'s empire.' },
-  conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels and any kingdom that rises against you.' },
+  king: { n: 'King in fact', s: 'The main game', d: 'Wear the crown of the Franks, anointed at Reims; hold the homage of two-thirds of the princes still standing; and hold two-fifths of the kingdom\'s counties yourself.' },
+  conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
-const goalId = () => (G && G.goal) || 'conquest';
-const wears = (fid, k) => G.crowns[k] === fid && !!(G.coronated && G.coronated[k] === fid);
-const empireNeed = () => Math.ceil(EMPIRE.length / 2);
-function goalMet(fid) {
-  const g = goalId();
-  if (g === 'kingdom') return wears(fid, 'franks');
-  if (g === 'empire') return wears(fid, 'franks') && (wears(fid, 'germans') || wears(fid, 'italians')) && empireHeld(fid) >= empireNeed();
-  return false;
-}
-// the house that has won, if any
-function victor() {
-  const al = alive();
-  if (al.length === 1) return al[0];
-  return al.find(goalMet) || null;
-}
+const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
+const wears = (fid, k = 'franks') => G.crowns[k] === fid && !!(G.coronated && G.coronated[k] === fid);
+const homageNeed = () => Math.min(alive().length - 1, Math.max(3, Math.ceil((alive().length - 1) * 2 / 3)));
+const domainNeed = () => Math.ceil(FRANCE.length * 0.4);
+const domainHeld = fid => FRANCE.filter(id => P(id).owner === fid).length;
+function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && vassals().length >= homageNeed() && domainHeld(fid) >= domainNeed(); }
+function victor() { const al = alive(); if (al.length === 1) return al[0]; return al.find(goalMet) || null; }
 function checkVictory() {
   const w = victor();
-  if (w) { G.over = true; G.winner = w; if (goalId() !== 'kingdom') FAC(w).emperor = true; return; }
+  if (w) { G.over = true; G.winner = w; return; }
   if (!G.fac[G.player].alive) G.over = true;
 }
 
-// ================= CROWNS =================
-const CROWN_COST = 120;
-const crownIncome = (fid, kid) => KINGDOMS[kid].list.filter(id => P(id).owner === fid).length * 2;
-function crownProgress(fid, kid) { const K = KINGDOMS[kid]; return { have: K.list.filter(id => holds(fid, id)).length, keys: K.keys.filter(id => P(id).owner === fid).length }; }
-function canCrown(fid, kid) {
-  if (G.crowns[kid]) return false;
-  const K = KINGDOMS[kid], pr = crownProgress(fid, kid);
-  return pr.keys === K.keys.length && pr.have >= K.need;
-}
-function crown(fid, kid) {
+// ================= THE CROWN AND HOMAGE =================
+// One crown: the Franks. Hugh starts with it. Anyone who holds Reims (whose archbishop anoints kings) and Paris,
+// the royal seat, may have himself crowned; Charles, a Carolingian, needs only Reims and Laon, his family's city.
+// The princes do homage to the king in person: a new king finds every oath void.
+const CROWN_COST = 120, HOMAGE_GIFT = 30;
+const king = () => { const k = G.crowns.franks; return k && G.fac[k] && G.fac[k].alive ? k : null; };
+const isKing = fid => !!fid && king() === fid;
+const vassal = fid => !!(G.homage && G.homage[fid]) && !!king() && king() !== fid && !!G.fac[fid] && G.fac[fid].alive;
+const vassals = () => alive().filter(vassal);
+const crownIncome = fid => FRANCE.filter(id => P(id).owner === fid).length;
+const crownNeeds = fid => ['reims', fid === 'charles' ? 'laon' : 'paris'];
+// the bishops will not anoint a man with no lands in the kingdom to speak of
+const CROWN_LANDS = 8;
+function canCrown(fid, kid = 'franks') { return kid === 'franks' && !isKing(fid) && crownNeeds(fid).every(id => P(id).owner === fid) && domainHeld(fid) >= CROWN_LANDS; }
+function crown(fid, kid = 'franks') {
   const F = G.fac[fid];
-  if (!canCrown(fid, kid) || F.gold < CROWN_COST) return false;
-  F.gold -= CROWN_COST; G.crowns[kid] = fid; (G.coronated = G.coronated || {})[kid] = fid;
-  const d = FAC(fid); d.kingOf = (d.kingOf || []).concat(kid); d.title = 'King';
-  for (const id of KINGDOMS[kid].list) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
-  const txt = `At ${KINGDOMS[kid].at}, ${d.pname} is crowned King of ${KINGDOMS[kid].n}. His provinces there pay more and raise double levies, his troops fight harder as the royal host, and the crown lets him field another army.`;
-  if (fid === G.player) report('Long live the king!', txt); else report(`A new King of ${KINGDOMS[kid].n}`, txt);
+  if (!canCrown(fid) || F.gold < CROWN_COST) return false;
+  F.gold -= CROWN_COST;
+  const old = king();
+  if (old) { const od = FAC(old); od.kingOf = []; od.title = old === 'capet' || !FACMAP[old] ? 'Duke' : FACMAP[old].title; }
+  G.crowns.franks = fid; G.coronated.franks = fid; G.homage = {};
+  const d = FAC(fid); d.kingOf = ['franks']; d.title = 'King';
+  for (const id of FRANCE) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
+  const txt = `At Reims the archbishop anoints ${d.pname} King of the Franks${old ? `, and ${FAC(old).pname} is king no longer` : ''}. Every oath sworn to the old king is void: the princes must do homage anew. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and once two princes have sworn to him he may field a third army.`;
+  if (fid === G.player) report('Long live the king!', txt); else report('A new King of the Franks', txt);
   checkVictory();
   return true;
+}
+// the king's summons: gifts, and an armed presence the prince must weigh against his own
+function homageChance(k, f) {
+  const F = G.fac[f];
+  if (F.captive && F.captive.by === k) return 1;
+  if (f === 'charles') return 0.03;
+  if (F.renounced !== undefined && G.turn - F.renounced < 8) return 0;
+  const pk = totalArmyPower(k) + fighters(P(homeOf(k)).gar) * 0.5, pf = totalArmyPower(f) + fighters(P(homeOf(f)).gar) * 0.5;
+  const c = -0.1 + 0.55 * pk / (pk + pf + 1) + 0.1 * influence(k) + (F.excom > 0 ? 0.1 : 0) - (owned(f).length > owned(k).length ? 0.2 : 0) + (adjTo(P(homeOf(f)), k) ? 0.05 : 0);
+  // the princes passed Charles over in 987: the Emperor's vassal, married beneath him. They kneel to him slowly.
+  // late in the game, with few houses left, a prince facing a much bigger king has little choice
+  const over = alive().length > 5 ? 0 : clamp((owned(k).length / Math.max(1, owned(f).length) - 1.3) * 0.15, 0, 0.4);
+  return clamp(c * (k === 'charles' ? 0.55 : 1) + over, 0.02, 0.75);
+}
+function summonHomage(k, f) {
+  const K = G.fac[k];
+  if (!isKing(k) || vassal(f) || f === k || K.summoned === G.turn || K.gold < HOMAGE_GIFT) return null;
+  K.gold -= HOMAGE_GIFT; K.summoned = G.turn;
+  if (Math.random() < homageChance(k, f)) {
+    G.homage[f] = true;
+    const t = `${rulerOf(f)} kneels before ${rulerOf(k)}, places his hands between the king's, and swears to be his man.`;
+    if (f === G.player || k === G.player) report('Homage', t); else note(t);
+    checkVictory(); return { ok: true, text: t };
+  }
+  const t = `${rulerOf(f)} sends the king's messengers home with fair words and no oath.`;
+  note(t);
+  return { ok: false, text: t };
+}
+// a prince may swear of his own accord: peace with the king, and the king's favour
+function doHomage(f) {
+  const k = king(); if (!k || k === f || vassal(f)) return false;
+  G.homage[f] = true;
+  note(`${rulerOf(f)} does homage to ${rulerOf(k)}.`);
+  checkVictory(); return true;
+}
+// breaking an oath is war with the king, and the Church may cast the oath-breaker out
+function renounce(f) {
+  const k = king(); if (!vassal(f)) return false;
+  delete G.homage[f]; G.fac[f].renounced = G.turn;
+  const ex = Math.random() < 0.5; if (ex) G.fac[f].excom = Math.max(G.fac[f].excom, 2);
+  const t = `${rulerOf(f)} renounces his homage to ${rulerOf(k)}.${ex ? ' The Pope excommunicates the oath-breaker.' : ''}`;
+  if (f === G.player || k === G.player) report('An oath broken', t); else note(t);
+  return true;
+}
+// the king may declare a vassal's fiefs forfeit: the oath ends, and so does the peace
+function forfeit(k, f) {
+  if (!isKing(k) || !vassal(f)) return false;
+  delete G.homage[f]; G.fac[f].renounced = G.turn;
+  const t = `${rulerOf(k)} declares the fiefs of ${rulerOf(f)} forfeit. There is no oath between them now.`;
+  if (f === G.player || k === G.player) report('Fiefs forfeit', t); else note(t);
+  return true;
+}
+// a captured prince may buy his freedom with his homage
+function releaseForHomage(k, f) {
+  const F = G.fac[f]; if (!isKing(k) || !F.captive || F.captive.by !== k) return false;
+  F.captive = null; G.homage[f] = true; G.offers = G.offers.filter(o => o.fid !== f);
+  const t = `${rulerOf(f)} is released when he does homage to ${rulerOf(k)}.`;
+  if (f === G.player || k === G.player) report('Homage for freedom', t); else note(t);
+  checkVictory(); return true;
 }
 
 // ================= UNREST, REBELLION & UNIONS =================
@@ -705,8 +711,9 @@ function unrestTick(fid) {
     }
     return;
   }
-  if (n < 10 || G.turn - F.lastRebel < 14) return;
-  let ch = 0.04 + 0.006 * (n - 10);
+  if (n < 12 || G.turn - F.lastRebel < 14) return;
+  // the further a realm reaches from its seat, the more its lords mutter
+  let ch = 0.04 + 0.006 * (n - 12) + 0.008 * mine.filter(p => reachOf(fid, p) >= 5).length;
   if (F.bishops >= 3) ch *= 0.7;
   if (Math.random() > ch) return;
   const cap = homeOf(fid), dist = bfsOwned(fid, cap);
@@ -743,61 +750,22 @@ function rebel(fid) {
   if (fid === G.player) report('Rebellion!', txt);
   else report(`Civil war in ${FAC(fid).name}`, txt);
 }
-const UNIONS = {
-  fr: { name: 'France', pname: 'Hugh Capet', color: '#26408a', arms: { t: 'semy', f: '#26408a', c: '#e2b33c' } },
-  de: { name: 'Germany', pname: 'Otto III', color: '#a2832a', arms: { t: 'cross', f: '#e2b33c', c: '#1d1d1d' } },
-  it: { name: 'Italy', pname: 'Arduin of Ivrea', color: '#2f8f7f', arms: { t: 'perpale', f: '#2f8f7f', c: '#f2ead6' } },
-  br: { name: 'Britain', pname: 'Kenneth of Alba', color: '#5a3f8f', arms: { t: 'bendCot', f: '#5a3f8f', c: '#f2ead6', c2: '#e2b33c' } },
-};
-function maybeUnion() {
-  if (G.turn - G.lastUnion < 12) return;
+// ================= THE LEAGUE OF PRINCES =================
+// When one house holds more than a quarter of the counties on the map, the other princes make common cause:
+// a truce among themselves and a war on the leader for twelve turns. The player is never pressed into it.
+function maybeLeague() {
+  if (G.turn - G.lastUnion < 20 || G.turn < TRUCE + 6) return;
   const counts = alive().map(f => [f, provList().filter(p => holds(f, p.id)).length]).sort((a, b) => b[1] - a[1]);
-  if (!counts.length) return;
+  if (counts.length < 3) return;
   const [L, lc] = counts[0];
-  if (lc / PROV.length < 0.33) return;
-  for (const region of ['fr', 'de', 'it', 'br']) {
-    if (G.formed[region]) continue;
-    const ps = provList().filter(p => p.r === region);
-    const others = ps.filter(p => !holds(L, p.id));
-    if (ps.length - others.length >= ps.length * 0.5 || others.length < 4) continue;
-    formUnion(region, L, others);
-    G.formed[region] = true; G.lastUnion = G.turn;
-    return;
-  }
-}
-function formUnion(region, L, others) {
-  const U = UNIONS[region];
-  // the strongest house seated in the region leads the union; otherwise a new king is elected. The player's house is never merged.
-  const seated = alive().filter(f => f !== L && f !== G.player && P(homeOf(f)).r === region && P(homeOf(f)).owner === f).sort((a, b) => owned(b).length - owned(a).length);
-  let kid;
-  if (seated.length) { kid = seated[0]; const d = FAC(kid); d.name = U.name; }
-  else {
-    const homeP = others.filter(p => !p.owner || alive().includes(p.owner)).filter(p => p.owner !== G.player).sort((a, b) => (castleLv(b) * 10 + b.base) - (castleLv(a) * 10 + a.base))[0];
-    if (!homeP) return;
-    kid = 'u' + region;
-    addFaction({ id: kid, title: 'King', pname: U.pname, name: U.name, color: U.color, home: homeP.id, realm: 'Union', arms: { ...U.arms }, kingOf: [], blurb: '', trait: '' }, homeP.id);
-    if (!homeP.b.castle) { homeP.b.castle = 2; homeP.walls = 100; }
-    homeP.cap = kid;
-  }
-  const merged = [];
-  for (const f of seated.slice(1)) { merged.push(FAC(f).name); eliminate(f, kid, true); }
-  for (const p of others) {
-    if (p.owner === kid) continue;
-    if (p.owner === G.player) continue;
-    if (p.owner && p.owner !== L && p.cap === p.owner) continue;
-    p.owner = kid; p.ally = null; p.build = null;
-  }
-  const rk = REGION_KINGDOM[region];
-  const d = FAC(kid);
-  if (rk && !G.crowns[rk]) { G.crowns[rk] = kid; d.kingOf = (d.kingOf || []).concat(rk); d.title = 'King'; }
-  const A = lordArmy(kid);
-  const pw = totalArmyPower(L) * 0.45, add = Math.max(12, Math.round(pw / 1.1));
-  A.foot += Math.round(add * 0.5); A.bow += Math.round(add * 0.25); A.cav += Math.round(add * 0.25); A.cat += 2;
-  if (!A.loc || P(A.loc).owner !== kid) A.loc = homeOf(kid);
-  G.fac[kid].gold += 250;
-  for (const p of owned(kid)) if (p.b.castle && fighters(p.gar) < 6) { p.gar.foot += 4; p.gar.bow += 2; }
-  const txt = `Alarmed by the power of ${FAC(L).name}, the lords of ${REGION_NAME[region]} unite under ${rulerOf(kid)}${merged.length ? `, bringing in ${merged.join(' and ')}` : ''}. Every province of ${REGION_NAME[region]} not held by ${FAC(L).name}${L !== G.player ? ' or by you' : ''} now answers to ${d.name}.`;
-  report(`The ${d.name === U.name ? 'kingdom of ' + U.name : d.name} rises`, txt);
+  if (lc < PROV.length * 0.27) return;
+  const members = alive().filter(f => f !== L && f !== G.player && !atPeace(f, L));
+  if (members.length < 2) return;
+  G.lastUnion = G.turn;
+  for (const f of members) { G.fac[f].warOn = { target: L, until: G.turn + 12 }; const A = lordArmy(f); if (A && A.loc && armyUsable(f, A)) { A.foot += 4; A.bow += 2; } }
+  for (let i = 0; i < members.length; i++) for (let j = i + 1; j < members.length; j++) if (!atPeace(members[i], members[j])) addTruce(members[i], members[j], G.turn + 12, true);
+  const txt = `Alarmed by the power of ${FAC(L).name}, ${members.map(f => FAC(f).name).join(', ')} swear to put aside their own quarrels and make war on ${FAC(L).name} together for three years.`;
+  report(L === G.player ? 'The princes league against you' : `A league against ${FAC(L).name}`, txt);
 }
 
 // ================= THE CHURCH =================
@@ -819,7 +787,7 @@ const POPE = {
 const popeCost = (fid, a) => Math.ceil(POPE[a].c * (popeIsYours(fid) || hasRome(fid) ? 0.5 : 1));
 function popeChance(fid, act, target) {
   if (popeIsYours(fid)) return 1;
-  const inf = influence(fid) + 0.02 * Math.min(5, G.fac[fid].bishops);
+  const inf = influence(fid) + 0.02 * Math.min(5, G.fac[fid].bishops) + (typeof popeMod === 'function' ? popeMod(fid) : 0);
   let c;
   if (act === 'excom') c = 0.25 + inf - 0.8 * influence(target) - (hasRome(target) ? 0.3 : 0);
   else if (act === 'interdict') { const o = P(target).owner; c = 0.3 + inf - (o ? 0.8 * influence(o) : 0); }
@@ -859,7 +827,7 @@ const courtFloor = p => 32 + 2 * p.base;
 function suitPoints(fid, p, o) { return prestige(fid, p) + PRICES[o.price][1] + (o.protect ? PROTECT.pts : 0) + (o.bishop ? BISHOP_PTS : 0); }
 function suitCost(o) { return PRICES[o.price][0] + (o.protect ? PROTECT.c : 0); }
 function courtRivals(fid, p) {
-  return alive().filter(o => o !== fid && G.fac[o].sons > 0 && (adjTo(p, o) || p.ally === o || p.seas.some(z => coastIn(o, z))))
+  return alive().filter(o => o !== fid && G.fac[o].sons > 0 && (adjTo(p, o) || p.ally === o))
     .map(o => { const F = G.fac[o]; let tier = 0; for (let i = 3; i > 0; i--) if (F.gold >= PRICES[i][0] + 40) { tier = i; break; } return { fid: o, bid: suitPoints(o, p, { price: tier, protect: false, bishop: false }), tier }; })
     .sort((a, b) => b.bid - a.bid).slice(0, 2);
 }
@@ -955,8 +923,8 @@ function answerDiplo(id, yes) {
   else { addTruce(D.from, G.player, G.turn + JOINT_TURNS, true); F.warOn = { target: D.target, until: G.turn + JOINT_TURNS }; note(`You and ${FAC(D.from).name} make common cause against ${FAC(D.target).name}.`); }
   return { ok: true };
 }
-const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && p.r === 'fr' ? 2 : 1));
-const canAlly = (fid, p) => !p.owner && !p.ally && (adjTo(p, fid) || p.seas.some(z => coastIn(fid, z))) && !besiegerOf(p);
+const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && p.r === 'fr' ? 2 : 1) * (fid === 'blois' ? 0.75 : 1));
+const canAlly = (fid, p) => !p.owner && !p.ally && adjTo(p, fid) && !besiegerOf(p);
 function makeAlly(fid, p) {
   const F = G.fac[fid], c = allyCost(fid, p);
   if (!canAlly(fid, p) || F.gold < c) return false;

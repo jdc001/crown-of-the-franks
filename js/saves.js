@@ -19,7 +19,7 @@ function deleteSlot(n) {
 }
 // put a saved game on the board, replacing whatever is being played
 function loadGameObj(obj) {
-  if (!obj || obj.v !== 7 || !obj.fdefs || !obj.provs || !obj.fac) return toast('That save is not from this version of the game');
+  if (!obj || obj.v !== 8 || !obj.fdefs || !obj.provs || !obj.fac) return toast('That save is not from this version of the game');
   if (obj.over) return toast('That campaign is already over');
   G = obj; rebuildFmap();
   if (!G.army) G.army = 'a0';
@@ -80,10 +80,10 @@ function openSaves() {
   const slots = Array.from({ length: SLOTS }, (_, i) => i + 1).map(n => {
     const s = readSlot(n), when = s ? new Date(s.when) : null;
     return `<div class="gen"><div class="gname">${ico('scroll')} Slot ${n}</div>${s ? `<div>${shieldFromSave(s.game)} <b>${esc(slotLabel(s.game))}</b></div><div class="sub">saved ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · ${s.game.fdefs.filter(d => s.game.fac[d.id].alive).length - 1} rivals left</div>` : '<div class="sub">Empty</div>'}
-      <div class="row" style="margin-top:4px">${live ? `<button class="btn sm${s ? '' : ' gold'}" onclick="${s ? `confirmOverwrite(${n})` : `saveToSlot(${n})`}">${s ? 'Save over' : 'Save here'}</button>` : ''}${s ? `<button class="btn sm gold" onclick="loadSlot(${n})">Load</button><button class="btn sm ghost" onclick="deleteSlot(${n})">Delete</button>` : ''}</div></div>`;
+      <div class="row" style="margin-top:4px">${live ? `<button class="btn sm${s ? '' : ' gold'}" onclick="${s ? `confirmOverwrite(${n})` : `saveToSlot(${n})`}">${s ? 'Save over' : 'Save here'}</button>` : ''}${s && s.game.v !== 8 ? '<span class="sub">From the old map of Europe: it plays in Emperor: 1000 AD.</span>' : ''}${s ? `${s.game.v === 8 ? `<button class="btn sm gold" onclick="loadSlot(${n})">Load</button>` : ''}<button class="btn sm ghost" onclick="deleteSlot(${n})">Delete</button>` : ''}</div></div>`;
   }).join('');
   showModal(`<h2>${ico('scroll')} Saved games</h2>
-    <p class="sub">The game also saves itself after every move${auto && !auto.over && auto.v === 7 ? ` (now: ${esc(slotLabel(auto))})` : ''}. Slots are kept on this device; deleting the home-screen icon deletes them too, so export a copy of a long campaign.</p>
+    <p class="sub">The game also saves itself after every move${auto && !auto.over && auto.v === 8 ? ` (now: ${esc(slotLabel(auto))})` : ''}. Slots are kept on this device; deleting the home-screen icon deletes them too, so export a copy of a long campaign.</p>
     <div class="gens">${slots}</div>
     <h3>Back up or move a campaign</h3>
     ${live ? `<div class="grid2"><button class="btn" onclick="exportFile()"><span class="lbl">${ico('scroll')}Save as a file</span><small>to Files, iCloud Drive, AirDrop or email</small></button><button class="btn" onclick="exportCode()"><span class="lbl">${ico('check')}Copy save code</span><small>paste it into Notes or a message</small></button></div>` : '<p class="sub">Start or continue a campaign to export it.</p>'}

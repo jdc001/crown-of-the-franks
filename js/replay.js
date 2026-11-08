@@ -9,7 +9,6 @@ function replaySnap() {
   for (const f in G.armies) arm[f] = G.armies[f].map(a => ({ id: a.id, loc: a.loc, siege: a.siege, n: armySize(a) }));
   return { own, al, arm };
 }
-const seaLinked = (a, b) => P(a).seas.some(z => P(b).seas.includes(z));
 function replayEvents(snap) {
   const out = [];
   for (const f of G.order) {
@@ -24,7 +23,7 @@ function replayEvents(snap) {
     for (const p of provList()) {
       if (p.owner === f && snap.own[p.id] !== f) {
         // draw the blow from the army that stands beside it, if one does
-        const src = (G.armies[f] || []).find(a => a.loc && a.loc !== p.id && (ADJ[p.id].includes(a.loc) || seaLinked(a.loc, p.id)));
+        const src = (G.armies[f] || []).find(a => a.loc && a.loc !== p.id && (ADJ[p.id].includes(a.loc)));
         ev.push({ k: 'take', from: src ? src.loc : null, to: p.id, was: snap.own[p.id] });
       } else if (!p.owner && p.ally === f && snap.al[p.id] !== f) ev.push({ k: 'ally', to: p.id });
     }

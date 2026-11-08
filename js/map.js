@@ -73,23 +73,25 @@ function buildMap() {
     <pattern id="waves" width="52" height="30" patternUnits="userSpaceOnUse"><path d="M3 16 q10-9 20 0 t20 0" fill="none" stroke="#4f6f6b" stroke-width="1.2" opacity=".35"/><path d="M-10 28 q10-9 20 0 t20 0 t20 0" fill="none" stroke="#4f6f6b" stroke-width="1" opacity=".2"/></pattern>
     <pattern id="terra" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="5" cy="6" r=".9" fill="#8b7a55" opacity=".3"/><circle cx="16" cy="17" r=".9" fill="#8b7a55" opacity=".25"/><circle cx="12" cy="3" r=".6" fill="#8b7a55" opacity=".2"/></pattern>
     ${HILL_PAT('hills')}
+    <pattern id="edgehatch" width="11" height="11" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="11" fill="#cdc1a1"/><rect width="3" height="11" fill="#bcb091"/></pattern>
     ${allyPats}
   </defs>
   <rect x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#d9ca9f"/>
   <rect x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="url(#terra)"/>
   ${SEA_POLYS.map(L => `<path d="${pathOf(L)}" fill="url(#seag)"/>`).join('')}
   ${SEA_POLYS.map(L => `<path d="${pathOf(L)}" fill="url(#waves)"/>`).join('')}
-  <g clip-path="url(#seaclip)" id="seazones">${SEAS.map(s => `<path class="seacell" id="z-${s[0]}" data-sea="${s[0]}" d="${SEA_CELLD[s[0]]}"/>`).join('')}</g>
   <g clip-path="url(#seaclip)">${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#c9d6c9" stroke-width="26" stroke-opacity=".22"/><path d="${pathOf(L)}" fill="none" stroke="#c9d6c9" stroke-width="12" stroke-opacity=".3"/>`).join('')}</g>
   ${ISLES.map(L => `<path d="${pathOf(L)}" fill="#d9ca9f" stroke="#7b6a48" stroke-width="1.4"/>`).join('')}
+  <g clip-path="url(#landclip)">${EDGES.map((e, i) => `<path class="edgecell" d="${EDGE_CELLD[i]}" fill="url(#edgehatch)"/>`).join('')}</g>
   <g clip-path="url(#landclip)">${PROV.map(r => `<path class="cell" id="c-${r[0]}" data-id="${r[0]}" d="${CELLD[r[0]]}"/>`).join('')}</g>
   <g clip-path="url(#landclip)" pointer-events="none">${PROV.filter(r => r[5]).map(r => `<path d="${CELLD[r[0]]}" fill="url(#hills)"/>`).join('')}</g>
   <g clip-path="url(#landclip)" pointer-events="none" id="ownerlines"></g>
   ${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#3a2b1b" stroke-width="2.4"/>`).join('')}
-  ${[['Hispania', -4.5, 40.6], ['Sweden', 15.6, 57.6], ['Bohemia', 14.6, 50.0], ['Poland', 17.5, 52.3], ['Hungary', 18.5, 47.0], ['Croatia', 16.5, 45.2], ['Emirate of Sicily', 14.0, 37.2], ['Corsica', 9.1, 42.2], ['Sardinia', 9.0, 40.0], ['Norway', 7.2, 58.5]].map(([n, lo, la]) => `<text class="geo" x="${px(lo)}" y="${py(la)}">${n}</text>`).join('')}
-  ${SEAS.map(s => `<text class="seal" x="${px(s[2])}" y="${py(s[3]) + 34}">${s[1]}</text>`).join('')}
-  <g transform="translate(${px(-9.4)},${py(47.6)})" class="rose"><circle r="36" fill="#efe3c4aa" stroke="#3a2b1b" stroke-width="1.2"/><circle r="30" fill="none" stroke="#b8892c" stroke-width="1"/><path d="M0,-46 L7,0 L0,46 L-7,0Z M-46,0 L0,-7 L46,0 L0,7Z" fill="#8e1f1b" stroke="#2a1d12" stroke-width="1"/><path d="M0,-46 L7,0 L0,0Z M46,0 L0,7 L0,0Z M0,46 L-7,0 L0,0Z M-46,0 L0,-7 L0,0Z" fill="#e2b33c"/><text y="-52" text-anchor="middle" class="rosel">N</text></g>
-  <g transform="translate(${px(-10.6)},${py(58.3)})"><rect width="250" height="66" rx="4" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/><rect x="5" y="5" width="240" height="56" fill="none" stroke="#b8892c" stroke-width="1.2"/><text x="125" y="31" class="cart">Francia et Regna Vicina</text><text x="125" y="50" class="cart2">Anno Domini 987</text></g>
+  ${EDGES.map(e => `<text class="geo edge" x="${px(e[2])}" y="${py(e[3])}">${e[1]}</text>`).join('')}
+  ${[['Corsica', 9.1, 42.2]].map(([n, lo, la]) => `<text class="geo" x="${px(lo)}" y="${py(la)}">${n}</text>`).join('')}
+  ${SEA_LABELS.map(s => `<text class="seal" x="${px(s[1])}" y="${py(s[2])}">${s[0]}</text>`).join('')}
+  <g transform="translate(${px(-4.4)},${py(44.6)})" class="rose"><circle r="36" fill="#efe3c4aa" stroke="#3a2b1b" stroke-width="1.2"/><circle r="30" fill="none" stroke="#b8892c" stroke-width="1"/><path d="M0,-46 L7,0 L0,46 L-7,0Z M-46,0 L0,-7 L46,0 L0,7Z" fill="#8e1f1b" stroke="#2a1d12" stroke-width="1"/><path d="M0,-46 L7,0 L0,0Z M46,0 L0,7 L0,0Z M0,46 L-7,0 L0,0Z M-46,0 L0,-7 L0,0Z" fill="#e2b33c"/><text y="-52" text-anchor="middle" class="rosel">N</text></g>
+  <g transform="translate(${px(5.6)},${py(42.4)})"><rect width="250" height="66" rx="4" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/><rect x="5" y="5" width="240" height="56" fill="none" stroke="#b8892c" stroke-width="1.2"/><text x="125" y="31" class="cart">Regnum Francorum</text><text x="125" y="50" class="cart2">Anno Domini 987</text></g>
   <rect id="tint" x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#000" fill-opacity="0" pointer-events="none"/>
   <g id="ovsel" pointer-events="none"></g>
   <g id="ov"></g>
@@ -148,8 +150,8 @@ function initMapInput() {
 }
 function tapMap(t) {
   if (!t || !t.closest) return;
-  const c = t.closest('[data-id]'), z = t.closest('[data-sea]');
-  const sel = c ? 'p:' + c.dataset.id : z ? 's:' + z.dataset.sea : null;
+  const c = t.closest('[data-id]');
+  const sel = c ? 'p:' + c.dataset.id : null;
   const same = sel === G.sel;
   G.sel = sel;
   sfx('click'); buzz(8);
@@ -200,18 +202,15 @@ function castleIcon(p) {
   return s;
 }
 const bannerSvg = (color, n, siege, gen) => `<g><path d="M2,-31 h28 l-7,9 l7,9 h-28z" fill="#0005" transform="translate(1.5,2)"/><line x1="0" y1="-34" x2="0" y2="10" stroke="#2a1d12" stroke-width="3"/><circle cx="0" cy="-36" r="2.6" fill="#e2b33c"/><path d="M0,-33 h28 l-7,9 l7,9 h-28z" fill="${color}" stroke="#2a1d12" stroke-width="1.6"/><path d="M2,-31 h22" stroke="#fff" stroke-opacity=".3" stroke-width="2"/></g>${gen ? mapIco('fleur', 11, -24, 13, 'style="color:#f3e8cc"') : ''}<circle cx="13" cy="20" r="11" fill="#2a1d12" stroke="${color}" stroke-width="2"/><text class="cnt" x="13" y="25" style="stroke-width:0;font-size:14px">${n}</text>${siege ? mapIco('tent', -22, -10, 22, 'style="color:#f3e8cc"') + mapIco('tent', -22, -10, 18, 'style="color:' + color + '"') : ''}`;
-const shipSvg = (color, n) => `<g><ellipse cx="2" cy="6" rx="28" ry="5" fill="#0004"/><path d="M-26,2 Q-30,-8 -22,-9 L22,-9 Q30,-8 26,2 Q0,12 -26,2Z" fill="#6b4a2b" stroke="#2a1d12" stroke-width="1.6"/><path d="M-27,-4 q-4,-10 2,-12 M27,-4 q4,-10 -2,-12" stroke="#6b4a2b" stroke-width="3" fill="none"/><line x1="0" y1="-9" x2="0" y2="-42" stroke="#2a1d12" stroke-width="2.4"/><path d="M-15,-40 H15 V-14 H-15Z" fill="${color}" stroke="#2a1d12" stroke-width="1.4"/><path d="M-15,-31 H15 M-15,-22 H15" stroke="#f3e8cc" stroke-width="2" opacity=".7"/></g><circle cx="0" cy="22" r="10" fill="#2a1d12" stroke="${color}" stroke-width="2"/><text class="cnt" x="0" y="26.5" style="stroke-width:0;font-size:13px">${n}</text>`;
+// (no fleets in this game)
+const shipSvg_unused = (color, n) => `<g><ellipse cx="2" cy="6" rx="28" ry="5" fill="#0004"/><path d="M-26,2 Q-30,-8 -22,-9 L22,-9 Q30,-8 26,2 Q0,12 -26,2Z" fill="#6b4a2b" stroke="#2a1d12" stroke-width="1.6"/><path d="M-27,-4 q-4,-10 2,-12 M27,-4 q4,-10 -2,-12" stroke="#6b4a2b" stroke-width="3" fill="none"/><line x1="0" y1="-9" x2="0" y2="-42" stroke="#2a1d12" stroke-width="2.4"/><path d="M-15,-40 H15 V-14 H-15Z" fill="${color}" stroke="#2a1d12" stroke-width="1.4"/><path d="M-15,-31 H15 M-15,-22 H15" stroke="#f3e8cc" stroke-width="2" opacity=".7"/></g><circle cx="0" cy="22" r="10" fill="#2a1d12" stroke="${color}" stroke-width="2"/><text class="cnt" x="0" y="26.5" style="stroke-width:0;font-size:13px">${n}</text>`;
 
 function renderMapFill() {
   for (const p of provList()) {
     const el = document.getElementById('c-' + p.id);
     if (p.ally) ensureAllyPattern(p.ally);
-    const base = EMPIRE.includes(p.id) ? '#ede2c3' : '#e3d7b5';
+    const base = p.r === 'fr' ? '#ede2c3' : p.r === 'ca' ? '#eadbbd' : '#e3dcc0';
     el.setAttribute('fill', p.owner ? mix(FAC(p.owner).color, '#efe3c4', p.owner === me() ? 0.3 : 0.42) : p.ally ? `url(#al-${p.ally})` : base);
-  }
-  for (const s of SEAS) {
-    const c = seaControl(s[0]); const el = document.getElementById('z-' + s[0]);
-    el.setAttribute('fill', c ? FAC(c).color : 'transparent'); el.setAttribute('fill-opacity', c ? 0.22 : 0);
   }
   // thick coloured outline around the player's holdings, so your realm reads at a glance
   const mine = provList().filter(p => holds(me(), p.id));
@@ -229,7 +228,7 @@ function renderOverlay() {
   o += '</g>';
   // the selection lives in its own small layer, so tapping a province does not rebuild the whole overlay
   const sel = G.sel && G.sel[0] === 'p' ? `<g clip-path="url(#landclip)"><path class="selp" d="${CELLD[G.sel.slice(2)]}" style="stroke-width:${5 * s}px"/></g>`
-    : G.sel && G.sel[0] === 's' ? `<g clip-path="url(#seaclip)"><path class="sels" d="${SEA_CELLD[G.sel.slice(2)]}" style="stroke-width:${4 * s}px"/></g>` : '';
+    : '';
   setHTML($('#ovsel'), sel);
   const unrest = G.fac[me()].unrest;
   for (const p of provList()) {
@@ -254,13 +253,6 @@ function renderOverlay() {
       if (fid === me()) continue;
       const p = P(a.loc); const k = at[a.loc] = (at[a.loc] || 0) + 1;
       o += `<g class="pin" transform="translate(${(p.x + (20 + (k - 1) * 34) * s).toFixed(1)},${(p.y - 14 * s).toFixed(1)}) scale(${s.toFixed(2)})">${bannerSvg(FAC(fid).color, n, !!a.siege, !!armyGen(fid, a))}</g>`;
-    }
-  }
-  for (const z of SEAS) {
-    const f = G.fleets[z[0]]; let k = 0;
-    for (const fid in f) if (f[fid] > 0) {
-      const [x, y] = LL([z[2], z[3]]);
-      o += `<g class="pin" transform="translate(${(x + k * 64 * s).toFixed(1)},${(y - 8 * s).toFixed(1)}) scale(${s.toFixed(2)})">${shipSvg(FAC(fid).color, f[fid])}</g>`; k++;
     }
   }
   setHTML($('#ov'), o);

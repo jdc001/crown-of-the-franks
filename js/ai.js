@@ -8,10 +8,12 @@ const ownerName = p => p.owner ? FAC(p.owner).name : p.lord;
 function defGen(p) { if (!p.owner) return null; const g = genAt(p.owner, p.id); if (g) return g; for (const a of defArmies(p)) { const ag = armyGen(p.owner, a); if (ag) return ag; } return null; }
 function defStance(p, attPow) { return p.b.castle ? 'defensive' : autoStance(power(defenders(p)), attPow, true, false); }
 function assaultCfg(fid, A, p, aSt, dSt) {
-  const aBon = { ...bonus(fid) };
-  if (fid === 'denmark' && !adjTo(p, fid)) aBon.atk += 0.1;
+  const aBon = { ...bonus(fid) }, dBon = { ...bonus(p.owner) };
+  // Carolingian loyalists fight for Charles at Laon and Reims; the marcher castles of Barcelona hold hard
+  if (fid === 'charles' && (p.id === 'laon' || p.id === 'reims')) aBon.atk += 0.15;
+  if (p.owner === 'barcelona') dBon.hp += 0.15;
   return { A: armySide(A), D: defenders(p), castle: !!p.b.castle, wallLvl: wallLvl(p), castleLv: castleLv(p), moat: !!(p.b.moat && !p.ruined), ruined: !!p.ruined,
-    aSt, dSt: dSt || defStance(p, power(armySide(A))), aGen: armyGen(fid, A), dGen: defGen(p), aMod: mods(fid), dMod: mods(p.owner), aBon, dBon: bonus(p.owner), dRes: armySize(A) >= 9 && fighters(defenders(p)) >= 9 && !p.b.castle };
+    aSt, dSt: dSt || defStance(p, power(armySide(A))), aGen: armyGen(fid, A), dGen: defGen(p), aMod: mods(fid), dMod: mods(p.owner), aBon, dBon, dRes: armySize(A) >= 9 && fighters(defenders(p)) >= 9 && !p.b.castle };
 }
 function resolveAssault(fid, A, p, res, cfg) {
   const prev = p.owner, prevAlly = p.ally;
@@ -56,7 +58,7 @@ function aiTurn(fid) {
   }
   aiDefendSeat(fid);
   if (G.over) return;
-  aiBuild(fid); aiGenerals(fid); aiNavy(fid); aiRecruit(fid); aiChurch(fid); aiDiplo(fid);
+  aiBuild(fid); aiGenerals(fid); aiRecruit(fid); aiChurch(fid); aiDiplo(fid); aiHomage(fid);
   F.guard = aiPickGuard(fid);
   aiConcentrate(fid);
   F.struck = false;
@@ -71,7 +73,7 @@ function aiTurn(fid) {
     if (t) { const r = marriagePact(fid, t); if (r) note(r.text); }
   }
   if (F.sons > 0 && !F.proposed && F.gold > 70 && Math.random() < 0.12) {
-    const c = provList().filter(p => p.heiress && !p.owner && !p.ally && (adjTo(p, fid) || p.seas.some(z => coastIn(fid, z))));
+    const c = provList().filter(p => p.heiress && !p.owner && !p.ally && adjTo(p, fid));
     if (c.length) { const p = pick(c); const r = aiCourt(fid, p); if (r) { if (r.ok && (adjTo(p, G.player) || p.ally === G.player)) report('A rival marriage', r.text); else note(r.text); } }
   }
 }
@@ -230,46 +232,29 @@ function aiEnvoys(fid) {
   const leader = incs.length > 1 && incs[0][1] > incs[1][1] * 1.25 ? incs[0][0] : null;
   if (leader && leader !== fid && leader !== me_ && borders(leader, fid) && borders(leader, me_) && !atPeace(fid, leader) && Math.random() < 0.05) diploOffer(fid, 'war', leader, F.gold > 160 ? 20 + rnd(21) : 0);
 }
-function enemyShips(fid, z) { return Object.keys(G.fleets[z]).filter(k => k !== fid).reduce((a, k) => a + G.fleets[z][k], 0); }
-function aiNavy(fid) {
-  const F = G.fac[fid];
-  const ports = owned(fid).filter(p => p.b.port && p.seas.length);
-  if (!ports.length) return;
-  const landT = provList().filter(p => p.owner !== fid && p.ally !== fid && adjTo(p, fid) && !(p.owner && atPeace(fid, p.owner))).length;
-  let goal = null, best = -1e9;
-  for (const [z] of SEAS) {
-    if (!coastIn(fid, z)) continue;
-    const tg = provList().filter(p => p.seas.includes(z) && p.owner !== fid && p.ally !== fid && !adjTo(p, fid) && !(p.owner && truce())).length;
-    const sc = tg * 2 - enemyShips(fid, z) * 0.6 + (G.fleets[z][fid] || 0) * 0.2;
-    if (sc > best) { best = sc; goal = z; }
+// ================= HOMAGE =================
+// a king summons the princes; a threatened prince swears; a strong vassal may break his oath
+function aiHomage(fid) {
+  const F = G.fac[fid], k = king();
+  if (!k) return;
+  if (k === fid) {
+    for (const f of alive()) if (G.fac[f].captive && G.fac[f].captive.by === fid && Math.random() < 0.7) releaseForHomage(fid, f);
+    if (F.gold < HOMAGE_GIFT + 60 || F.summoned === G.turn) return;
+    const c = alive().filter(f => f !== fid && !vassal(f) && f !== G.player).map(f => [f, homageChance(fid, f)]).sort((a, b) => b[1] - a[1])[0];
+    if (c && c[1] > (alive().length <= 5 ? 0.12 : 0.3) && Math.random() < 0.6) summonHomage(fid, c[0]);
+    return;
   }
-  if (!goal) return;
-  const en = enemyShips(fid, goal);
-  const want = fid === 'england' || fid === 'denmark' ? Math.min(14, 6 + Math.round(1.5 * en)) : landT <= 1 ? Math.min(14, Math.round(3 + 1.5 * en)) : (fid === 'normandy' ? 3 : 1);
-  let guard = 0;
-  while (shipsOf(fid) < want && F.gold > shipCost(fid) + 40 && guard++ < 4) {
-    // launch into the goal sea if it is clear, otherwise into any clear sea and sail in
-    let built = false;
-    const clearGoal = !enemyShips(fid, goal) && ports.find(q => q.seas.includes(goal));
-    if (clearGoal) built = buildShip(fid, clearGoal, goal);
-    else for (const p of ports) { const z = p.seas.find(s => !enemyShips(fid, s)); if (z && buildShip(fid, p, z)) { built = true; break; } }
-    if (!built) break;
+  if (vassal(fid)) {
+    const strong = armyPow(fid) > armyPow(k) * 1.2 && owned(fid).length >= owned(k).length * 0.8;
+    if ((strong && Math.random() < 0.15) || (G.fac[k].excom > 0 && Math.random() < 0.08)) renounce(fid);
+    return;
   }
-  for (const [z] of SEAS) {
-    const n = G.fleets[z][fid] || 0;
-    if (!n || z === goal || F.moved.includes(z)) continue;
-    const path = seaPath(z, goal); if (!path || path.length < 2) continue;
-    const nx = path[1], en2 = enemyShips(fid, nx);
-    if (en2 && n < en2 * 1.2) continue;
-    moveFleet(fid, z, nx);
-  }
-  const here = G.fleets[goal][fid] || 0;
-  if (here && !F.moved.includes(goal)) {
-    for (const nz of SEA_ADJ[goal]) {
-      const en3 = enemyShips(fid, nz);
-      if (en3 && here > en3 * 1.4 && coastIn(fid, nz)) { moveFleet(fid, goal, nz); break; }
-    }
-  }
+  if (fid === 'charles' || (F.renounced !== undefined && G.turn - F.renounced < 8)) return;
+  // a weak prince whose lands touch the king's, or who has a stronger enemy at his door, seeks the king's peace
+  const near = owned(fid).some(p => ADJ[p.id].some(n => P(n).owner === k));
+  const threat = alive().some(o => o !== fid && o !== k && !atPeace(fid, o) && canReach(P(homeOf(fid)), o) && armyPow(o) > armyPow(fid) * 1.5);
+  if ((near && armyPow(k) > armyPow(fid) * 1.6) || (threat && armyPow(k) > armyPow(fid))) { if (Math.random() < (k === 'charles' ? 0.03 : 0.06)) doHomage(fid); }
+  else if (alive().length <= 5 && owned(k).length >= owned(fid).length * 2 && Math.random() < 0.1) doHomage(fid);
 }
 function aiBombard(fid, A, p) {
   let wl = 0, kl = 0, pl = 0;
@@ -300,7 +285,7 @@ function aiAssault(fid, A, p) {
 // march one step toward the nearest frontier province (or a coast on an open lane)
 function stepToward(fid, A) {
   if (!A.loc || A.acted) return false;
-  const isFront = id => ADJ[id].some(n => !holds(fid, n) && !(P(n).owner && atPeace(fid, P(n).owner))) || P(id).seas.some(z => laneOpen(z, fid) && provList().some(q => q.seas.includes(z) && !holds(fid, q.id) && !(q.owner && atPeace(fid, q.owner))));
+  const isFront = id => ADJ[id].some(n => !holds(fid, n) && !(P(n).owner && atPeace(fid, P(n).owner)));
   if (isFront(A.loc)) return false;
   const seen = { [A.loc]: null }, q = [A.loc]; let target = null;
   while (q.length && !target) { const c = q.shift(); for (const n of ADJ[c]) if (!(n in seen) && holds(fid, n)) { seen[n] = c; if (isFront(n)) { target = n; break; } q.push(n); } }
@@ -360,7 +345,9 @@ function aiWar(fid, A) {
     const canSiege = p.b.castle && armySize(A) >= (p.owner ? 12 : 7) && ap >= power(defenders(p)) * (cap ? 2.4 : p.owner ? 1.1 : 0.9) * (vsPlayer ? 1 + D.pNeed * 0.4 : 1);
     if (ratio < need && !canSiege) continue;
     let val = p.base + (cap ? (G.turn < 30 ? 6 : 18) : 0) + (p.owner === G.player ? D.pBonus : 0) + (p.owner ? 1 : 0) + (p.r === 'fr' ? 4 : 0) + (p.ally ? 1 : 0);
-    if (s.sea) val *= 0.8;
+    // the crown cities, and the Empire's wrath in Lorraine
+    if (crownNeeds(fid).includes(p.id) && !isKing(fid)) val += 8;
+    if (p.r === 'lo' && !(G.start && (G.start[p.id] === fid || G.start[p.id] === 'charles'))) val *= 0.6;
     if (s.dist) val *= 0.9;
     if (kin && G.turn < 30) val *= 0.6;
     if (leader && p.owner === leader) val *= 1.8;

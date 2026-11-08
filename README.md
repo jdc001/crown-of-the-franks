@@ -1,8 +1,21 @@
-# Crown of the Franks: 987, v4.0
+# Crown of the Franks: 987, v5.0
 
 Play it at https://jdc001.github.io/crown-of-the-franks/ (open in Safari, then Share → Add to Home Screen).
 
-## New in v4
+The old map of Europe (v4) lives on as **Emperor: 1000 AD**: https://jdc001.github.io/emperor-1000/ . It picks up campaigns saved under v4 on the same device by itself.
+
+## New in v5: France in 987
+- **The map** is France and its edges: 103 counties (`PROV` in `data.js`), regions France, Lorraine, Arles and Catalonia. England, the Empire, Italy, Pamplona and Córdoba are hatched edge lands, not for conquest. No seas to sail: fleets and longships are gone; Danish raids are the sea.
+- **Fourteen houses**: the Royal Domain (Hugh Capet, crowned), Lower Lorraine (Charles), Normandy, Flanders, Vermandois-Champagne, Blois, Anjou, Brittany, Aquitaine, Burgundy, Toulouse, Barcelona, Gascony, Provence. About 70% of counties start independent, so every house has room to grow.
+- **One crown.** Crowned at Reims holding Reims and Paris (Charles: Reims and Laon) and at least 8 counties of the kingdom, for 120 d. Homage: the king summons princes (30 d, once a turn), frees captives for their oath, or declares a vassal's fiefs forfeit; vassals may renounce (and risk excommunication). King and vassal are at peace. The king's third army needs two princes sworn to him.
+- **Goal "King in fact"** (default): wear the crown, hold the homage of two-thirds of the princes standing (at least three), and hold two-fifths of the kingdom's counties. Or Full conquest.
+- **Anti-snowball rules**: income falls with distance from the seat (`reachMult`), unrest comes sooner to sprawling realms, the north is richer, outside powers press the south (Almanzor, Pamplona, Arles), and a league of princes forms against any house with more than a quarter of the kingdom.
+- **Powers and events** (`powers.js`): Almanzor's raids (pay parias or fight), the Empire in Lorraine and at Reims, Normandy's Danish ports, Robert crowned co-king, Laon opened to Charles, Adalbero's death, Arnulf's betrayal, Normandy's English treaty.
+- Saves are `G.v = 8` under `crownOfTheFranks987v8`. v4 saves are not loaded here; they play in Emperor: 1000 AD.
+
+Computer-only games (`/home/claude/scripts/gsim5.js`, 32 games, cap 200 turns): finished games median about 107 turns, earliest 55; about 9.5 houses alive at turn 40; winners spread across Charles, Capet, Barcelona, Flanders, rebels and Gascony, with the south about a fifth. A quarter of computer-only games reach turn 200 without a winner; a player breaks those deadlocks.
+
+## v4 (now Emperor: 1000 AD)
 - **Victory goals**, chosen on a house's page: King of the Franks (short), Emperor (the Franks plus Germany or Italy, and half of Charlemagne's empire), or Full conquest. Only a crown won at a coronation counts; a crown handed to a coalition does not. The last house standing always wins. (`GOALS`, `goalMet`, `victor` in `core.js`)
 - **Guided first campaign**: ten objectives, one at a time, each done when the player does it (`tutor.js`).
 - **Auto-resolve** for battles (same model, player's stance and reserve) and **auto-bombard** for sieges; **volleys of three** fires or plague carcasses at the catapult.

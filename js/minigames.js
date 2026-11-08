@@ -154,12 +154,12 @@ function mineDraw(S) {
 // Longships row in from the sea, one lane each. Drag your companies onto the beach to meet them; tap a ship to
 // loose arrows at it. A ship that lands unopposed sends its crew to plunder the village.
 const RW = 800, RH = 440, R_BEACH = 300, R_LAND = 420, R_VILL = 700, R_LANES = [70, 150, 230, 310, 390];
-const raidSeas = ['north', 'channel', 'biscay', 'irish', 'celtic', 'west', 'baltic'];
+// the Danes raid the Channel, the German Sea and Biscay coasts; Normandy's choice about its ports changes the odds
 const raiders = () => me() === 'denmark' ? 'Wendish pirates' : 'Northmen';
 function maybeRaid() {
   if (G.raid || G.turn < 4 || G.over) return;
-  if (G.turn - (G.lastRaid || -99) < 7 || Math.random() > 0.08) return;
-  const coast = owned(me()).filter(p => p.seas.some(z => raidSeas.includes(z)) && !besiegerOf(p));
+  if (G.turn - (G.lastRaid || -99) < 7 || Math.random() > 0.08 * daneMult(me())) return;
+  const coast = owned(me()).filter(p => vikingCoast(p) && !besiegerOf(p));
   if (!coast.length) return;
   const p = coast.sort((a, b) => (fighters(a.gar) + a.militia) - (fighters(b.gar) + b.militia))[rnd(Math.min(3, coast.length))];
   const ships = Math.min(7, 3 + Math.floor(G.turn / 14) + rnd(2));
