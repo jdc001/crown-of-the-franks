@@ -155,7 +155,7 @@ function tapMap(t) {
   const same = sel === G.sel;
   G.sel = sel;
   sfx('click'); buzz(8);
-  PANEL.tab = null;
+  // the open tab (army, build, raise...) stays open from one county to the next
   render(); $('#pbody').scrollTop = 0;
   if (isPhone()) {
     if (sel) { if (SHEET.state === 'peek' || same) setSheet('half'); }

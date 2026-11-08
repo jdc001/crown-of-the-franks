@@ -1,5 +1,5 @@
 // Offline cache: app shell + fonts. Bump VERSION when files change.
-const VERSION = 'cotf-v5.6';
+const VERSION = 'cotf-v5.7';
 // fetch straight from the server, never from the browser's own HTTP cache, so a new version never caches old files
 const SHELL = ['./', './index.html', './css/style.css', './manifest.webmanifest', './icon.svg', './icon-180.png', './icon-512.png',
   './js/icons.js', './js/data.js', './js/core.js', './js/battle.js', './js/ai.js', './js/powers.js', './js/audio.js', './js/view.js', './js/map.js',

@@ -124,7 +124,7 @@ function marriageHtml() {
   h += `<p class="sub" style="margin-top:10px">Marriage pacts with rival houses (${PACT_COST} d in gifts; peace for ${PACT_TURNS} turns, neither may attack the other):</p><div class="grid">${foes.map(f => `<button class="btn" onclick="doPact('${f}')" ${canPact(me(), f) && F.gold >= PACT_COST ? '' : 'disabled'}><span class="lbl">${shield(f, 14)} ${FAC(f).name}</span><small>${atPeace(me(), f) ? 'already at peace' : recentPeace(me(), f) ? 'too soon after the last peace' : Math.round(pactChance(me(), f) * 100) + '% chance'}</small></button>`).join('')}</div>`;
   return h;
 }
-function goProv(id) { G.sel = 'p:' + id; PANEL.tab = null; render(); focusProv(id); if (isPhone()) setSheet('half'); }
+function goProv(id) { G.sel = 'p:' + id; render(); focusProv(id); if (isPhone()) setSheet('half'); }
 function unrestBox(p) {
   const F = G.fac[me()], u = F.unrest; if (!u || (p && u.seed !== p.id)) return '';
   const left = u.at - G.turn, covered = unrestCovered(me());
@@ -199,7 +199,9 @@ function goalCount(held) { return goalId() === 'king' ? (wears(me()) ? `${vassal
 
 // ================= PROVINCE =================
 const PANEL = { tab: null };
-function setTab(t) { PANEL.tab = t; render(); }
+// the tab last chosen stays open as you tap from county to county; own and foreign counties each keep their own
+function setTab(t) { PANEL.tab = t; PANEL.hist = [t, ...(PANEL.hist || []).filter(x => x !== t)].slice(0, 6); render(); }
+const keptTab = tabs => [PANEL.tab, ...(PANEL.hist || [])].find(t => t && tabs.some(x => x.id === t));
 function tabsHtml(tabs, cur) { return `<div class="tabs">${tabs.map(t => `<button class="${cur === t.id ? 'on' : ''}" onclick="setTab('${t.id}')">${ico(t.ic)}${t.n}${t.dot ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>`; }
 function castleText(p) {
   if (!p.b.castle) return `<p class="sub">No castle. Only the levy defends, and no garrison can be kept here.</p>`;
@@ -209,7 +211,7 @@ function castleText(p) {
 function provHead(p) {
   const bz = besieging(p);
   const who = p.owner ? FAC(p.owner).name : p.ally ? `${p.lord}, sworn to ${fname(p.ally)}` : p.lord;
-  let h = `<div class="row top"><button class="btn sm" onclick="G.sel=null;PANEL.tab=null;render()"><span class="lbl">${ico('back')}Realm</span></button></div>
+  let h = `<div class="row top"><button class="btn sm" onclick="G.sel=null;render()"><span class="lbl">${ico('back')}Realm</span></button></div>
     <div class="phead">${shield(p.owner || p.ally, 42)}<div style="min-width:0"><h2><span class="init">${p.name[0]}</span>${p.name.slice(1)}${isCap(p) ? ' ' + ico('crown') : ''}</h2><span class="sub">${esc(who)} · ${REGION_NAME[p.r]}${p.seas.length ? ' · coast' : ''}${p.hills ? ' · hills' : ''}</span></div></div>`;
   const tags = [];
   if (p.owner) tags.push(`<span class="tag">${ico('coin')}${provIncome(p)} d a turn${bz ? ' (blockaded)' : ''}${p.interdict > 0 ? ' (interdict)' : ''}</span>`);
@@ -266,7 +268,7 @@ function ownPanel(p, F, A) {
   const bz = besieging(p);
   const tabs = [{ id: 'army', n: 'Army', ic: 'sword', dot: here }, { id: 'build', n: 'Build', ic: 'hammer', dot: !p.build && F.gold >= 25 }, { id: 'raise', n: 'Raise', ic: 'foot', dot: here && F.gold >= 8 }];
   if (!p.b.castle && !here) tabs.pop();
-  const cur = PANEL.tab && tabs.some(t => t.id === PANEL.tab) ? PANEL.tab : (here || bz || F.unrest && F.unrest.seed === p.id ? 'army' : 'build');
+  const cur = keptTab(tabs) || (here || bz || F.unrest && F.unrest.seed === p.id ? 'army' : 'build');
   let h = tabsHtml(tabs, cur), cta = '';
   if (cur === 'army') {
     h += unrestBox(p);
@@ -325,7 +327,7 @@ function allyPanel(p, F, A) {
   const tabs = [{ id: 'army', n: 'Army', ic: 'sword' }, { id: 'build', n: 'Build', ic: 'hammer' }];
   if (p.b.castle) tabs.push({ id: 'raise', n: 'Raise', ic: 'foot' });
   if (p.heiress) tabs.push({ id: 'wed', n: 'Marriage', ic: 'ring', dot: F.sons && !F.proposed });
-  const cur = PANEL.tab && tabs.some(t => t.id === PANEL.tab) ? PANEL.tab : (p.heiress ? 'wed' : 'army');
+  const cur = keptTab(tabs) || (p.heiress ? 'wed' : 'army');
   let h = `<div class="notebox good">${ico('handshake')} ${p.lord} is sworn to you. You receive half the province's income, and you may build here and buy troops for its garrison. They will not march with your army, but your armies may march through their lands and strike from them.</div>` + tabsHtml(tabs, cur), cta = '';
   if (cur === 'army') {
     h += `<h3>Army ${ARMY_NUM(A)} · ${armyLabel(me(), A)}</h3>` + (here ? `<p>Army ${ARMY_NUM(A)} is camped here.</p><p class="units">${uStr(A, false)}</p>` : armyLine(A));
@@ -347,7 +349,7 @@ function foreignPanel(p, F, A) {
   const tabs = [{ id: 'war', n: 'War', ic: 'swords' }];
   if (!p.owner) tabs.push({ id: 'dip', n: 'Diplomacy', ic: 'handshake', dot: (p.heiress && F.sons && !F.proposed) || (canAlly(me(), p) && F.gold >= allyCost(me(), p)) });
   if (p.owner && p.owner !== me()) tabs.push({ id: 'treaty', n: 'Envoys', ic: 'handshake' }, { id: 'church', n: 'Church', ic: 'church' });
-  const cur = PANEL.tab && tabs.some(t => t.id === PANEL.tab) ? PANEL.tab : 'war';
+  const cur = keptTab(tabs) || 'war';
   let h = tabsHtml(tabs, cur), cta = '';
   if (cur === 'war') {
     h += `<h3>War · army ${ARMY_NUM(A)}</h3>`;
@@ -440,7 +442,7 @@ function act(c, a) {
     case 'genStay': { const g = F.gens.find(x => x.at === 'a0'); const o = F.gens.find(x => x.at === p.id); if (g) g.at = p.id; if (o) o.at = 'a0'; break; }
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
-    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
+    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
     case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;
@@ -499,7 +501,7 @@ function playerEndTurn(force) {
   const fresh = G.log.slice(0, idx < 0 ? G.log.length : idx).map(l => l.text).reverse();
   const lines = G.order.filter(f => f !== me()).map(f => ({ f, t: fresh.find(t => t.startsWith(FAC(f).name + ' ') || t.includes(FAC(f).name)) || '' }));
   G.unread = (G.unread || 0) + fresh.length;
-  G.sel = null; G.endWarned = false; PANEL.tab = null;
+  G.sel = null; G.endWarned = false;
   save();
   runTurnOverlay(G.order, lines, () => { render(); sfx('bell'); buzz(20); if (isPhone()) setSheet('peek'); showReports(); if (G.turn === TRUCE) hint('endturn'); }, snap);
 }
