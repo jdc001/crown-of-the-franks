@@ -2,7 +2,7 @@
 // ================= SAVED GAMES =================
 // The game still saves itself after every action (one autosave). On top of that: three named slots kept on this
 // device, and export/import so a campaign can be backed up as a file or a code, or moved to another device.
-const SLOTS = 3, SLOT_KEY = n => 'cotf-slot-' + n;
+const SLOTS = 5, SLOT_KEY = n => 'cotf-slot-' + n;
 function readSlot(n) { try { const s = localStorage.getItem(SLOT_KEY(n)); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function slotLabel(s) { const d = s.fdefs.find(x => x.id === s.player); return `${d ? d.name : '?'} · ${dateStr(s.turn)}`; }
 function saveToSlot(n) {
@@ -13,6 +13,13 @@ function saveToSlot(n) {
   } catch (e) { toast('Could not save: this device is out of storage space'); }
   openSaves();
 }
+// save into the first empty slot, or over the oldest one
+function quickSave() {
+  let n = 0, oldest = Infinity;
+  for (let i = 1; i <= SLOTS; i++) { const s = readSlot(i); if (!s) { n = i; break; } if (s.when < oldest) { oldest = s.when; n = i; } }
+  saveToSlot(n);
+}
+const anySlot = () => Array.from({ length: SLOTS }, (_, i) => readSlot(i + 1)).some(s => s && s.game && s.game.v === 8 && !s.game.over);
 function loadSlot(n) { const s = readSlot(n); if (s) loadGameObj(s.game); }
 function deleteSlot(n) {
   showModal(`<div class="rep"><h2>Delete slot ${n}?</h2><p class="ctr">${esc(slotLabel(readSlot(n).game))}</p><div class="grid2"><button class="btn red" onclick="try{localStorage.removeItem(SLOT_KEY(${n}))}catch(e){};openSaves()">Delete</button><button class="btn" onclick="openSaves()">Keep it</button></div></div>`);
@@ -82,7 +89,7 @@ function openSaves() {
     return `<div class="gen"><div class="gname">${ico('scroll')} Slot ${n}</div>${s ? `<div>${shieldFromSave(s.game)} <b>${esc(slotLabel(s.game))}</b></div><div class="sub">saved ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · ${s.game.fdefs.filter(d => s.game.fac[d.id].alive).length - 1} rivals left</div>` : '<div class="sub">Empty</div>'}
       <div class="row" style="margin-top:4px">${live ? `<button class="btn sm${s ? '' : ' gold'}" onclick="${s ? `confirmOverwrite(${n})` : `saveToSlot(${n})`}">${s ? 'Save over' : 'Save here'}</button>` : ''}${s && s.game.v !== 8 ? '<span class="sub">From the old map of Europe: it plays in Emperor: 1000 AD.</span>' : ''}${s ? `${s.game.v === 8 ? `<button class="btn sm gold" onclick="loadSlot(${n})">Load</button>` : ''}<button class="btn sm ghost" onclick="deleteSlot(${n})">Delete</button>` : ''}</div></div>`;
   }).join('');
-  showModal(`<h2>${ico('scroll')} Saved games</h2>
+  showModal(`<h2>${ico('chest')} Saved games</h2>${live ? `<button class="btn gold" style="width:100%;margin:4px 0 8px" onclick="quickSave()"><span class="lbl">${ico('chest')}Save now</span><small>into an empty slot, or over the oldest</small></button>` : ''}
     <p class="sub">The game also saves itself after every move${auto && !auto.over && auto.v === 8 ? ` (now: ${esc(slotLabel(auto))})` : ''}. Slots are kept on this device; deleting the home-screen icon deletes them too, so export a copy of a long campaign.</p>
     <div class="gens">${slots}</div>
     <h3>Back up or move a campaign</h3>

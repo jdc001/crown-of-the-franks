@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -232,6 +232,7 @@ function showTitle() {
     <p class="lead">King Louis V is dead without an heir. At Senlis the princes have chosen Hugh Capet, but a crown is not a kingdom. Charles of Lorraine, the last Carolingian, wants it back, and from Flanders to Barcelona the great princes rule as they please. Who will be king in fact?</p>
     ${oldCampaign() ? `<div class="notebox" style="color:var(--ink,#2a1d12)">${ico('scroll')} A campaign from the old map of Europe is saved on this device. It plays on in <a href="https://jdc001.github.io/Emperor-1000/" style="color:inherit;font-weight:700">Emperor: 1000 AD</a>, which picks it up by itself.</div>` : ''}
     ${s && !s.over && s.v === 8 ? `<div class="contbox"><button class="btn gold big" onclick="continueGame()"><span class="lbl">${shield(s.player, 20)} Continue as ${s.fdefs.find(d => d.id === s.player).name}</span><small>${dateStr(s.turn)} · ${s.fdefs.filter(d => s.fac[d.id].alive).length - 1} rivals left</small></button></div>` : ''}
+    ${anySlot() ? `<div class="row ctr" style="margin:6px 0 10px"><button class="btn" onclick="openSaves()"><span class="lbl">${ico('chest')}Load a saved game</span></button></div>` : ''}
     <h2>The north</h2><div class="facs">${FACTIONS.filter(f => TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <h2>The south</h2><div class="facs">${FACTIONS.filter(f => !TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <p class="sub ctr" style="opacity:.8;margin-top:18px">New games: ${GOALS[setGoal()].n.toLowerCase()} · ${DIFF[SET.diff || 'gentle'].n.toLowerCase()} rivals · change them on a house's page</p>

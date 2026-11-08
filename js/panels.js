@@ -48,6 +48,7 @@ function renderHeader() {
       <button class="btn sm desk" onclick="openDiplo()"><span class="lbl">${ico('handshake')}Diplomacy</span></button>
       <button class="btn sm desk" onclick="openPope()"><span class="lbl">${ico('church')}Church</span></button>
       <button class="btn sm desk ibtn" onclick="openLog()" title="Chronicle" style="position:relative">${ico('scroll')}${G.unread ? `<span style="position:absolute;top:-4px;right:-4px;background:#b8342c;color:#fff;border-radius:9px;font-size:10px;padding:1px 5px">${G.unread}</span>` : ''}</button>
+      <button class="btn sm ibtn" onclick="openSaves()" title="Save / load">${ico('chest')}</button>
       <button class="btn sm ibtn" onclick="openSettings()" title="Settings">${ico('gear')}</button>
       <button class="btn sm gold desk" onclick="playerEndTurn()"><span class="lbl">End turn ${ico('next')}</span></button>
     </div>`);
@@ -175,7 +176,7 @@ function overviewPanel() {
     ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : vassal(id) ? ' <span class="tag">sworn</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} prov.</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
     <p class="hint" style="margin-top:14px">Tap a county. Pinch or scroll to zoom, drag to pan, double-tap to zoom in. Green dots mark where the chosen army can march; red dashes mark what it can strike this turn.</p>
     <p class="sub ctr">Rivals: ${diff().n.toLowerCase()} · ${G.turn} turn${G.turn === 1 ? '' : 's'} played</p>
-    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
+    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('chest')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
 }
 
 // progress toward the goal chosen at the start
