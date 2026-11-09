@@ -216,7 +216,7 @@ const pct = (n, d) => Math.round(100 * n / Math.max(1, d));
 function uStr(u, withMil, withExtra = true) {
   const keys = (withMil ? ['militia'] : []).concat(['foot', 'bow', 'cav']).concat(withExtra ? ['cat'] : []);
   const parts = keys.filter(t => (u[t] || 0) > 0).map(t => `<span class="u" title="${LBL[t]}">${ico(UNIT_ICON[t])}${u[t]}</span>`);
-  return parts.length ? parts.join(' ') : '<span class="sub">none</span>';
+  return parts.length ? parts.join(' ') : '<span class="sub">no men</span>';
 }
 const statLine = t => t === 'cat' ? 'Range 6 from walls' : t === 'bishop' ? 'Council of bishops' : `Atk ${UNIT[t].atk}${UNIT[t].rng ? ' · Range ' + UNIT[t].rng : ''}${UNIT[t].chg ? ' · Charge ' + UNIT[t].chg : ''} · HP ${UNIT[t].hp}`;
 function oddsTxt(v) { return v >= 70 ? `<span class="good">${v}%</span>` : v >= 40 ? `<b>${v}%</b>` : `<span class="bad">${v}%</span>`; }
@@ -233,9 +233,9 @@ function toggleAcc(id) { if (id === 'road') { tutorDid('goal'); setTimeout(rende
 // ---------- hints ----------
 const HINTS = {
   start: { t: 'Your capital', b: 'Tap your capital to raise troops, build, and move men between garrison and army. Green dots mark where your army can march; red dashes mark what it can strike.' },
-  firstSel: { t: 'The province sheet', b: 'Drag the sheet up for everything you can do here. The main action always sits at the bottom.' },
+  firstSel: { t: 'The county sheet', b: 'Drag the sheet up for everything you can do here. The main action always sits at the bottom.' },
   peace: { t: 'The Peace of God', b: 'No war between the great houses until Summer 988. Use the year to build farms and markets, win minor lords, and gather an army.' },
-  army: { t: 'Your armies', b: 'Each army marches up to two provinces a turn, then strikes. Switch armies with the tabs over the map. Men in the field are paid every turn; garrisons are free.' },
+  army: { t: 'Your armies', b: 'Each army marches up to two counties a turn, then strikes. Switch armies with the tabs over the map. Men in the field are paid every turn; garrisons are free.' },
   siege: { t: 'Siege begun', b: 'Each turn the garrison starves and the walls weaken. Bombard with catapults, then storm when the odds turn.' },
   captive: { t: 'Your lord is captive', b: 'No army can take the field until he is ransomed. The price falls the longer he is held.' },
   endturn: { t: 'Ending the turn', b: 'When you are done, press End turn. The other houses move, then the chronicle tells you what happened.' },

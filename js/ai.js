@@ -293,7 +293,7 @@ function aiAssault(fid, A, p) {
     else note(`${FAC(fid).name} took ${p.name}${prev ? ' from ' + FAC(prev).name : ''}.`);
   } else if (mine) report(`${p.name} holds!`, `${FAC(fid).name} ${verb} ${p.name} and was thrown back. Defenders lost ${lossStr(d0, res.D)}; they lost ${lossStr(a0, res.A)}.`);
 }
-// march one step toward the nearest frontier province (or a coast on an open lane)
+// march one step toward the nearest frontier county (or a coast on an open lane)
 function stepToward(fid, A) {
   if (!A.loc || A.acted) return false;
   const isFront = id => ADJ[id].some(n => !holds(fid, n) && !(P(n).owner && atPeace(fid, P(n).owner)));

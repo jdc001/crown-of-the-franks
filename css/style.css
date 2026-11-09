@@ -557,3 +557,12 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .vs .vsb i.me { top: 0; background: #e2b33c; } .vs .vsb i.avg { top: 8px; background: #8a7458; }
 .vs .vsv { text-align: right; } .vs .vsv small { color: var(--ink3); }
 .rankup { display: flex; gap: 10px; align-items: center; }
+
+@media (max-width: 480px) { .hrv { display: none; } }
+/* a problem the game could not recover from by itself */
+#oops { position: fixed; inset: 0; z-index: 99; background: #1a120bee; display: flex; align-items: center; justify-content: center; padding: 20px; }
+#oops > div { max-width: 420px; background: #f3e8cc; color: #2a1d12; border: 2px solid #c9962a; border-radius: 14px; padding: 18px; font: 16px/1.4 Georgia, serif; text-align: center; }
+#oops h2 { font: 700 20px Cinzel, Georgia, serif; margin: 0 0 8px; }
+#oops button { margin: 8px 4px 0; padding: 10px 16px; border-radius: 10px; border: 1px solid #5e4515; background: linear-gradient(#e0b654, #96701f); color: #fff8e4; font: 700 15px Cinzel, Georgia, serif; }
+#oops button.plain { background: #fffaf0; color: #2a1d12; }
+#oops small { display: block; margin-top: 10px; color: #5c4630; word-break: break-word; }

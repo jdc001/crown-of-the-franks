@@ -167,7 +167,7 @@ function tapMap(t) {
   if (sel && sel[0] === 'p') {
     hint('firstSel');
     if (isPhone()) {
-      // re-centre only when the province would be near an edge or hidden by the sheet: every re-centre redraws the map
+      // re-centre only when the county would be near an edge or hidden by the sheet: every re-centre redraws the map
       const p = P(sel.slice(2)), r = mapRect(), [sx, sy] = fromMap(p.x, p.y), { cy } = visibleCenter(), visH = r.height * cy * 2;
       const inView = sx > r.left + r.width * 0.15 && sx < r.right - r.width * 0.15 && sy > r.top + visH * 0.15 && sy < r.top + visH * 0.85;
       if (!inView) centerOn(p.x, p.y, VIEW.w);
@@ -230,24 +230,33 @@ function renderOverlay() {
     if (armySize(A) > 0) for (const p of provList()) { if (p.owner && truce()) continue; const bz = besieging(p); if (bz && bz.fid !== me()) continue; if (strikeFrom(me(), A, p)) o += `<path class="tgt" d="${CELLD[p.id]}" style="stroke-width:${3 * s}px"/>`; }
   }
   o += '</g>';
-  // the selection lives in its own small layer, so tapping a province does not rebuild the whole overlay
+  // the selection lives in its own small layer, so tapping a county does not rebuild the whole overlay
   const sel = G.sel && G.sel[0] === 'p' ? `<g clip-path="url(#landclip)"><path class="selp" d="${CELLD[G.sel.slice(2)]}" style="stroke-width:${5 * s}px"/></g>`
     : '';
   setHTML($('#ovsel'), sel);
-  const unrest = G.fac[me()].unrest;
+  const unrest = G.fac[me()].unrest, far = VIEW.w / 720 > 1.5 ? 1 : 0;
   for (const p of provList()) {
     const T = (dx, dy, inner) => `<g class="pin" transform="translate(${(p.x + dx * s).toFixed(1)},${(p.y + dy * s).toFixed(1)}) scale(${s.toFixed(2)})">${inner}</g>`;
     if (p.b.castle) o += T(0, -6, castleIcon(p));
     if (holds(me(), p.id) && (garMen(p) || p.gar.cat)) { const n = garMen(p), w = n > 99 ? 32 : n > 9 ? 25 : 19; o += T(-27, 0, `<g class="garb"><path d="M${-w / 2},-11 H${w / 2} V3 Q${w / 2},10 0,13 Q${-w / 2},10 ${-w / 2},3 Z" fill="#f3e8cc" stroke="#2a1d12" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle">${n}</text></g>`); }
     if (isCap(p)) o += T(0, -32, mapIco('crown', 0, 0, 24));
     if (p.heiress) o += T(-30, -2, mapIco('ring', 0, 0, 21));
-    if (p.build) o += T(28, 0, mapIco('hammer', 0, 0, 18, 'style="color:#5c4630"'));
+    if (p.build && (far < 1 || holds(me(), p.id))) o += T(28, 0, mapIco('hammer', 0, 0, 18, 'style="color:#5c4630"'));
     if (p.plague) o += T(-28, -20, mapIco('skull', 0, 0, 18, 'style="color:#3f4a1f"'));
     if (p.interdict > 0) o += T(27, -20, mapIco('interdict', 0, 0, 17, 'style="color:#8e1f1b"'));
     if (unrest && unrest.seed === p.id) o += T(0, -34, `<g class="fire">${mapIco('fire', 0, 0, 30, 'style="color:#c0392b"')}</g>`);
     if (p.owner === me() && genAt(me(), p.id)) o += T(-18, -24, mapIco('fleur', 0, 0, 16, 'style="color:#e2b33c"'));
-    const cls = 'lbl' + (isCap(p) ? ' cap' : '') + (holds(me(), p.id) ? ' mine' : '');
-    o += T(0, 30, `<text class="${cls}" text-anchor="middle">${p.name}</text>`);
+  }
+  // names: when the map is zoomed out there is no room for all of them, so the important ones are placed first
+  // (the chosen county, seats, your own lands, the richer counties) and a name that would overlap one is left out
+  const selId = G.sel && G.sel[0] === 'p' ? G.sel.slice(2) : null, placed = [];
+  const rank = p => (p.id === selId ? 1000 : 0) + (isCap(p) ? 500 : 0) + (holds(me(), p.id) ? 200 : 0) + (p.owner ? 50 : 0) + castleLv(p) * 10 + p.base;
+  for (const p of provList().slice().sort((a, b) => rank(b) - rank(a))) {
+    const cap = isCap(p), w = p.name.length * (cap ? 10.4 : 9.2) * s + 6 * s, h = 17 * s, x0 = p.x - w / 2, y0 = p.y + 30 * s - h * 0.8;
+    if (placed.some(b => x0 < b[0] + b[2] && x0 + w > b[0] && y0 < b[1] + b[3] && y0 + h > b[1])) continue;
+    placed.push([x0, y0, w, h]);
+    const cls = 'lbl' + (cap ? ' cap' : '') + (holds(me(), p.id) ? ' mine' : '');
+    o += `<g class="pin" transform="translate(${p.x.toFixed(1)},${(p.y + 30 * s).toFixed(1)}) scale(${s.toFixed(2)})"><text class="${cls}" text-anchor="middle">${p.name}</text></g>`;
   }
   const at = {};
   for (const fid in G.armies) {

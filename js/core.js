@@ -63,7 +63,7 @@ function besiegerOf(p) { const b = besieging(p); return b ? b.fid : null; }
 function defArmies(p) { const o = p.owner || p.ally; if (!o) return []; return armiesOf(o).filter(a => a.loc === p.id && !a.siege && armySize(a) > 0); }
 const totalArmyPower = fid => armiesOf(fid).reduce((s, a) => s + power(armySide(a)), 0);
 const totalMen = fid => armiesOf(fid).reduce((s, a) => s + armySize(a), 0);
-// generals: at = province id (strategist in a castle) or an army id
+// generals: at = county id (strategist in a castle) or an army id
 const genAt = (fid, at) => { const g = fid && G.fac[fid] ? G.fac[fid].gens.find(x => x.at === at) : null; return g ? GENMAP[g.id] : null; };
 function genPost(fid, g) { return ARMY_IDS.includes(g.at) ? (g.at === 'a0' ? "rides with the lord's host" : `leads ${armyLabel(fid, army(fid, g.at)).toLowerCase()}`) : `strategist at ${P(g.at).name}`; }
 
@@ -238,7 +238,7 @@ function killDefenders(p, k) {
 function uStr(u, withMil, withExtra = true) {
   const keys = (withMil ? ['militia'] : []).concat(['foot', 'bow', 'cav']).concat(withExtra ? ['cat'] : []);
   const parts = keys.filter(t => (u[t] || 0) > 0).map(t => `<span class="u">${ICON[t]}&thinsp;${u[t]}</span>`);
-  return parts.length ? parts.join(' ') : '<span class="sub">none</span>';
+  return parts.length ? parts.join(' ') : '<span class="sub">no men</span>';
 }
 
 // ================= MOVEMENT =================
@@ -257,7 +257,7 @@ function marchArmy(fid, a, id) {
   if (!canMarch(fid, a, id)) return false;
   a.mp -= marchDist(fid, a.loc)[id]; a.siege = null; a.loc = id; a.idle = 0; return true;
 }
-// the nearest province reachable this turn from which p can be struck, across a land border
+// the nearest county reachable this turn from which p can be struck, across a land border
 function strikeFrom(fid, a, p) {
   if (!armyUsable(fid, a) || a.acted || !a.loc || armySize(a) === 0) return null;
   if (holds(fid, p.id)) return null;
@@ -444,7 +444,18 @@ function endRound() {
   G.turn++;
 }
 // no army goes on besieging a county its own house has come to hold, by marriage, conquest or treaty
+// titles follow the crown: only the living house that holds it is styled King
+function syncCrown() {
+  const k = G.crowns.franks;
+  if (k && (!G.fac[k] || !G.fac[k].alive)) delete G.crowns.franks;
+  for (const d of G.fdefs) {
+    const is = G.crowns.franks === d.id;
+    if (is) { d.kingOf = ['franks']; d.title = 'King'; }
+    else if ((d.kingOf && d.kingOf.length) || d.title === 'King') { d.kingOf = []; d.title = d.id === 'capet' || !FACMAP[d.id] ? 'Duke' : FACMAP[d.id].title; }
+  }
+}
 function fixSieges() {
+  syncCrown();
   for (const o in G.armies) if (G.fac[o] && G.fac[o].alive) for (const a of G.armies[o]) if (a.loc && !a.siege && !passable(o, a.loc)) a.loc = nearestHeld(o, a.loc) || homeOf(o);
   for (const o in G.armies) for (const a of G.armies[o]) if (a.siege) { const q = P(a.siege); if (!q || holds(o, q.id) || (q.owner && atPeace(o, q.owner))) { a.siege = null; if (q && holds(o, q.id)) a.loc = q.id; } }
 }
@@ -550,7 +561,7 @@ function destroyHouse(lo, win) {
 function collapse(lo, win, seat) {
   const F = G.fac[lo], d = FAC(lo);
   const oldRuler = rulerOf(lo);
-  // the conqueror takes the seat and every province of the loser beside it
+  // the conqueror takes the seat and every county of the loser beside it
   const taken = [seat.name];
   for (const n of ADJ[seat.id]) { const q = P(n); if (q.owner === lo) { q.owner = win; q.ally = null; q.build = null; q.gar = eu(); q.militia = 0; q.cap = null; loseGeneral(lo, q.id, 'was taken with ' + q.name); taken.push(q.name); for (const b of armiesOf(lo)) if (b.loc === q.id && !b.siege) { b.loc = null; } } }
   seat.cap = null;
@@ -574,14 +585,14 @@ function collapse(lo, win, seat) {
     const lost = [];
     for (const blk of blocks.slice(1)) for (const id of blk) { lost.push(P(id).name); loseGeneral(lo, id, 'went his own way'); freeMinor(P(id)); }
     for (const a of armiesOf(lo)) if (a.loc && !holds(lo, a.loc)) a.loc = newSeat.id;
-    const txt = `${seat.name} has fallen to ${FAC(win).name}, who takes ${taken.join(', ')}. ${oldRuler}'s line does not end: ${d.pname} rallies the house at ${newSeat.name} with ${big.length} provinces${lost.length ? `, while ${lost.join(', ')} fall away to their own castellans` : ''}. The crowns of the house are vacant.`;
+    const txt = `${seat.name} has fallen to ${FAC(win).name}, who takes ${taken.join(', ')}. ${oldRuler}'s line does not end: ${d.pname} rallies the house at ${newSeat.name} with ${big.length} counties${lost.length ? `, while ${lost.join(', ')} fall away to their own castellans` : ''}. The crowns of the house are vacant.`;
     if (lo === G.player) report('Your seat has fallen', txt + ' Half the treasury and a third of the army are lost. This can happen to a house only once.');
     else if (win === G.player) report(`${seat.name} is yours — but ${d.name} endures`, txt);
     else report(`The fall of ${seat.name}`, txt);
   } else {
     const n = owned(lo).length;
     destroyHouse(lo, win);
-    const txt = `${seat.name} has fallen to ${FAC(win).name}, who takes ${taken.join(', ')}. ${oldRuler}'s house is destroyed${n ? `; its remaining ${n} province${n > 1 ? 's' : ''} fall to their own castellans` : ''}.`;
+    const txt = `${seat.name} has fallen to ${FAC(win).name}, who takes ${taken.join(', ')}. ${oldRuler}'s house is destroyed${n ? `; its remaining ${n} county${n > 1 ? 's' : ''} fall to their own castellans` : ''}.`;
     if (lo === G.player || win === G.player) report(lo === G.player ? 'Your house has fallen' : `${d.name} is destroyed`, txt); else report(`${d.name} is destroyed`, txt);
   }
 }
@@ -599,7 +610,7 @@ function eliminate(lo, win, quiet) {
   G.offers = G.offers.filter(o => o.fid !== lo);
   for (const o in G.armies) for (const b of G.armies[o]) if (b.siege && P(b.siege).owner === o) b.siege = null;
   if (quiet) return;
-  const msg = `${rulerOf(lo)}'s seat has fallen. ${FAC(win).name} takes all ${n + 1} of ${FAC(lo).name}'s provinces and its fleet.`;
+  const msg = `${rulerOf(lo)}'s seat has fallen. ${FAC(win).name} takes all ${n + 1} of ${FAC(lo).name}'s counties and its fleet.`;
   if (lo === G.player || win === G.player) report(lo === G.player ? 'Your house has fallen' : `${FAC(lo).name} is destroyed`, msg); else note(msg);
 }
 const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
@@ -766,7 +777,7 @@ function rebel(fid) {
   const R = lordArmy(id);
   R.foot = Math.round(size * 0.55); R.bow = Math.round(size * 0.25); R.cav = Math.round(size * 0.2); R.cat = 1;
   G.fac[id].gold = 120; G.fac[id].sons = 1; G.fac[id].lastRebel = G.turn;
-  const txt = `${son ? `${def.pname.split(',')[0]}, a son of ${rulerOf(fid)},` : `${def.pname}, a great vassal of ${rulerOf(fid)},`} has risen in revolt. ${grab.length} provinces around ${seed.name} declare for him: ${grab.map(x => P(x).name).join(', ')}. Civil war!`;
+  const txt = `${son ? `${def.pname.split(',')[0]}, a son of ${rulerOf(fid)},` : `${def.pname}, a great vassal of ${rulerOf(fid)},`} has risen in revolt. ${grab.length} counties around ${seed.name} declare for him: ${grab.map(x => P(x).name).join(', ')}. Civil war!`;
   if (fid === G.player) report('Rebellion!', txt);
   else report(`Civil war in ${FAC(fid).name}`, txt);
 }
@@ -802,7 +813,7 @@ const POPE = {
   dispense: { c: 70, n: 'Dispensation to marry', d: 'Another son may marry: +1 unmarried son.' },
   excom: { c: 50, n: 'Excommunicate', d: 'Their troops fight 12% worse and they lose a quarter of their income for 3 turns.', who: 'house' },
   truce: { c: 60, n: 'Truce of God', d: 'Neither of you may attack the other for 4 turns.', who: 'house' },
-  interdict: { c: 45, n: 'Interdict', d: 'The churches close: the province pays nothing for 4 turns.', who: 'province' },
+  interdict: { c: 45, n: 'Interdict', d: 'The churches close: the county pays nothing for 4 turns.', who: 'county' },
 };
 const popeCost = (fid, a) => Math.ceil(POPE[a].c * (popeIsYours(fid) || hasRome(fid) ? 0.5 : 1));
 function popeChance(fid, act, target) {

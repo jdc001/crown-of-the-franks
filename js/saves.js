@@ -26,6 +26,7 @@ function deleteSlot(n) {
 }
 // put a saved game on the board, replacing whatever is being played
 function loadGameObj(obj) {
+  if (obj && obj._career) { const got = careerMerge(obj._career); delete obj._career; if (got) toast('Your trophies and past games were restored', 'star'); }
   if (!obj || obj.v !== 8 || !obj.fdefs || !obj.provs || !obj.fac) return toast('That save is not from this version of the game');
   if (obj.over) return toast('That campaign is already over');
   G = obj; rebuildFmap();
@@ -58,7 +59,7 @@ async function readCode(text) {
 const saveFileName = () => `crown-987-${FAC(me()).name.toLowerCase().replace(/[^a-z]+/g, '-')}-${dateStr(G.turn).toLowerCase().replace(/\s+/g, '-')}.json`;
 async function exportFile() {
   if (!G) return;
-  const json = JSON.stringify(G), name = saveFileName();
+  const json = JSON.stringify({ ...G, _career: careerPack() }), name = saveFileName();
   try {
     const file = new File([json], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Crown of the Franks save' }); return; }
@@ -68,7 +69,7 @@ async function exportFile() {
 }
 async function exportCode() {
   if (!G) return;
-  const code = await makeCode(G);
+  const code = await makeCode({ ...G, _career: careerPack() });
   try { await navigator.clipboard.writeText(code); toast(`Save code copied (${Math.round(code.length / 1024)} KB of text). Paste it into Notes to keep it.`, 'scroll'); }
   catch (e) { const t = $('#codebox'); if (t) { t.value = code; t.select(); toast('Select the code and copy it'); } }
 }

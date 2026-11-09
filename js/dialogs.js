@@ -22,7 +22,7 @@ function nextReport() { $('#modal').classList.add('hidden'); showReports(); }
 function openCourt() {
   const F = G.fac[me()];
   const stat = g => genSummary(g).split(' · ').map(s => `<span class="tag">${s}</span>`).join('');
-  const slots = ARMY_IDS.map(id => { const a = army(me(), id), st = slotState(a), g = genAt(me(), id); return `<span class="tag${st === 'active' ? ' on' : st === 'locked' ? ' red' : ''}">${ARMY_NUM(a)}: ${st === 'locked' ? (id === 'a1' ? 'needs 8 provinces' : 'needs a crown') : g ? g.n.split(' ')[0] : id === 'a0' ? 'the lord' : 'empty'}</span>`; }).join('');
+  const slots = ARMY_IDS.map(id => { const a = army(me(), id), st = slotState(a), g = genAt(me(), id); return `<span class="tag${st === 'active' ? ' on' : st === 'locked' ? ' red' : ''}">${ARMY_NUM(a)}: ${st === 'locked' ? (id === 'a1' ? 'needs 8 counties' : 'needs a crown') : g ? g.n.split(' ')[0] : id === 'a0' ? 'the lord' : 'empty'}</span>`; }).join('');
   const postOpts = g => { const o = []; const slot = emptyArmySlot(me()); if (slot && g.at !== slot) o.push([slot, `Lead ${armyLabel(me(), army(me(), slot)).toLowerCase()}`]); if (g.at !== 'a0' && !genAt(me(), 'a0')) o.push(['a0', "Ride with the lord's host"]); for (const p of owned(me()).filter(q => q.b.castle && !genAt(me(), q.id)).slice(0, 4)) o.push([p.id, `Castle at ${p.name}`]); return o; };
   const hired = F.gens.map(g => { const d = GENMAP[g.id]; const opts = postOpts(g); return `<div class="gen on"><div class="gname">${ico('fleur')} ${d.n}</div><div class="sub">${d.d}</div><div class="gstats">${stat(d)}</div><div class="sub">${genPost(me(), g)[0].toUpperCase() + genPost(me(), g).slice(1)}</div>${opts.length ? `<div class="row" style="margin-top:4px">${opts.map(([at, l]) => `<button class="btn sm" onclick="doPost('${g.id}','${at}')">${l}</button>`).join('')}</div>` : ''}</div>`; }).join('') || '<p class="sub">No generals in your service.</p>';
   const pool = G.genPool.map(id => { const d = GENMAP[id]; return `<div class="gen"><div class="gname">${d.n}</div><div class="sub">${d.d}</div><div class="gstats">${stat(d)}</div><button class="btn sm" onclick="doHire('${id}')" ${F.gold >= d.c && F.gens.length < 3 ? '' : 'disabled'}>Hire · ${coin(d.c)}</button></div>`; }).join('') || '<p class="sub">No captains are seeking a lord just now.</p>';
@@ -56,7 +56,7 @@ function openPope() {
     <h3>Against a rival house</h3>
     <div class="gens">${foes.map(f => `<div class="gen"><div class="gname">${shield(f, 16)} ${FAC(f).name}${G.fac[f].excom ? ' <span class="bad">(excommunicated)</span>' : ''}${atPeace(me(), f) ? ' <span class="sub">(at peace)</span>' : ''}</div><div class="grid2">${btn('excom', f)}${btn('truce', f)}</div></div>`).join('')}</div>
     <h3>Interdict</h3>
-    ${sel && sel.owner && sel.owner !== me() ? btn('interdict', sel.id, `Interdict ${sel.name}`) : '<p class="sub">Select an enemy province on the map, then open the Church to lay it under interdict.</p>'}`, '', { closable: true });
+    ${sel && sel.owner && sel.owner !== me() ? btn('interdict', sel.id, `Interdict ${sel.name}`) : '<p class="sub">Select an enemy county on the map, then open the Church to lay it under interdict.</p>'}`, '', { closable: true });
 }
 function doPromote() { if (promote(me())) { sfx('bell'); toast('A new cardinal in Rome', 'bishop'); save(); render(); openPope(); } }
 function doPope(a, t) { tutorDid('pope'); const r = papal(me(), a, t); closeModal(); if (r) { sfx('bell'); report('Word from Rome', r); save(); render(); showReports(); } }
@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.1';
+const APP_VERSION = '6.2';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -126,10 +126,11 @@ function openSettings() {
     <div class="setrow"><div class="l">End-of-turn reminder<small>Warn when the army is idle or gold lies unspent</small></div>${sw('confirmEnd')}</div>
     <div class="setrow"><div class="l">Animations<small>Map movement and turn transitions</small></div>${sw('motion')}</div>
     <div class="setrow"><div class="l">Rival moves<small>After you end a turn, show the other houses' marches, sieges and conquests on the map</small></div>${seg('replay', [['near', 'Near me', 'home'], ['all', 'All', 'map'], ['off', 'Off', 'close']])}</div>
-    <div class="setrow" style="flex-direction:column;align-items:stretch"><div class="l">The rival houses<small>How eagerly the computer houses turn on you. Takes effect from the next turn.</small></div>${diffSeg()}</div>
+    <div class="setrow" style="flex-direction:column;align-items:stretch"><div class="l">The rival houses<small>How eagerly the computer houses turn on you. Takes effect from the next turn. A game counts, for trophies and points, as the easiest setting it was ever played on.</small></div>${diffSeg()}</div>
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
-    <p class="sub ctr" style="margin-top:12px">Add this page to your iPhone home screen for a full-screen game.<br>Version ${APP_VERSION}</p>`, '', { closable: true });
+    <p class="sub ctr" style="margin-top:12px">Add this page to your home screen for a full-screen game that also plays offline.</p>
+    <p class="sub ctr" style="font-size:13px">Crown of the Franks: 987 · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
   if (k === 'speed') v = Number(v);
@@ -168,7 +169,7 @@ function openHelp() {
       <p><b>The Empire.</b> The Emperor's regents hold Lorraine. Take its counties, or take Reims without the crown, and an imperial host may come to take them back.</p>
       <p><b>The Danes.</b> Normandy can open or close its ports to the Danes. Open, Normandy profits and Danish raiders range the coasts; closed, the Pope is pleased.</p>
       <p><b>Events.</b> Some things happened in these years: Robert crowned beside his father, Laon opened to Charles, an archbishop's death, a bishop's betrayal. The game follows them loosely.</p>`,
-    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} provinces a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
+    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} counties a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
       <p><b>Pay.</b> Garrisons cost nothing. Armies in the field are paid every turn: footmen and bowmen ${UPKEEP.foot} d, cavalry ${UPKEEP.cav} d, catapults ${UPKEEP.cat} d. If the treasury runs dry, every army loses 15% of its men. Realms above 20 counties yield a little less for each county beyond.</p>
       <p><b>Troops.</b> Each company:</p>
       <table class="stat"><tr><th></th><th>Cost</th><th>Atk</th><th>Range</th><th>Charge</th><th>HP</th></tr>${rows}<tr><td>${ico('militia')} Levy</td><td>free</td><td>${LEVY.atk}</td><td>–</td><td>–</td><td>${LEVY.hp}</td></tr></table>
@@ -180,7 +181,7 @@ function openHelp() {
       <p><b>Castles.</b> A wooden castle goes up in a single turn for 35 d: a quick foothold, but its palisade barely slows an assault. Raise it to stone (3 turns) and great walls (4 turns), and dig a moat. A house's seat has two rings of walls: the outer wall must fall before the inner walls can be breached. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls (one, or 3 that scatter wider), flaming oil for the men inside (one, or 3), and plague rats that keep biting the garrison while the bombardment goes on and may start a plague. A giant plague rat does the work of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
       <p><b>War buildings.</b> One forge (+15% hit points), one armory (+15% attack) and one royal stables (+25% cavalry) serve your whole realm.</p>
       <p><b>Captured lords.</b> If your lord's host is destroyed, or badly beaten, he may be captured, and his host cannot take the field. Any men who escaped go to the nearest garrison. His captor may hold him up to three turns: a ransom after one turn costs twice your income, after two your full income, then half, and after three turns it must be accepted. Your generals' armies fight on.</p>`,
-    court: `<p><b>Unrest.</b> Large realms breed unrest, sooner if they sprawl far from the seat. When the lords around a far province mutter, you have two turns to put an army of at least 8 men in that province or buy them off (40 d + 4 per county). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
+    court: `<p><b>Unrest.</b> Large realms breed unrest, sooner if they sprawl far from the seat. When the lords around a far county mutter, you have two turns to put an army of at least 8 men in that county or buy them off (40 d + 4 per county). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
       <p><b>Courtship.</b> To win an heiress (${ico('ring')}) you make a suit: your standing, a bride price, a promise of protection (footmen for her garrison) and a bishop's blessing. Her guardians set a minimum; rival houses may bid. If outbid you may raise once. A son is spent only when she accepts. One courtship a turn.</p>
 
       <p><b>Envoys.</b> Computer houses send envoys: a marriage from a weaker neighbour (peace for ${PACT_TURNS} turns), or a joint war against a house that threatens you both (peace between you for ${JOINT_TURNS} turns while they attack it). An envoy waits until the end of your turn. The same two houses cannot renew a truce or pact within ${TRUCE_COOL} turns of the last one lapsing.</p>
@@ -194,7 +195,7 @@ function openHelp() {
       <p>${ico('crown')} a house's seat · ${ico('ring')} an heiress of marrying age · ${ico('hammer')} building under way · ${ico('skull')} plague · ${ico('interdict')} under interdict · ${ico('fleur')} a general in command · ${ico('fire')} unrest.</p>
       <p>Every army is a banner with its strength; your banners carry their number, and the one you command wears a gold ring. A tent beside a banner marks a siege. Diagonal hatching marks a minor lord sworn to a house. The grey hatched lands at the edges are outside powers, not for conquest. Chevrons mark hill country, where mines can be dug.</p>
       <p>A thick coloured outline marks your own holdings. Green dots mark where the chosen army can march this turn; red dashes mark what it can strike.</p>
-      <p><b>Controls.</b> Tap to select. Drag to pan, pinch or scroll to zoom, double-tap to zoom in. The army tabs over the map switch which army you command. On a phone, drag the sheet up for the full province page; the main action always sits at its foot.</p>
+      <p><b>Controls.</b> Tap to select. Drag to pan, pinch or scroll to zoom, double-tap to zoom in. The army tabs over the map switch which army you command. On a phone, drag the sheet up for the full county page; the main action always sits at its foot.</p>
       <p><b>Rival moves.</b> After you end a turn, the marches, sieges and conquests of the houses near you are drawn on the map, one house at a time. Tap to skip, or change it in Settings (near me, all, or off).</p>
       <p><b>Saved games.</b> The game saves itself after every move. Settings, the realm panel and the title screen also have three save slots, and you can export a campaign as a file or a code to back it up or move it to another device.</p>
       <p><b>Keyboard.</b> <span class="kbd">E</span> end turn · <span class="kbd">H</span> my lands · <span class="kbd">L</span> chronicle · <span class="kbd">C</span> court · <span class="kbd">1</span>–<span class="kbd">3</span> choose an army · <span class="kbd">+</span>/<span class="kbd">−</span> zoom · <span class="kbd">Esc</span> back.</p>`,
@@ -243,7 +244,7 @@ function showTitle() {
 }
 function diffSeg() {
   const cur = SET.diff || 'gentle';
-  return `<div class="seg" style="display:flex">${Object.keys(DIFF).map(k => `<button class="${cur === k ? 'on' : ''}" style="flex:1" onclick="SET.diff='${k}';saveSettings();if(G)G.diff='${k}';document.getElementById('diffd').textContent=DIFF['${k}'].d;this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${DIFF[k].n}</button>`).join('')}</div><p class="sub" id="diffd" style="min-height:40px">${DIFF[cur].d}</p>`;
+  return `<div class="seg" style="display:flex">${Object.keys(DIFF).map(k => `<button class="${cur === k ? 'on' : ''}" style="flex:1" onclick="SET.diff='${k}';saveSettings();if(G){G.diff='${k}';noteDiff();}document.getElementById('diffd').textContent=DIFF['${k}'].d;this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${DIFF[k].n}</button>`).join('')}</div><p class="sub" id="diffd" style="min-height:40px">${DIFF[cur].d}</p>`;
 }
 function openFaction(fid) {
   const f = FACMAP[fid], home = PROV.find(r => r[0] === f.home);
@@ -259,7 +260,7 @@ function openFaction(fid) {
     <h3>The rival houses</h3>${diffSeg()}
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();startGame('${fid}')"><span class="lbl">${ico('flag')}Raise the banner of ${f.name}</span></button></div></div>`, '', { closable: true });
 }
-function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; G.goal = setGoal(); G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
+function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; noteDiff(); G.goal = setGoal(); G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
 function continueGame() { sndUnlock(); G = loadSave(); if (!G || G.v !== 8) { G = null; return showTitle(); } rebuildFmap(); if (!G.army) G.army = 'a0'; $('#title').style.display = 'none'; applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek'); }
 
 // ================= SPLASH SCENES =================

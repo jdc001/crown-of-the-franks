@@ -48,7 +48,7 @@ function renderHeader() {
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
   if (F.captive) chips.push(`<span class="chip warn btn-like" onclick="G.sel=null;render();setSheet('full')" title="Your lord is a prisoner">${ico('chain')}</span>`);
   if (G.offers.length) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="Ransom offers">${ico('coin')}${G.offers.length}</span>`);
-  setHTML($('#hdr'), `<div class="hfac"><span class="hach" onclick="openMedals('rank')">${houseAchievement(me(), 50)}</span><div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))} · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</div></div></div>
+  setHTML($('#hdr'), `<div class="hfac"><span class="hach" onclick="openMedals('rank')">${houseAchievement(me(), 50)}</span><div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))}<span class="hrv"> · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</span></div></div></div>
     <div class="hchips">${chips.join('')}</div>
     <div class="hbtns">
       <button class="btn sm desk" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>
@@ -114,7 +114,7 @@ function marriageHtml() {
   const F = G.fac[me()];
   const ladies = provList().filter(p => p.heiress && !p.owner);
   let h = `<p>Unmarried sons: <b>${F.sons}</b>. One courtship a turn; a son is spent only when a lady accepts.${F.proposed ? ' <span class="sub">You have courted this turn.</span>' : ''}${F.sons ? '' : ' <span class="sub">The Pope can grant a dispensation for another.</span>'}</p>`;
-  h += ladies.length ? `<p class="sub">Heiresses (win one and her province is yours, garrison and all):</p><div class="grid">${ladies.map(p => `<button class="btn" onclick="goProv('${p.id}')"><span class="lbl">${ico('ring')}Lady ${p.heiress}</span><small>${p.name}${p.ally ? ' · sworn to ' + fname(p.ally) : ''} · floor ${courtFloor(p)}</small></button>`).join('')}</div>` : '<p class="sub">No heiresses are of marrying age just now.</p>';
+  h += ladies.length ? `<p class="sub">Heiresses (win one and her county is yours, garrison and all):</p><div class="grid">${ladies.map(p => `<button class="btn" onclick="goProv('${p.id}')"><span class="lbl">${ico('ring')}Lady ${p.heiress}</span><small>${p.name}${p.ally ? ' · sworn to ' + fname(p.ally) : ''} · floor ${courtFloor(p)}</small></button>`).join('')}</div>` : '<p class="sub">No heiresses are of marrying age just now.</p>';
   const foes = alive().filter(f => f !== me());
   h += `<p class="sub" style="margin-top:10px">Marriage pacts with rival houses (${PACT_COST} d in gifts; peace for ${PACT_TURNS} turns, neither may attack the other):</p><div class="grid">${foes.map(f => `<button class="btn" onclick="doPact('${f}')" ${canPact(me(), f) && F.gold >= PACT_COST ? '' : 'disabled'}><span class="lbl">${shield(f, 14)} ${FAC(f).name}</span><small>${atPeace(me(), f) ? 'already at peace' : recentPeace(me(), f) ? 'too soon after the last peace' : Math.round(pactChance(me(), f) * 100) + '% chance'}</small></button>`).join('')}</div>`;
   return h;
@@ -123,7 +123,7 @@ function goProv(id) { G.sel = 'p:' + id; armyAt(id); render(); focusProv(id); if
 function unrestBox(p) {
   const F = G.fac[me()], u = F.unrest; if (!u || (p && u.seed !== p.id)) return '';
   const left = u.at - G.turn, covered = unrestCovered(me());
-  return `<div class="notebox bad">${ico('fire')} <b>Unrest at ${P(u.seed).name}.</b> ${covered ? 'Your army there overawes the malcontents; keep at least 8 men in the province until ' + dateStr(u.at) + '.' : `Unless an army of at least 8 men stands in ${P(u.seed).name} by ${dateStr(u.at)} (${left} turn${left === 1 ? '' : 's'}), or they are bought off, the lords there will rise and carry a quarter of the realm with them.`}
+  return `<div class="notebox bad">${ico('fire')} <b>Unrest at ${P(u.seed).name}.</b> ${covered ? 'Your army there overawes the malcontents; keep at least 8 men in the county until ' + dateStr(u.at) + '.' : `Unless an army of at least 8 men stands in ${P(u.seed).name} by ${dateStr(u.at)} (${left} turn${left === 1 ? '' : 's'}), or they are bought off, the lords there will rise and carry a quarter of the realm with them.`}
     <div class="row" style="margin-top:8px">${!covered ? `<button class="btn gold sm" onclick="doAppease()" ${F.gold >= u.cost ? '' : 'disabled'}><span class="lbl">${ico('coin')}Buy them off · ${u.cost} d</span></button>` : ''}${!p ? `<button class="btn sm" onclick="goProv('${u.seed}')"><span class="lbl">${ico('eye')}Go there</span></button>` : ''}</div></div>`;
 }
 function envoyBox() {
@@ -145,7 +145,7 @@ function overviewPanel() {
   const tiles = `<div class="tiles">
     <div class="tile${net < 0 ? ' warn' : ''}" onclick="goProv('${homeOf(me())}')">${ico('coin')}<div class="v">${F.gold}<small style="${net < 0 ? 'color:var(--red)' : ''}"> ${net >= 0 ? '+' : ''}${net}</small></div><div class="k">Deniers</div></div>
     <div class="tile${!men && !F.captive ? ' warn' : ''}" onclick="ACC.armies=true;render();document.getElementById('acc-armies').scrollIntoView({behavior:'smooth'})">${ico(F.captive ? 'chain' : 'sword')}<div class="v">${men}<small> ${usableArmies(me()).length}/${armyMax(me())}</small></div><div class="k">Men · armies</div></div>
-    <div class="tile" onclick="toggleAcc('houses')">${ico('map')}<div class="v">${owned(me()).length}<small>${allies(me()).length ? ' +' + allies(me()).length : ''}</small></div><div class="k">Provinces</div></div>
+    <div class="tile" onclick="toggleAcc('houses')">${ico('map')}<div class="v">${owned(me()).length}<small>${allies(me()).length ? ' +' + allies(me()).length : ''}</small></div><div class="k">Counties</div></div>
     <div class="tile" onclick="ACC.marriage=true;render();document.getElementById('acc-marriage').scrollIntoView({behavior:'smooth'})">${ico('ring')}<div class="v">${F.sons}</div><div class="k">Sons</div></div>
     <div class="tile" onclick="openPope()">${ico('church')}<div class="v">${F.bishops}<small> ${F.cardinals}✦</small></div><div class="k">Bishops</div></div>
     <div class="tile" onclick="openCourt()">${ico('fleur')}<div class="v">${F.gens.length}</div><div class="k">Generals</div></div>
@@ -168,7 +168,7 @@ function overviewPanel() {
       <p>Generals: ${F.gens.length ? F.gens.map(g => `${GENMAP[g.id].n} <span class="sub">(${genPost(me(), g)})</span>`).join(', ') : '<span class="sub">none. Hire one at court.</span>'}</p>
       <p>Allied lords: ${allies(me()).length ? allies(me()).map(p => `<span class="tag" onclick="goProv('${p.id}')" style="cursor:pointer">${p.name}</span>`).join('') : '<span class="sub">none</span>'}</p>
       ${G.truces.filter(t => t.a === me() || t.b === me()).map(t => `<p>${ico('dove')} ${t.pact ? 'Peace' : 'Truce of God'} with ${fname(t.a === me() ? t.b : t.a)} until ${dateStr(t.until)}</p>`).join('')}`)}
-    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : ''}${allied(me(), id) ? ' <span class="tag on">ally</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} prov.</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
+    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : ''}${allied(me(), id) ? ' <span class="tag on">ally</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} counties</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
     <p class="hint" style="margin-top:14px">Tap a county. Pinch or scroll to zoom, drag to pan, double-tap to zoom in. Green dots mark where the chosen army can march; red dashes mark what it can strike this turn.</p>
     <p class="sub ctr">Rivals: ${diff().n.toLowerCase()} · ${G.turn} turn${G.turn === 1 ? '' : 's'} played</p>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('chest')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
@@ -323,7 +323,7 @@ function allyPanel(p, F, A) {
   if (p.b.castle) tabs.push({ id: 'raise', n: 'Raise', ic: 'foot' });
   if (p.heiress) tabs.push({ id: 'wed', n: 'Marriage', ic: 'ring', dot: F.sons && !F.proposed });
   const cur = keptTab(tabs) || (p.heiress ? 'wed' : 'army');
-  let h = `<div class="notebox good">${ico('handshake')} ${p.lord} is sworn to you. You receive half the province's income, and you may build here and buy troops for its garrison. They will not march with your army, but your armies may march through their lands and strike from them.</div>` + tabsHtml(tabs, cur), cta = '';
+  let h = `<div class="notebox good">${ico('handshake')} ${p.lord} is sworn to you. You receive half the county's income, and you may build here and buy troops for its garrison. They will not march with your army, but your armies may march through their lands and strike from them.</div>` + tabsHtml(tabs, cur), cta = '';
   if (cur === 'army') {
     h += `<h3>Army ${ARMY_NUM(A)} · ${armyLabel(me(), A)}</h3>` + (here ? `<p>Army ${ARMY_NUM(A)} is camped here.</p><p class="units">${uStr(A, false)}</p>` : armyLine(A));
     if (!here) cta += marchBtn(p, A);
@@ -335,7 +335,7 @@ function allyPanel(p, F, A) {
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
 }
 function courtshipIntro(p, F) {
-  return `<h3>Marriage</h3><p>${ico('ring')} Lady <b>${p.heiress}</b>, heiress of ${p.name}. Win her hand for one of your sons and the province is yours with its garrison.</p><p class="sub">Her guardians want a suit worth at least <b>${courtFloor(p)}</b>. Your standing counts for ${Math.round(prestige(me(), p))}; a bride price, a promise of protection and a bishop's blessing add to it. Rival houses may bid against you.</p>`;
+  return `<h3>Marriage</h3><p>${ico('ring')} Lady <b>${p.heiress}</b>, heiress of ${p.name}. Win her hand for one of your sons and the county is yours with its garrison.</p><p class="sub">Her guardians want a suit worth at least <b>${courtFloor(p)}</b>. Your standing counts for ${Math.round(prestige(me(), p))}; a bride price, a promise of protection and a bishop's blessing add to it. Rival houses may bid against you.</p>`;
 }
 function courtshipBtn(p, F) {
   return `<button class="btn gold" onclick="openCourtshipDlg('${p.id}')" ${F.sons && !F.proposed && !G.court ? '' : 'disabled'}><span class="lbl">${ico('ring')}Court Lady ${p.heiress}</span><small>${F.proposed ? 'already courted this turn' : F.sons ? `sons: ${F.sons} · one courtship a turn` : 'no unmarried sons'}</small></button>`;
@@ -364,11 +364,11 @@ function foreignPanel(p, F, A) {
     else if (bz) h += `<p class="sub">${FAC(bz.fid).name} is already besieging it.</p>`;
     else if (!s) {
       const others = usableArmies(me()).filter(b => b !== A && strikeFrom(me(), b, p));
-      h += `<p class="sub">${A.acted ? `Army ${ARMY_NUM(A)} has already fought this turn.` : !armySize(A) ? `Army ${ARMY_NUM(A)} has no fighting men. Raise troops into it or draw them from a garrison.` : `Out of reach for army ${ARMY_NUM(A)} this turn. An army strikes from a county of yours, or an ally's, that borders the target.`}</p>`;
+      h += `<p class="sub">${!armySize(A) ? `Army ${ARMY_NUM(A)} has no fighting men. Raise troops into it or draw them from a garrison.` : A.acted ? `Army ${ARMY_NUM(A)} has already fought this turn.` : `Out of reach for army ${ARMY_NUM(A)} this turn. An army strikes from a county of yours, or an ally's, that borders the target.`}</p>`;
       if (others.length) cta += others.map(b => `<button class="btn" onclick="pickArmy('${b.id}')"><span class="lbl">${ico('swords')}Army ${ARMY_NUM(b)} can strike from ${P(strikeFrom(me(), b, p).stage).name}</span><small>${armySize(b)} men · switch to it</small></button>`).join('');
     } else {
       if (peace) h += `<div class="notebox bad">${ico('dove')} The Peace of God protects the great houses until ${dateStr(TRUCE)}. Attack ${FAC(p.owner).name} now and the Pope excommunicates you for 4 turns.</div>`;
-      if (p.ally && !p.owner) h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}. Taking the province breaks that alliance.</p>`;
+      if (p.ally && !p.owner) h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}. Taking the county breaks that alliance.</p>`;
       const how = s.dist ? `marches to ${P(s.stage).name} (${s.dist} move${s.dist > 1 ? 's' : ''}) and strikes` : `strikes from ${P(s.stage).name}`;
       h += `<p>${ico('flag')} Army ${ARMY_NUM(A)} ${how}.</p>`;
       const odds = estimateWin({ ...assaultCfg(me(), A, p, 'balanced'), aMod: mods(me()) - (peace ? 1 : 0) }, 30);
@@ -394,7 +394,7 @@ function foreignPanel(p, F, A) {
     h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.${allied(me(), o) ? ` Your ally until ${dateStr(pu)}.` : atPeace(me(), o) ? ` You are at peace until ${dateStr(pu)}.` : ' No pact binds you.'}</p><p class="sub">Send envoys to offer a pact of peace, an alliance that opens your lands to each other's armies, or a war alliance against a third house. If it suits them they ask nothing; if not, they name a price.</p>`;
     cta += `<button class="btn gold" onclick="openDiplo('${o}')"><span class="lbl">${ico('handshake')}Send envoys to ${esc(FAC(o).name)}</span><small>pact · alliance · war alliance</small></button>`;
   } else {
-    h += `<h3>Interdict</h3><p>${ico('interdict')} Ask the Pope to lay ${p.name} under interdict: the churches close and the province pays nothing for 4 turns.</p><p class="sub">${popeCost(me(), 'interdict')} d · ${Math.round(popeChance(me(), 'interdict', p.id) * 100)}% chance. One petition a turn.${F.popeUsed ? ' <span class="bad">You have already petitioned this turn.</span>' : ''}</p>`;
+    h += `<h3>Interdict</h3><p>${ico('interdict')} Ask the Pope to lay ${p.name} under interdict: the churches close and the county pays nothing for 4 turns.</p><p class="sub">${popeCost(me(), 'interdict')} d · ${Math.round(popeChance(me(), 'interdict', p.id) * 100)}% chance. One petition a turn.${F.popeUsed ? ' <span class="bad">You have already petitioned this turn.</span>' : ''}</p>`;
     cta += `<button class="btn" onclick="doPope('interdict','${p.id}')" ${!F.popeUsed && F.gold >= popeCost(me(), 'interdict') ? '' : 'disabled'}><span class="lbl">${ico('interdict')}Interdict ${p.name}</span><small>${popeCost(me(), 'interdict')} d</small></button><button class="btn sm ghost" onclick="openPope()">Open the Church</button>`;
   }
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
@@ -440,7 +440,7 @@ function act(c, a) {
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;
     case 'lift': note(`You lift the siege of ${p.name}.`); A.siege = null; A.loc = nearestHeld(me(), p.id); break;
-    case 'ally': if (makeAlly(me(), p)) { sfx('bell'); flashProv(p.id); report('A new ally', `${p.lord} of ${p.name} swears to you. Half of the province's income is yours.`); } break;
+    case 'ally': if (makeAlly(me(), p)) { sfx('bell'); flashProv(p.id); report('A new ally', `${p.lord} of ${p.name} swears to you. Half of the county's income is yours.`); } break;
   }
   save(); render(); showReports();
 }

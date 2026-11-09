@@ -31,3 +31,24 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
   const ios = /iPhone|iPad/.test(navigator.userAgent), standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   if (ios && !standalone && !SET.installNudged) { SET.installNudged = true; saveSettings(); setTimeout(() => toast('Share → Add to Home Screen for a full-screen game', 'phone'), 4000); }
 })();
+
+// ---------- if something breaks ----------
+// The game saves after every move, so the safe answer to an unexpected error is to offer a reload: the campaign
+// comes back from the autosave. Two errors within a few seconds are needed before the screen appears, so one
+// stray glitch in a drawing loop does not interrupt a turn.
+(function () {
+  let last = 0, shown = false;
+  function oops(msg) {
+    const now = Date.now(); const again = now - last < 4000; last = now;
+    if (!again || shown || document.getElementById('oops')) return;
+    shown = true;
+    const d = document.createElement('div'); d.id = 'oops';
+    d.innerHTML = '<div><h2>Something went wrong</h2><p>Your campaign is safe: the game saves after every move. Reload to carry on from where you were.</p><button id="oopsr">Reload the game</button><button class="plain" id="oopsc">Keep playing</button><small></small></div>';
+    d.querySelector('small').textContent = String(msg || '').slice(0, 160);
+    document.body.appendChild(d);
+    d.querySelector('#oopsr').onclick = () => location.reload();
+    d.querySelector('#oopsc').onclick = () => { d.remove(); shown = false; };
+  }
+  window.addEventListener('error', e => { if (e && e.message && !/ResizeObserver|Script error/.test(e.message)) oops(e.message); });
+  window.addEventListener('unhandledrejection', e => { const r = e && e.reason; if (r && r.name !== 'AbortError') oops(r.message || r); });
+})();

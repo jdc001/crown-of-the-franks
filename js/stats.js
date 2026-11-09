@@ -88,6 +88,23 @@ let PROF_C = null;
 function profile() { if (PROF_C) return JSON.parse(PROF_C); const p = loadJ(PROF_KEY, null) || {}; p.points = p.points || 0; p.trophies = p.trophies || {}; p.games = p.games || 0; p.arms = p.arms || { t: 'cross', f: '#26408a', c: '#e2b33c' }; p.look = p.look || {}; PROF_C = JSON.stringify(p); return p; }
 const saveProfile = p => { PROF_C = null; saveJ(PROF_KEY, p); };
 
+// a career travels inside exported saves: on import, trophies and games are merged, never lost
+function careerPack() { return { profile: profile(), history: gameHistory() }; }
+function careerMerge(c) {
+  if (!c || !c.profile) return false;
+  const P = profile(), Q = c.profile; let changed = false;
+  for (const id in (Q.trophies || {})) if (!P.trophies[id]) { P.trophies[id] = Q.trophies[id]; changed = true; }
+  const H = gameHistory(), seen = new Set(H.map(g => g.when));
+  for (const g of (c.history || [])) if (!seen.has(g.when)) { H.push(g); changed = true; }
+  H.sort((a, b) => a.when - b.when);
+  if (changed) {
+    // points are recounted from what is now held, so nothing is counted twice
+    P.points = Object.keys(P.trophies).reduce((s, id) => { const t = TROPHIES.find(x => x.id === id); return s + (t ? t.pts : 0); }, 0) + H.reduce((s, g) => s + (g.won ? 30 + (g.diff === 'hard' ? 20 : g.diff === 'gentle' ? 0 : 10) : 8), 0);
+    P.games = H.length; if (Q.arms && !gameHistory().length) { P.arms = Q.arms; P.look = Q.look || {}; }
+    saveProfile(P); saveJ(HIST_KEY, H);
+  }
+  return changed;
+}
 // ---------- ranks ----------
 const RANKS = [
   { id: 'seigneur', n: 'Seigneur', at: 0, col: '#8a6a3a', unlock: 'Your own coat of arms' },
@@ -135,11 +152,14 @@ const TROPHIES = [
   { id: 'veteran', n: 'Veteran', d: 'Finish ten games, won or lost.', pts: 30, test: (S, P) => P.games >= 10 },
 ];
 
+// the easiest rivals a game was ever set to: lowering the setting mid-game counts for trophies and points
+const DIFF_ORDER = ['gentle', 'original', 'hard'];
+function noteDiff() { if (!G) return; const cur = DIFF_ORDER.indexOf(G.diff || 'original'), low = G.diffLow == null ? cur : Math.min(G.diffLow, cur); G.diffLow = low; }
 // ---------- the end of a game ----------
 function gameSummary() {
   const me_ = G.player, won = G.winner === me_, m = G.stats ? G.stats.me : {};
   return { when: Date.now(), house: me_, name: FAC(me_).name, won, how: !won ? (G.winner ? 'beaten' : 'fallen') : alive().length === 1 ? 'conquest' : 'crown',
-    winner: G.winner || null, turns: G.turn, year: yearOf(G.turn), diff: G.diff || 'original', counties: owned(me_).length, excom: G.fac[me_].excom > 0,
+    winner: G.winner || null, turns: G.turn, year: yearOf(G.turn), diff: (noteDiff(), DIFF_ORDER[G.diffLow]), counties: owned(me_).length, excom: G.fac[me_].excom > 0,
     alliedAtEnd: alive().some(f => f !== me_ && allied(me_, f)), challenge: G.challenge ? G.challenge.id : null, m: { ...m } };
 }
 // called once when a game ends: history, trophies, points; returns what changed for the ending screens

@@ -1,6 +1,6 @@
 'use strict';
 // ================= THE HOUSES MOVE: a replay of the computer turns on the map =================
-// Before the computer houses move, the positions of every army and the owner of every province are noted.
+// Before the computer houses move, the positions of every army and the owner of every county are noted.
 // Afterwards the two are compared house by house, and each house's marches, sieges and conquests are drawn
 // on the map in turn order. The chronicle line for the house sits in a strip at the top. A tap skips it all.
 function replaySnap() {
@@ -31,7 +31,7 @@ function replayEvents(snap) {
   }
   return out;
 }
-// provinces within two steps of anything the player holds, plus anything the player has just lost
+// counties within two steps of anything the player holds, plus anything the player has just lost
 function nearPlayer(snap) {
   const near = new Set(), ring = provList().filter(p => holds(me(), p.id) || snap.own[p.id] === me()).map(p => p.id);
   ring.forEach(id => near.add(id));
@@ -96,7 +96,7 @@ function runTurnOverlay(order, lines, done, snap) {
     if (i >= list.length) { RP.t = setTimeout(replayStop, 700); return; }
     const x = list[i++], l = lines.find(y => y.f === x.f);
     const what = x.ev.filter(e => e.k === 'take').length;
-    ov.innerHTML = `<div class="rpbar">${shield(x.f, 30)}<div style="min-width:0"><div class="rpname">${esc(FAC(x.f).name)} <span class="rpdate">${esc(dateStr(G.turn))}</span></div><div class="rpline">${esc(l && l.t ? l.t : what ? `takes ${what} province${what > 1 ? 's' : ''}` : 'marches')}</div></div><div class="rpskip">${i}/${list.length}<br>tap to skip</div></div>`;
+    ov.innerHTML = `<div class="rpbar">${shield(x.f, 30)}<div style="min-width:0"><div class="rpname">${esc(FAC(x.f).name)} <span class="rpdate">${esc(dateStr(G.turn))}</span></div><div class="rpline">${esc(l && l.t ? l.t : what ? `takes ${what} county${what > 1 ? 's' : ''}` : 'marches')}</div></div><div class="rpskip">${i}/${list.length}<br>tap to skip</div></div>`;
     g.insertAdjacentHTML('beforeend', `<g class="mvhouse">${replayHouseSvg(x)}</g>`);
     RP.t = setTimeout(step, 1500);
   };
