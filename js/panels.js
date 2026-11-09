@@ -88,24 +88,13 @@ function crownsHtml() {
   let h = '';
   if (isKing(me())) {
     const n = crownIncome(me());
-    h += `<div class="statcard on"><b>${ico('crown')} King of the Franks</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${vassals().length >= 2 ? ', and a third army' : '. A third army once two princes have sworn to you (or at 25 counties)'}</li><li>Princes who do homage are at peace with you</li></ul></div>`;
-    const vs = vassals();
-    h += `<p><b>Sworn to you:</b> ${vs.length ? vs.map(f => `<span class="tag on">${shield(f, 14)} ${esc(FAC(f).name)}</span>`).join('') : '<span class="sub">no one yet</span>'}</p>`;
-    const free = others.filter(f => !vassal(f));
-    if (free.length) {
-      h += `<p class="sub">Summon a prince to do homage: ${HOMAGE_GIFT} d in gifts, once a turn. He weighs your armies against his own, your favour with the Pope, and whether he is the bigger lord.${F.summoned === G.turn ? ' <span class="bad">You have summoned this turn.</span>' : ''}</p>`;
-      h += `<div class="grid">${free.map(f => `<button class="btn" onclick="doSummon('${f}')" ${F.summoned !== G.turn && F.gold >= HOMAGE_GIFT ? '' : 'disabled'}><span class="lbl">${shield(f, 14)} ${esc(FAC(f).name)}</span><small>${Math.round(homageChance(me(), f) * 100)}% chance</small></button>`).join('')}</div>`;
-    }
-    if (vs.length) h += `<p class="sub">To make war on a vassal, declare his fiefs forfeit first. He owes you nothing after that.</p><div class="grid">${vs.map(f => `<button class="btn sm ghost" onclick="doForfeit('${f}')"><span class="lbl">${shield(f, 14)} ${esc(FAC(f).name)} forfeit</span></button>`).join('')}</div>`;
+    h += `<div class="statcard on"><b>${ico('crown')} King of the Franks</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${owned(me()).length >= KING_ARMY3 ? ', and a third army' : `. A third army once you hold ${KING_ARMY3} counties`}</li></ul></div>`;
     return h;
   }
-  if (k) {
-    h += `<p>${ico('crown')} The crown is worn by <b>${esc(FAC(k).pname)}</b>.</p>`;
-    if (vassal(me())) h += `<div class="notebox good">${ico('handshake')} You are the king's man. You and he are at peace. Renounce the oath and it is war, and the Pope may cast you out.</div><button class="btn sm red" onclick="doRenounce()"><span class="lbl">${ico('swords')}Renounce your homage</span></button>`;
-    else h += `<p class="sub">You owe him nothing. Do homage and you are at peace with the king, but every oath brings him closer to ruling in fact.</p><button class="btn sm" onclick="doSwear()"><span class="lbl">${ico('handshake')}Do homage to ${esc(FAC(k).name)}</span></button>`;
-  } else h += `<p>${ico('crown')} No one wears the crown of the Franks.</p>`;
+  if (k) h += `<p>${ico('crown')} The crown is worn by <b>${esc(FAC(k).pname)}</b>. Take Reims and the royal seat and it can be yours.</p>`;
+  else h += `<p>${ico('crown')} No one wears the crown of the Franks.</p>`;
   const need = crownNeeds(me());
-  h += `<div class="statcard"><b>The coronation</b><br>The archbishop of Reims anoints kings, and a king needs his royal seat. You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">Crowned, every oath sworn to the old king is void.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be crowned at Reims</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
+  h += `<div class="statcard"><b>The coronation</b><br>The archbishop of Reims anoints kings, and a king needs his royal seat. You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he fields a third army.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be crowned at Reims</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
   return h;
 }
 function prisonersHtml() {
@@ -117,7 +106,6 @@ function prisonersHtml() {
     h += `<div class="statcard"><p style="margin:0">${ico('chain')} <b>${rulerOf(f)}</b> <span class="sub">(held ${n} turn${n > 1 ? 's' : ''})</span></p>`;
     if (o) h += `<p>${FAC(f).name} offers <b>${o.sum} d</b>.${n >= 3 ? ' After three turns you must accept.' : ' Hold him and the next offer will be lower, but his house stays without its lord.'}</p><div class="grid2"><button class="btn gold" onclick="doOffer('${f}',true)">Accept ${coin(o.sum)}</button>${n < 3 ? `<button class="btn" onclick="openHagglePrisoner('${f}')">Haggle for more</button><button class="btn" onclick="doOffer('${f}',false)">Keep him another turn</button>` : ''}</div>`;
     else h += `<p class="sub">No ransom has been offered yet.</p>`;
-    if (isKing(me()) && !vassal(f)) h += `<button class="btn sm" onclick="doFreeHomage('${f}')"><span class="lbl">${ico('handshake')}Free him for his homage</span></button>`;
     h += '</div>';
   }
   return h;
@@ -171,7 +159,7 @@ function overviewPanel() {
     ${acc('garrisons', 'Your garrisons', 'castle', garrisonsHtml(), owned(me()).reduce((a, p) => a + garMen(p), 0) + ' men')}
     ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing; armies in the field are paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d). Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
     ${acc('road', 'Your goal: ' + GOALS[goalId()].n, 'crown', goalHtml(held), goalCount(held))}
-    ${acc('crowns', 'The crown and homage', 'crown', crownsHtml(), isKing(me()) ? vassals().length + ' sworn' : vassal(me()) ? 'sworn' : '')}
+    ${acc('crowns', 'The crown', 'crown', crownsHtml(), isKing(me()) ? 'yours' : king() ? '' : 'vacant')}
     ${acc('marriage', 'Marriages', 'ring', marriageHtml(), F.sons + ' son' + (F.sons === 1 ? '' : 's'))}
     ${acc('realm', 'The realm', 'map', `
       <p>Income ${coin(grossIncome(me()))} a turn, upkeep ${coin(upkeepOf(me()))} · net ${coin(net)}</p>
@@ -179,8 +167,8 @@ function overviewPanel() {
       <p>War buildings: ${wb.length ? wb.map(t => `<span class="tag on">${ico(BLD_ICON[t])}${BLD[t].n}</span>`).join('') : '<span class="sub">none. A forge, armory and stables can be built at any castle.</span>'}</p>
       <p>Generals: ${F.gens.length ? F.gens.map(g => `${GENMAP[g.id].n} <span class="sub">(${genPost(me(), g)})</span>`).join(', ') : '<span class="sub">none. Hire one at court.</span>'}</p>
       <p>Allied lords: ${allies(me()).length ? allies(me()).map(p => `<span class="tag" onclick="goProv('${p.id}')" style="cursor:pointer">${p.name}</span>`).join('') : '<span class="sub">none</span>'}</p>
-      ${G.truces.filter(t => t.a === me() || t.b === me()).map(t => `<p>${ico('dove')} ${t.pact ? 'Peace' : 'Truce of God'} with ${fname(t.a === me() ? t.b : t.a)} until ${dateStr(t.until)}</p>`).join('')}${isKing(me()) && vassals().length ? `<p>${ico('handshake')} At peace with your vassals</p>` : vassal(me()) ? `<p>${ico('handshake')} At peace with the king, your lord</p>` : ''}`)}
-    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : vassal(id) ? ' <span class="tag">sworn</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} prov.</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
+      ${G.truces.filter(t => t.a === me() || t.b === me()).map(t => `<p>${ico('dove')} ${t.pact ? 'Peace' : 'Truce of God'} with ${fname(t.a === me() ? t.b : t.a)} until ${dateStr(t.until)}</p>`).join('')}`)}
+    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : ''}${allied(me(), id) ? ' <span class="tag on">ally</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} prov.</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
     <p class="hint" style="margin-top:14px">Tap a county. Pinch or scroll to zoom, drag to pan, double-tap to zoom in. Green dots mark where the chosen army can march; red dashes mark what it can strike this turn.</p>
     <p class="sub ctr">Rivals: ${diff().n.toLowerCase()} · ${G.turn} turn${G.turn === 1 ? '' : 's'} played</p>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('chest')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
@@ -192,17 +180,15 @@ function goalHtml(held) {
   const fall = `<p class="sub">Take a house's seat (${ico('crown')}) and you win it and every county beside it; a house with four connected counties left rallies once under an heir, the rest falls to its castellans.</p>`;
   const size = owned(me()).length > 20 ? `<p class="sub">A realm this size yields ${Math.round(adminMult(me()) * 100)}% of its income.</p>` : '';
   if (g === 'king') {
-    const crowned = wears(me()), vs = vassals().length, need = homageNeed(), dh = domainHeld(me()), dn = domainNeed();
-    const k = king();
+    const crowned = wears(me()), dh = domainHeld(me()), dn = domainNeed(), k = king();
     return `<p>${GOALS.king.d}</p>
-      <p>${ico('crown')} Crown: ${crowned ? '<span class="good">anointed</span>' : k ? `<span class="bad">worn by ${esc(rulerOf(k))}</span>` : 'no one wears it'}</p>
-      <p>${ico('handshake')} Homage: ${isKing(me()) ? vs : 0} of ${need} princes</p><div class="bar"><i style="width:${pct(isKing(me()) ? Math.min(vs, need) : 0, need)}%"></i></div>
+      <p>${ico('crown')} Crown: ${crowned ? '<span class="good">anointed</span>' : k ? `<span class="bad">worn by ${esc(FAC(k).pname)}</span>` : 'no one wears it'}</p>
       <p>${ico('map')} Your own counties in the kingdom: ${dh} of ${dn}</p><div class="bar"><i style="width:${pct(Math.min(dh, dn), dn)}%"></i></div>
-      <p class="sub">Whoever gets all three first wins. Breaking every rival also wins.${k && k !== me() ? ` The king now has ${vs} oath${vs === 1 ? '' : 's'} and ${domainHeld(k)} counties.` : ''}</p>${size}`;
+      <p class="sub">The first house to hold both wins.${k && k !== me() ? ` The king holds ${domainHeld(k)} of them.` : ''}</p>${size}`;
   }
   return `<p>${GOALS.conquest.d} <b>${rivals}</b> rival house${rivals === 1 ? '' : 's'} still stand${rivals === 1 ? 's' : ''}.</p>${fall}<p class="sub">You hold ${domainHeld(me())} of the kingdom's ${FRANCE.length} counties.</p><div class="bar"><i style="width:${pct(domainHeld(me()), FRANCE.length)}%"></i></div>${size}`;
 }
-function goalCount(held) { return goalId() === 'king' ? (wears(me()) ? `${vassals().length}/${homageNeed()} oaths` : 'not crowned') : `${alive().length - 1} left`; }
+function goalCount(held) { return goalId() === 'king' ? `${wears(me()) ? 'crowned · ' : ''}${domainHeld(me())}/${domainNeed()}` : `${alive().length - 1} left`; }
 
 // ================= PROVINCE =================
 const PANEL = { tab: null };
@@ -366,9 +352,7 @@ function foreignPanel(p, F, A) {
     const s = strikeFrom(me(), A, p);
     const peace = p.owner && truce() && F.excom < 1;
     const tr = p.owner ? G.truces.filter(t => (t.a === me() && t.b === p.owner) || (t.b === me() && t.a === p.owner)) : [];
-    if (p.owner && atPeace(me(), p.owner)) h += tr.length ? `<div class="notebox">${ico('dove')} ${tr.some(x => x.treaty) ? 'A sworn truce' : tr[0].pact ? 'A marriage' : 'A Truce of God'} binds you and ${FAC(p.owner).name}. Neither may attack the other until ${dateStr(tr.reduce((a, t) => Math.max(a, t.until), 0))}.</div>`
-      : isKing(me()) ? `<div class="notebox">${ico('handshake')} ${FAC(p.owner).name} is your sworn man. Declare his fiefs forfeit under the crown before you make war on him.</div>`
-      : `<div class="notebox">${ico('handshake')} You have done homage to ${FAC(p.owner).name}, your king. Renounce it under the crown before you make war on him.</div>`;
+    if (p.owner && atPeace(me(), p.owner)) h += `<div class="notebox">${ico(allied(me(), p.owner) ? 'handshake' : 'dove')} ${allied(me(), p.owner) ? 'An alliance' : tr.some(x => x.treaty) ? 'A sworn pact' : tr[0] && tr[0].pact ? 'A marriage' : 'A Truce of God'} binds you and ${FAC(p.owner).name}. Neither may attack the other until ${dateStr(tr.reduce((a, t) => Math.max(a, t.until), 0))}.${allied(me(), p.owner) ? ' Your armies may march through their lands.' : ''}</div>`;
     else if (slotState(A) !== 'active') h += `<p class="sub">${slotState(A) === 'captive' ? 'Your lord is a prisoner. Pay his ransom, or command another army.' : 'This army is not in the field.'}</p>`;
     else if (A.siege === p.id) {
       h += `<div class="notebox">${ico('tent')} Army ${ARMY_NUM(A)} besieges ${p.name}. Each turn the garrison starves and the walls weaken.</div><p class="units">${uStr(A, false)}</p>`;
@@ -407,8 +391,8 @@ function foreignPanel(p, F, A) {
     if (p.heiress) { h += courtshipIntro(p, F); cta += courtshipBtn(p, F); }
   } else if (cur === 'treaty') {
     const o = p.owner, pu = peaceUntil(me(), o);
-    h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.${atPeace(me(), o) ? (pu > G.turn ? ` You are at peace until ${dateStr(pu)}.` : ' An oath of homage binds you.') : ' No truce binds you.'}</p><p class="sub">Send envoys to offer a truce of one to five years, or to ask them to join a war on a third house. Silver or a county can sweeten either.</p>`;
-    cta += `<button class="btn gold" onclick="openDiplo('${o}')"><span class="lbl">${ico('handshake')}Send envoys to ${esc(FAC(o).name)}</span><small>${sentTo(o) ? 'already sent this turn' : 'truce · joint war · marriage'}</small></button>`;
+    h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.${allied(me(), o) ? ` Your ally until ${dateStr(pu)}.` : atPeace(me(), o) ? ` You are at peace until ${dateStr(pu)}.` : ' No pact binds you.'}</p><p class="sub">Send envoys to offer a pact of peace, an alliance that opens your lands to each other's armies, or a war alliance against a third house. If it suits them they ask nothing; if not, they name a price.</p>`;
+    cta += `<button class="btn gold" onclick="openDiplo('${o}')"><span class="lbl">${ico('handshake')}Send envoys to ${esc(FAC(o).name)}</span><small>pact · alliance · war alliance</small></button>`;
   } else {
     h += `<h3>Interdict</h3><p>${ico('interdict')} Ask the Pope to lay ${p.name} under interdict: the churches close and the province pays nothing for 4 turns.</p><p class="sub">${popeCost(me(), 'interdict')} d · ${Math.round(popeChance(me(), 'interdict', p.id) * 100)}% chance. One petition a turn.${F.popeUsed ? ' <span class="bad">You have already petitioned this turn.</span>' : ''}</p>`;
     cta += `<button class="btn" onclick="doPope('interdict','${p.id}')" ${!F.popeUsed && F.gold >= popeCost(me(), 'interdict') ? '' : 'disabled'}><span class="lbl">${ico('interdict')}Interdict ${p.name}</span><small>${popeCost(me(), 'interdict')} d</small></button><button class="btn sm ghost" onclick="openPope()">Open the Church</button>`;
@@ -471,11 +455,6 @@ function doRansom() {
 }
 function doOffer(fid, yes) { answerOffer(fid, yes); if (yes) sfx('coin'); save(); render(); showReports(); }
 function doCrown(k) { if (crown(me(), k)) { G.reports = G.reports.filter(r => r.title !== 'Long live the king!'); save(); render(); showCoronation(me(), k); } }
-function doSummon(f) { const r = summonHomage(me(), f); if (r) { sfx(r.ok ? 'bell' : 'miss'); if (r.ok) buzz(); else toast(`${FAC(f).name} will not swear`, 'scroll'); } save(); render(); showReports(); }
-function doSwear() { if (doHomage(me())) { sfx('bell'); report('Homage', `${rulerOf(me())} kneels to ${rulerOf(king())} and becomes the king's man. There is peace between you while the oath stands.`); } save(); render(); showReports(); }
-function doRenounce() { renounce(me()); sfx('horn'); save(); render(); showReports(); }
-function doForfeit(f) { if (forfeit(me(), f)) sfx('horn'); save(); render(); showReports(); }
-function doFreeHomage(f) { if (releaseForHomage(me(), f)) sfx('bell'); save(); render(); showReports(); }
 function doPact(f) { const r = marriagePact(me(), f); if (r) { sfx(r.ok ? 'bell' : 'miss'); report(r.ok ? 'A marriage pact' : 'Proposal refused', r.text); save(); render(); showReports(); } }
 
 // ================= END OF TURN =================

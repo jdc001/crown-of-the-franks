@@ -42,9 +42,9 @@ const lordArmy = fid => army(fid, 'a0');
 const armySize = a => fighters(armySide(a));
 const armySide = a => ({ militia: 0, foot: a.foot, bow: a.bow, cav: a.cav });
 const setArmy = (a, s) => { a.foot = s.foot; a.bow = s.bow; a.cav = s.cav; };
-// a third army for a great realm, or for a king the princes recognise (two of them sworn to him)
-const ARMY3_LANDS = 25;
-const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (owned(fid).length >= ARMY3_LANDS || (isKing(fid) && vassals().length >= 2) ? 1 : 0);
+// a third army for a great realm, or for a crowned king with a realm worth the name
+const ARMY3_LANDS = 25, KING_ARMY3 = 15;
+const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (owned(fid).length >= ARMY3_LANDS || (isKing(fid) && owned(fid).length >= KING_ARMY3) ? 1 : 0);
 function armyGen(fid, a) { const g = G.fac[fid].gens.find(x => x.at === a.id); return g ? GENMAP[g.id] : null; }
 function armyUsable(fid, a) {
   const F = G.fac[fid]; if (!F.alive) return false;
@@ -127,7 +127,11 @@ const catShots = (fid, a) => 3 + (a && armyGen(fid, a) && armyGen(fid, a).siege 
 function mods(fid) { if (!fid) return 0; const F = G.fac[fid]; return (F.bless > 0 ? 1 : 0) - (F.excom > 0 ? 1 : 0); }
 // Rome is beyond the map: its cardinals answer to no prince
 const hasRome = fid => false;
-const atPeace = (a, b) => G.truces.some(t => t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a))) || (vassal(a) && isKing(b)) || (vassal(b) && isKing(a));
+const atPeace = (a, b) => G.truces.some(t => t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+// an alliance is a pact that also opens each house's land to the other's armies
+const allied = (a, b) => !!a && !!b && a !== b && G.truces.some(t => t.pass && t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+// land an army may march through: its own, its sworn minor lords', and an allied house's
+const passable = (fid, id) => { const p = P(id); return holds(fid, id) || allied(fid, p.owner) || (!p.owner && p.ally && allied(fid, p.ally)); };
 // the same two houses cannot renew a truce or pact within 10 turns of the last one lapsing
 const TRUCE_COOL = 10;
 const pairKey = (a, b) => [a, b].sort().join('|');
@@ -236,11 +240,11 @@ function uStr(u, withMil, withExtra = true) {
 // armies march through their own and allied land
 function marchDist(fid, from) {
   const d = { [from]: 0 }, q = [from];
-  while (q.length) { const c = q.shift(); if (d[c] >= MOVES) continue; for (const n of ADJ[c]) if (!(n in d) && holds(fid, n)) { d[n] = d[c] + 1; q.push(n); } }
+  while (q.length) { const c = q.shift(); if (d[c] >= MOVES) continue; for (const n of ADJ[c]) if (!(n in d) && passable(fid, n)) { d[n] = d[c] + 1; q.push(n); } }
   return d;
 }
 function canMarch(fid, a, id) {
-  if (!armyUsable(fid, a) || a.acted || !a.loc || !holds(fid, id) || id === a.loc) return false;
+  if (!armyUsable(fid, a) || a.acted || !a.loc || !passable(fid, id) || id === a.loc) return false;
   const d = marchDist(fid, a.loc)[id];
   return d !== undefined && d <= a.mp;
 }
@@ -320,8 +324,6 @@ function newGame(playerId) {
   G.crowns.franks = 'capet'; G.coronated.franks = 'capet';
   const cd = FAC('capet'); cd.kingOf = ['franks']; cd.title = 'King';
   G.fac.capet.cardinals = 1;
-  // the princes who did homage to the new king
-  for (const f of ['burgundy', 'barcelona']) G.homage[f] = true;
   for (const p of provList()) p.militia = levyMax(p);
   G.start = Object.fromEntries(provList().filter(p => p.owner).map(p => [p.id, p.owner]));
   const neut = provList().filter(p => !p.owner);
@@ -437,6 +439,7 @@ function endRound() {
 }
 // no army goes on besieging a county its own house has come to hold, by marriage, conquest or treaty
 function fixSieges() {
+  for (const o in G.armies) if (G.fac[o] && G.fac[o].alive) for (const a of G.armies[o]) if (a.loc && !a.siege && !passable(o, a.loc)) a.loc = nearestHeld(o, a.loc) || homeOf(o);
   for (const o in G.armies) for (const a of G.armies[o]) if (a.siege) { const q = P(a.siege); if (!q || holds(o, q.id) || (q.owner && atPeace(o, q.owner))) { a.siege = null; if (q && holds(o, q.id)) a.loc = q.id; } }
 }
 function capture(p, fid) {
@@ -444,7 +447,7 @@ function capture(p, fid) {
   if (prev) loseGeneral(prev, p.id, 'was taken in the fall of ' + p.name);
   p.owner = fid; p.ally = null; p.gar = eu(); p.militia = 0; p.heiress = null; p.build = null; p.plague = null; p.interdict = 0;
   for (const o in G.armies) for (const b of G.armies[o]) if (o !== fid && b.siege === p.id) { b.siege = null; b.loc = G.fac[o].alive ? nearestHeld(o, p.id) : null; }
-  for (const o in G.armies) if (o !== fid && G.fac[o].alive) for (const b of G.armies[o]) if (b.loc === p.id && !b.siege && armySize(b) > 0) loseArmy(o, b, fid);
+  for (const o in G.armies) if (o !== fid && G.fac[o].alive) for (const b of G.armies[o]) if (b.loc === p.id && !b.siege && armySize(b) > 0) { if (o !== prev && !(p.ally === o)) b.loc = nearestHeld(o, p.id) || homeOf(o); else loseArmy(o, b, fid); }
   if (prevAlly && prevAlly === G.player && fid !== G.player) report('An ally has fallen', `${FAC(fid).name} has taken ${p.name}. Your alliance there is ended.`);
   if (prev && p.cap === prev) collapse(prev, fid, p);
   fixSieges();
@@ -597,15 +600,16 @@ const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
 const GOALS = {
-  king: { n: 'King in fact', s: 'The main game', d: 'Wear the crown of the Franks, anointed at Reims; hold the homage of two-thirds of the princes still standing; and hold two-fifths of the kingdom\'s counties yourself.' },
+  king: { n: 'King of the Franks', s: 'The main game', d: 'Be anointed at Reims and hold the crown, with half of the kingdom\'s counties in your own hands. Or break every rival.' },
   conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
 const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
 const wears = (fid, k = 'franks') => G.crowns[k] === fid && !!(G.coronated && G.coronated[k] === fid);
 const homageNeed = () => Math.min(alive().length - 1, Math.max(3, Math.ceil((alive().length - 1) * 2 / 3)));
-const domainNeed = () => Math.ceil(FRANCE.length * 0.4);
+const domainNeed = () => Math.ceil(FRANCE.length * DOMAIN_SHARE);
+const DOMAIN_SHARE = 0.5;
 const domainHeld = fid => FRANCE.filter(id => P(id).owner === fid).length;
-function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && vassals().length >= homageNeed() && domainHeld(fid) >= domainNeed(); }
+function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && domainHeld(fid) >= domainNeed(); }
 function victor() { const al = alive(); if (al.length === 1) return al[0]; return al.find(goalMet) || null; }
 function checkVictory() {
   const w = victor();
@@ -620,7 +624,8 @@ function checkVictory() {
 const CROWN_COST = 120, HOMAGE_GIFT = 30;
 const king = () => { const k = G.crowns.franks; return k && G.fac[k] && G.fac[k].alive ? k : null; };
 const isKing = fid => !!fid && king() === fid;
-const vassal = fid => !!(G.homage && G.homage[fid]) && !!king() && king() !== fid && !!G.fac[fid] && G.fac[fid].alive;
+// homage was dropped in v6: no house is anyone's vassal
+const vassal = fid => false;
 const vassals = () => alive().filter(vassal);
 const crownIncome = fid => FRANCE.filter(id => P(id).owner === fid).length;
 const crownNeeds = fid => ['reims', fid === 'charles' ? 'laon' : 'paris'];
@@ -636,7 +641,7 @@ function crown(fid, kid = 'franks') {
   G.crowns.franks = fid; G.coronated.franks = fid; G.homage = {};
   const d = FAC(fid); d.kingOf = ['franks']; d.title = 'King';
   for (const id of FRANCE) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
-  const txt = `At Reims the archbishop anoints ${d.pname} King of the Franks${old ? `, and ${FAC(old).pname} is king no longer` : ''}. Every oath sworn to the old king is void: the princes must do homage anew. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and once two princes have sworn to him he may field a third army.`;
+  const txt = `At Reims the archbishop anoints ${d.pname} King of the Franks${old ? `, and ${FAC(old).pname} is king no longer` : ''}. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army.`;
   if (fid === G.player) report('Long live the king!', txt); else report('A new King of the Franks', txt);
   checkVictory();
   return true;

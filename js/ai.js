@@ -69,7 +69,7 @@ function aiTurn(fid) {
   }
   aiDefendSeat(fid);
   if (G.over) return;
-  aiBuild(fid); aiGenerals(fid); aiRecruit(fid); aiChurch(fid); aiDiplo(fid); aiHomage(fid);
+  aiBuild(fid); aiGenerals(fid); aiRecruit(fid); aiChurch(fid); aiDiplo(fid);
   F.guard = aiPickGuard(fid);
   aiConcentrate(fid);
   F.struck = false;

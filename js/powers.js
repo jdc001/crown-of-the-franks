@@ -104,7 +104,7 @@ function eventsTick() {
   // Barcelona's plea (Summer 987): Borrell asks the new king for help against Almanzor
   if (T === 1 && !E.plea && alv('barcelona') && k && k !== 'barcelona') {
     E.plea = true;
-    if (k === G.player) { G.pend = { kind: 'plea' }; report('A plea from Barcelona', `Count Borrell writes that Almanzor burned Barcelona two years ago and will come again. He asks his king for an army. The archbishops say a king who cannot defend his vassals is no king. Will you send help?`, { kind: 'plea' }); }
+    if (k === G.player) { G.pend = { kind: 'plea' }; report('A plea from Barcelona', `Count Borrell writes that Almanzor burned Barcelona two years ago and will come again. He asks his king for an army. Help now and Barcelona will be your ally. Will you send help?`, { kind: 'plea' }); }
     else if (G.fac[k].gold >= 100 && Math.random() < 0.4) answerPlea(true); else answerPlea(false);
   }
   // the Danish ports (Autumn 987): Normandy chooses
@@ -160,8 +160,8 @@ function eventsTick() {
 }
 function answerPlea(help) {
   const k = king(), B = G.fac.barcelona; G.pend = null; if (!k || !B || !B.alive) return;
-  if (help && G.fac[k].gold >= 60) { G.fac[k].gold -= 60; B.gold += 60; const A = lordArmy('barcelona'); if (armyUsable('barcelona', A)) A.foot += 6; G.homage.barcelona = true; tell('barcelona', 'The king sends help', `${rulerOf(k)} sends silver and men south. Count Borrell renews his homage gladly.`); if (k === G.player) note('You send 60 d and men to Barcelona. Borrell renews his homage.'); }
-  else { delete G.homage.barcelona; B.renounced = G.turn; tell('barcelona', 'No help from the north', `${rulerOf(k)} sends nothing. Borrell renounces the homage of a king who will not defend him.`); if (k === G.player) note('You send no help to Barcelona. Count Borrell breaks with you.'); }
+  if (help && G.fac[k].gold >= 60) { G.fac[k].gold -= 60; B.gold += 60; const A = lordArmy('barcelona'); if (armyUsable('barcelona', A)) A.foot += 6; { const u = G.turn + 12; G.truces.push({ a: k, b: 'barcelona', until: u, pact: true, pass: true }); } tell('barcelona', 'The king sends help', `${rulerOf(k)} sends silver and men south. Count Borrell swears an alliance for three years.`); if (k === G.player) note('You send 60 d and men to Barcelona. Count Borrell is your ally for three years: your armies may march through each other\'s lands.'); }
+  else { tell('barcelona', 'No help from the north', `${rulerOf(k)} sends nothing. Borrell will not forget it.`); if (k === G.player) note('You send no help to Barcelona. Count Borrell will remember it.'); }
 }
 function powersTick() {
   if (G.over) return;
@@ -180,7 +180,7 @@ function powerButtons(a) {
   const d = G.pend; if (!d || !a || d.kind !== a.kind) return null;
   const F = G.fac[me()];
   if (d.kind === 'almanzor') return `<button class="btn" onclick="powerAnswer('fight')"><span class="lbl">${ico('swords')}Fight for ${P(d.p).name}</span><small>the garrison and any army there</small></button><button class="btn gold" onclick="powerAnswer('pay')" ${F.gold >= parias(d.n) ? '' : 'disabled'}><span class="lbl">${ico('coin')}Pay the parias · ${parias(d.n)} d</span></button>`;
-  if (d.kind === 'plea') return `<button class="btn gold" onclick="powerAnswer('help')" ${F.gold >= 60 ? '' : 'disabled'}><span class="lbl">${ico('flag')}Send help · 60 d</span><small>Borrell keeps his homage, gets silver and men</small></button><button class="btn" onclick="powerAnswer('refuse')"><span class="lbl">Send nothing</span><small>Barcelona breaks with you</small></button>`;
+  if (d.kind === 'plea') return `<button class="btn gold" onclick="powerAnswer('help')" ${F.gold >= 60 ? '' : 'disabled'}><span class="lbl">${ico('flag')}Send help · 60 d</span><small>an alliance for three years, with passage</small></button><button class="btn" onclick="powerAnswer('refuse')"><span class="lbl">Send nothing</span><small>Borrell remembers it</small></button>`;
   if (d.kind === 'danes') return `<button class="btn gold" onclick="powerAnswer('open')"><span class="lbl">${ico('coin')}Open the ports</span><small>+6 d a turn, no raids on you; worse with Rome, raids elsewhere grow</small></button><button class="btn" onclick="powerAnswer('closed')"><span class="lbl">${ico('church')}Close the ports</span><small>better with Rome, half the raids; an English treaty may follow</small></button>`;
   return null;
 }

@@ -26,7 +26,7 @@ function openCourt() {
   const postOpts = g => { const o = []; const slot = emptyArmySlot(me()); if (slot && g.at !== slot) o.push([slot, `Lead ${armyLabel(me(), army(me(), slot)).toLowerCase()}`]); if (g.at !== 'a0' && !genAt(me(), 'a0')) o.push(['a0', "Ride with the lord's host"]); for (const p of owned(me()).filter(q => q.b.castle && !genAt(me(), q.id)).slice(0, 4)) o.push([p.id, `Castle at ${p.name}`]); return o; };
   const hired = F.gens.map(g => { const d = GENMAP[g.id]; const opts = postOpts(g); return `<div class="gen on"><div class="gname">${ico('fleur')} ${d.n}</div><div class="sub">${d.d}</div><div class="gstats">${stat(d)}</div><div class="sub">${genPost(me(), g)[0].toUpperCase() + genPost(me(), g).slice(1)}</div>${opts.length ? `<div class="row" style="margin-top:4px">${opts.map(([at, l]) => `<button class="btn sm" onclick="doPost('${g.id}','${at}')">${l}</button>`).join('')}</div>` : ''}</div>`; }).join('') || '<p class="sub">No generals in your service.</p>';
   const pool = G.genPool.map(id => { const d = GENMAP[id]; return `<div class="gen"><div class="gname">${d.n}</div><div class="sub">${d.d}</div><div class="gstats">${stat(d)}</div><button class="btn sm" onclick="doHire('${id}')" ${F.gold >= d.c && F.gens.length < 3 ? '' : 'disabled'}>Hire · ${coin(d.c)}</button></div>`; }).join('') || '<p class="sub">No captains are seeking a lord just now.</p>';
-  showModal(`<h2>${ico('fleur')} Your court</h2><p>Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties or the crown with two princes sworn to it. A general may instead ride with the lord's host and lend it his strengths, or command a castle as a strategist. You may keep three. A general who leads a lost army dies with it.</p>
+  showModal(`<h2>${ico('fleur')} Your court</h2><p>Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. A general may instead ride with the lord's host and lend it his strengths, or command a castle as a strategist. You may keep three. A general who leads a lost army dies with it.</p>
     <p>${slots}</p>
     <h3>In your service <span class="sub" style="text-transform:none;letter-spacing:0">${F.gens.length}/3</span></h3><div class="gens">${hired}</div><h3>Seeking a lord</h3><div class="gens">${pool}</div>`, '', { closable: true });
 }
@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '5.9';
+const APP_VERSION = '6.0';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -153,9 +153,9 @@ function openHelp() {
   const rows = ['foot', 'bow', 'cav', 'cat'].map(t => `<tr><td>${ico(UNIT_ICON[t])} ${UNIT[t].n}</td><td>${UNIT[t].c} d</td><td>${UNIT[t].atk || '–'}</td><td>${UNIT[t].rng || '–'}</td><td>${UNIT[t].chg || '–'}</td><td>${UNIT[t].hp || '–'}</td></tr>`).join('');
   const T = {
     goal: `<p><b>France in 987.</b> King Louis V is dead. Hugh Capet holds the crown, but the great princes rule their own lands, and Charles of Lorraine, the last Carolingian, wants it back. Fourteen houses, from Flanders to Barcelona.</p>
-      <p><b>The goal.</b> You choose it when you raise your banner. <i>King in fact</i>: wear the crown, anointed at Reims; hold the homage of two-thirds of the princes still standing (at least three); and hold two-fifths of the kingdom's counties yourself. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
-      <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and once two princes have sworn to him he may field a third army. A new king finds every oath to the old one void.</p>
-      <p><b>Homage.</b> The king may summon one prince a turn (${HOMAGE_GIFT} d in gifts). The prince weighs the king's armies against his own, the king's favour with the Pope, and whether he is the bigger lord. A captured prince can be freed for his homage. King and vassal are at peace; a vassal who renounces his oath may be excommunicated, and a king who wants war with a vassal declares his fiefs forfeit first.</p>
+      <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
+      <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
+      <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
       <p><b>Distance.</b> A prince's power fades with distance. Counties more than three steps from his seat pay less, and far-flung realms breed unrest sooner. The rich land is in the north.</p>
       <p><b>The league.</b> If one house holds more than a quarter of the kingdom, the princes may league against it for three years.</p>
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every county of theirs beside it. If the house still holds four connected counties, an heir rallies there once. Fragments go to independent castellans.</p>
@@ -167,7 +167,7 @@ function openHelp() {
       <p><b>The Empire.</b> The Emperor's regents hold Lorraine. Take its counties, or take Reims without the crown, and an imperial host may come to take them back.</p>
       <p><b>The Danes.</b> Normandy can open or close its ports to the Danes. Open, Normandy profits and Danish raiders range the coasts; closed, the Pope is pleased.</p>
       <p><b>Events.</b> Some things happened in these years: Robert crowned beside his father, Laon opened to Charles, an archbishop's death, a bishop's betrayal. The game follows them loosely.</p>`,
-    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties or the crown with two princes sworn to it. Each army marches up to ${MOVES} provinces a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
+    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} provinces a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
       <p><b>Pay.</b> Garrisons cost nothing. Armies in the field are paid every turn: footmen and bowmen ${UPKEEP.foot} d, cavalry ${UPKEEP.cav} d, catapults ${UPKEEP.cat} d. If the treasury runs dry, every army loses 15% of its men. Realms above 20 counties yield a little less for each county beyond.</p>
       <p><b>Troops.</b> Each company:</p>
       <table class="stat"><tr><th></th><th>Cost</th><th>Atk</th><th>Range</th><th>Charge</th><th>HP</th></tr>${rows}<tr><td>${ico('militia')} Levy</td><td>free</td><td>${LEVY.atk}</td><td>–</td><td>–</td><td>${LEVY.hp}</td></tr></table>
@@ -181,7 +181,7 @@ function openHelp() {
       <p><b>Captured lords.</b> If your lord's host is destroyed, or badly beaten, he may be captured, and his host cannot take the field. Any men who escaped go to the nearest garrison. His captor may hold him up to three turns: a ransom after one turn costs twice your income, after two your full income, then half, and after three turns it must be accepted. Your generals' armies fight on.</p>`,
     court: `<p><b>Unrest.</b> Large realms breed unrest, sooner if they sprawl far from the seat. When the lords around a far province mutter, you have two turns to put an army of at least 8 men in that province or buy them off (40 d + 4 per county). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
       <p><b>Courtship.</b> To win an heiress (${ico('ring')}) you make a suit: your standing, a bride price, a promise of protection (footmen for her garrison) and a bishop's blessing. Her guardians set a minimum; rival houses may bid. If outbid you may raise once. A son is spent only when she accepts. One courtship a turn.</p>
-      <p><b>Diplomacy.</b> Open Envoys (or Diplomacy on a computer), or the Envoys tab on any county of a rival house. Choose a house and offer a truce of one to five years, or ask it to make war on a house it borders, in return for which you keep the peace for ${JOINT_TURNS} turns. Sweeten either with silver or one of your counties (not your seat). A sworn truce cannot be broken by either side while it runs. One embassy to each house a turn, and nothing is paid unless they accept.</p>
+
       <p><b>Envoys.</b> Computer houses send envoys: a marriage from a weaker neighbour (peace for ${PACT_TURNS} turns), or a joint war against a house that threatens you both (peace between you for ${JOINT_TURNS} turns while they attack it). An envoy waits until the end of your turn. The same two houses cannot renew a truce or pact within ${TRUCE_COOL} turns of the last one lapsing.</p>
       <p><b>The Church.</b> Bishops sit in your council; raise them to cardinal to win votes in the college. Your share of the college decides how often the Pope agrees: blessings, mercenaries, absolution, dispensations, excommunication, a Truce of God or an interdict.</p>
       <p><b>Forged charters.</b> With a bishop in your council, your scriptorium can forge an old charter for a lesser lord who borders you (25 d, once every 4 turns). Trace the old hand and press the seal at the right moment: a good copy makes him swear to you for nothing; a poor one may be exposed, and the Pope excommunicates you.</p>
@@ -214,9 +214,9 @@ function gameOver() {
   clearSave(); sfx(won ? 'victory' : 'defeat');
   const W = G.winner ? FAC(G.winner) : null;
   const wonTxt = lastStanding ? `In ${dateStr(G.turn)}, the last rival house falls. From Flanders to Barcelona, no prince stands against ${FAC(me()).pname}. He is king of the Franks in name and in fact.`
-    : `In ${dateStr(G.turn)}, ${vassals().length} princes have knelt to ${FAC(me()).pname}, and his own lands are the greatest in the kingdom. For the first time in a century, a king of the Franks rules as well as reigns.`;
+    : `In ${dateStr(G.turn)}, ${FAC(me()).pname} wears the crown of the Franks and holds half the kingdom in his own hand. For the first time in a century, a king of the Franks rules as well as reigns.`;
   showModal(`<div class="rep${won ? '' : ' badrep'}"><div class="sealmark">${ico(won ? 'crown' : 'swords')}</div><h2>${won ? 'Rex Francorum' : W ? `${W.name} rules the Franks` : 'Your house has fallen'}</h2>
-    <p>${won ? wonTxt : W ? `${W.pname} ${alive().length === 1 ? 'has broken every rival house' : 'is king in fact: the princes have done him homage'}.` : `${rulerOf(me())}'s line is broken. Another will take the kingdom.`}</p>
+    <p>${won ? wonTxt : W ? `${W.pname} ${alive().length === 1 ? 'has broken every rival house' : 'wears the crown and holds half the kingdom'}.` : `${rulerOf(me())}'s line is broken. Another will take the kingdom.`}</p>
     <p class="sub ctr">${dateStr(G.turn)} · ${G.turn} turns</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();showTitle()">Play again</button></div></div>`);
 }
@@ -307,15 +307,15 @@ function showIntro(fid) {
   const d = FAC(fid), cap = P(d.home).name;
   showModal(`<div class="splash">${introScene(fid)}<div class="splashtxt"><h2>${rulerOf(fid)}</h2>
     <p>King Louis V is dead without an heir. At Senlis the princes have raised Hugh Capet to the throne, but he is king of little more than Paris and Orléans. At ${cap}, ${d.pname} raises the banner of ${d.name}.</p>
-    <p>Build while the Peace of God holds, and win the lesser lords by sword, marriage or gold. ${fid === 'capet' ? 'You wear the crown already. Now make the princes kneel.' : fid === 'charles' ? 'Take Laon and Reims and the crown of your fathers is yours.' : 'Take Reims and Paris and you may be anointed yourself, or make yourself too strong for any king to command.'}</p>
+    <p>Build while the Peace of God holds, and win the lesser lords by sword, marriage or gold. ${fid === 'capet' ? 'You wear the crown already. Now make it mean something: hold half the kingdom yourself.' : fid === 'charles' ? 'Take Laon and Reims and the crown of your fathers is yours.' : 'Take Reims and Paris and you may be anointed yourself, or make yourself too strong for any king to command.'}</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();render();hint('start');setTimeout(()=>hint('peace'),13000)">Raise the banners</button><button class="btn" onclick="openHelp()">How to play</button></div></div></div>`, 'splashcard');
 }
 function showCoronation(fid, kid, onDone) {
   setMusic('battle'); sfx('bell'); setTimeout(() => sfx('victory'), 600); buzz(60);
   const title = 'King of the Franks';
   const body = G.over && alive().length === 1
-    ? `In ${dateStr(G.turn)}, the last rival house has fallen. At Reims the archbishop anoints ${FAC(fid).pname}, and there is no prince left to refuse him homage.`
-    : `At Reims, before the bishops of the realm, the archbishop anoints ${FAC(fid).pname} King of the Franks. His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. Every oath sworn to the old king is void.`;
+    ? `In ${dateStr(G.turn)}, the last rival house has fallen. At Reims the archbishop anoints ${FAC(fid).pname}, and there is no prince left to stand against him.`
+    : `At Reims, before the bishops of the realm, the archbishop anoints ${FAC(fid).pname} King of the Franks. His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. With  counties he may field a third army.`;
   window._coronDone = onDone || null;
   showModal(`<div class="splash">${coronationScene(fid, kid)}<div class="splashtxt"><h2>${title}</h2><p>${body}</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();(window._coronDone||(()=>{render();showReports();}))()">Long live the King</button></div></div></div>`, 'splashcard');
