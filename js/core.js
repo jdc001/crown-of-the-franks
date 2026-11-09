@@ -69,13 +69,18 @@ function genPost(fid, g) { return ARMY_IDS.includes(g.at) ? (g.at === 'a0' ? "ri
 
 // ================= CASTLES & BUILDINGS =================
 const castleLv = p => p.b.castle || 0;
+// a seat has two rings of walls: the outer ring must fall before the inner walls feel the stones
+const hasOuter = p => isCap(p) && !p.ruined && castleLv(p) >= 2;
 function wallLvl(p) {
   if (!p.b.castle || p.ruined) return 0;
-  const w = Math.round(castleLv(p) * p.walls / 100 + 0.15);
-  return w > 0 ? w + (isCap(p) ? 1 : 0) : 0;
+  const lv = castleLv(p);
+  const inner = lv === 1 ? (p.walls >= 30 ? 0.5 : 0) : Math.round(lv * p.walls / 100 + 0.15);
+  const outer = hasOuter(p) && (p.outer ?? 100) > 0 ? ((p.outer ?? 100) >= 50 ? 1.5 : 0.75) : 0;
+  return inner > 0 || outer > 0 ? inner + outer : 0;
 }
 function damageWalls(p, amt) {
   if (!p.b.castle || p.ruined) return;
+  if (hasOuter(p) && (p.outer ?? 100) > 0) { const o = p.outer ?? 100; p.outer = Math.max(0, o - amt); amt = Math.max(0, amt - o); if (p.outer <= 0 && (p.owner === G.player || besiegerOf(p) === G.player)) note(`The outer wall of ${p.name} is breached. Only the inner walls stand.`); if (!amt) return; }
   p.walls = Math.max(0, p.walls - amt);
   if (p.walls <= 0) {
     p.ruined = true; p.b.castle = 1; p.b.moat = 0;
@@ -98,7 +103,7 @@ function bldCost(p, t) {
   if (t === 'moat') return BLD[t].c;
   return BLD[t].c * ((p.b[t] || 0) + 1);
 }
-const bldTurns = (p, t) => t === 'castle' ? Math.max(2, CASTLE_T[castleLv(p)] - (p.owner === 'anjou' ? 1 : 0)) : t === 'rebuild' ? 3 : BLD[t].t;
+const bldTurns = (p, t) => t === 'castle' ? Math.max(1, CASTLE_T[castleLv(p)] - (p.owner === 'anjou' ? 1 : 0)) : t === 'rebuild' ? 3 : BLD[t].t;
 function bldName(p, t) {
   if (t === 'castle') return castleLv(p) ? `Raise to ${CASTLE_N[castleLv(p) + 1].toLowerCase()}` : CASTLE_N[1];
   if (t === 'rebuild') return 'Rebuild the castle';
@@ -361,7 +366,7 @@ function beginTurn(fid) {
       p.build.left--;
       if (p.build.left <= 0) {
         const t = p.build.type;
-        if (t === 'castle') { p.b.castle = castleLv(p) + 1; p.walls = 100; }
+        if (t === 'castle') { p.b.castle = castleLv(p) + 1; p.walls = 100; if (p.owner === G.player && typeof statInc === 'function') statInc('castles'); }
         else if (t === 'rebuild') { p.ruined = false; p.walls = 100; }
         else p.b[t] = (p.b[t] || 0) + 1;
         if (fid === G.player) note(`${t === 'castle' ? CASTLE_N[p.b.castle] : t === 'rebuild' ? 'The castle' : BLD[t].n + (BLD[t].realm || t === 'moat' ? '' : ROMAN[p.b[t]])} completed in ${p.name}.`);
@@ -418,6 +423,7 @@ function endRound() {
     if (!s) {
       p.militia = Math.min(levyMax(p), p.militia + 1);
       if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + 8);
+      if (hasOuter(p) && (p.outer ?? 100) < 100) p.outer = Math.min(100, (p.outer ?? 100) + 6);
       if (!p.owner && !p.ally && G.turn % 2 === 1 && p.gar.foot < (p.r === 'fr' ? p.base + 2 : p.base * 2 + 4) && (p.b.castle || p.r !== 'fr')) p.gar.foot++;
       if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot += p.owner === 'toulouse' ? 2 : 1; if (G.turn % 2 === 1) p.gar.bow++; }
     }

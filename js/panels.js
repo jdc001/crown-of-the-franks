@@ -48,7 +48,7 @@ function renderHeader() {
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
   if (F.captive) chips.push(`<span class="chip warn btn-like" onclick="G.sel=null;render();setSheet('full')" title="Your lord is a prisoner">${ico('chain')}</span>`);
   if (G.offers.length) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="Ransom offers">${ico('coin')}${G.offers.length}</span>`);
-  setHTML($('#hdr'), `<div class="hfac">${shield(me(), 30)}<div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))} · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</div></div></div>
+  setHTML($('#hdr'), `<div class="hfac"><span class="hach" onclick="openMedals('rank')">${houseAchievement(me(), 50)}</span><div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))} · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</div></div></div>
     <div class="hchips">${chips.join('')}</div>
     <div class="hbtns">
       <button class="btn sm desk" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>
@@ -201,7 +201,7 @@ const haveBadge = (n, where) => `<span class="have${n ? '' : ' none'}" title="${
 function castleText(p) {
   if (!p.b.castle) return `<p class="sub">No castle. Only the levy defends, and no garrison can be kept here.</p>`;
   if (p.ruined) return `<div class="notebox bad">${ico('rebuild')} The castle lies in ruins. Its walls give no protection until it is rebuilt.</div>`;
-  return `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ' with a moat' : ''}${isCap(p) ? ', citadel' : ''} · walls ${p.walls}% <span class="sub">(defenders ${['fight in the open', 'protected', 'well protected', 'strongly protected', 'nearly unassailable'][Math.min(4, wallLvl(p))]})</span></p><div class="bar walls"><i style="width:${p.walls}%"></i></div>`;
+  return `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ' with a moat' : ''}${isCap(p) ? ', citadel' : ''} · walls ${p.walls}% <span class="sub">(defenders ${['fight in the open', 'protected', 'well protected', 'strongly protected', 'nearly unassailable'][Math.min(4, wallLvl(p))]})</span></p><div class="bar walls"><i style="width:${p.walls}%"></i></div>${hasOuter(p) ? `<p style="margin:6px 0 0">${ico('wall')} Outer wall · ${p.outer ?? 100}% <span class="sub">(must fall before the inner walls can be breached)</span></p><div class="bar walls"><i style="width:${p.outer ?? 100}%"></i></div>` : ''}${castleLv(p) === 1 ? '<p class="sub">A wooden palisade: quick to raise, but it barely slows an assault. Raise it to stone to hold the county.</p>' : ''}`;
 }
 function provHead(p) {
   const bz = besieging(p);

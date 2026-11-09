@@ -43,7 +43,7 @@ const FACTIONS = [
     blurb: "William Taillefer, Count of Toulouse: a great name over a scatter of lords who mostly please themselves.", trait: "Walls of Toulouse: the garrison of your seat grows back twice as fast.",
     arms: { t: 'cross', f: '#b8262b', c: '#e2b33c' } },
   { id: 'barcelona', title: 'Count', pname: "Borrell II", name: 'Barcelona', ruler: "Count Borrell II", color: '#e0a82e', home: 'barcelona', realm: 'France',
-    blurb: "Borrell II, whose city Almanzor burned two years ago. He has asked the King of the Franks for help.", trait: "Frontier castles: your garrisons have 15% more hit points.",
+    blurb: "Borrell II, whose city Almanzor burned two years ago. He has asked the King of the Franks for help.", trait: "Frontier castles: your garrisons have 5% more hit points, and Almanzor strikes you most.",
     arms: { t: 'pallets', f: '#e2b33c', c: '#a3222c' } },
   { id: 'gascony', title: 'Duke', pname: "William Sánchez", name: 'Gascony', ruler: "Duke William Sánchez", color: '#5a8a3a', home: 'bordeaux', realm: 'France',
     blurb: "William Sánchez, Duke of the Gascons, master of Bordeaux and the marshes beyond the Garonne.", trait: "Gascon horse: cavalry cost 17 instead of 20.",
@@ -208,7 +208,8 @@ const BLD = {
   stables: { n: 'Royal stables', c: 200, t: 5, y: 0, i: '🐴', realm: true, d: 'Bred warhorses: cavalry +25% attack and charge.' },
 };
 const CASTLE_N = ['No castle', 'Wooden castle', 'Stone castle', 'Great walls'];
-const CASTLE_C = [60, 90, 140], CASTLE_T = [3, 4, 5];
+// a wooden castle goes up in a season: a cheap foothold, but its palisade barely slows an assault
+const CASTLE_C = [35, 90, 140], CASTLE_T = [1, 3, 4];
 const FIGHT = ['militia', 'foot', 'bow', 'cav'];
 const MAXLV = 2, TRUCE = 6, MOVES = 2;
 const UPKEEP = { foot: 1, bow: 1, cav: 2.5, cat: 2 };

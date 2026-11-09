@@ -35,6 +35,7 @@ function warWill(fid, t, target) {
 }
 // what they ask: 0 if willing, a sum in silver if reluctant, null if they will not sign at any price
 function askPrice(t, will, need, pid) {
+  if (G.challenge && G.challenge.mod && G.challenge.mod.noPacts) return null;
   const deficit = need - will - countyValue(t, pid);
   if (deficit <= 0) return 0;
   if (need - will > 0.55) return null;

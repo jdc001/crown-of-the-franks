@@ -131,25 +131,43 @@ const drawerOpen = () => !$('#drawer').classList.contains('hidden');
 
 // ---------- shields ----------
 let shieldN = 0;
-function shield(fid, size = 26, flag) {
-  const a = fid ? FAC(fid).arms : { t: 'plain', f: '#e9ddbc', c: '#8b7a55' };
-  const id = 'sh' + (shieldN++);
-  const path = flag ? 'M0,0 H40 V40 L30,48 L20,40 L10,48 L0,40 Z' : 'M2,2 H38 V20 C38,34 28,42 20,46 C12,42 2,34 2,20 Z';
-  let ch = '';
+function shield(fid, size = 26, flag) { return armsSvg(fid ? FAC(fid).arms : { t: 'plain', f: '#e9ddbc', c: '#8b7a55' }, size, flag); }
+const SHIELD_PATH = 'M2,2 H38 V20 C38,34 28,42 20,46 C12,42 2,34 2,20 Z';
+// the inside of a coat of arms: field colour a.f, charge a.t in colour a.c (and a.c2 for some)
+function armsCharge(a, path) {
   switch (a.t) {
-    case 'lion': ch = `<path d="M15 10c3-2 7-1 8 2l3-1-1 3c2 1 3 3 2 5l3 2-3 1 1 4c2 1 3 4 2 6l-3-2-2 5-2-1v-4l-4 2-1 5-3-1 1-6c-3-1-4-4-3-7l-3 1 1-4 3-1c-1-3 0-6 1-8z" fill="${a.c}"/>`; break;
-    case 'fess2': ch = `<rect x="0" y="12" width="40" height="6" fill="${a.c}"/><rect x="0" y="26" width="40" height="6" fill="${a.c}"/>`; break;
-    case 'bendCot': ch = `<path d="M-4,4 L8,-4 L46,40 L34,48Z" fill="${a.c}"/><path d="M-6,12 L-3,10 L37,52 L34,54Z M6,-6 L9,-8 L49,34 L46,36Z" fill="${a.c2 || '#e2b33c'}"/>`; break;
-    case 'bendy': { let s = ''; for (let i = -6; i < 8; i++) if (i % 2) s += `<path d="M${i * 7},0 L${i * 7 + 7},0 L${i * 7 + 47},48 L${i * 7 + 40},48Z" fill="${a.c}"/>`; ch = s + `<path d="${path}" fill="none" stroke="${a.c2}" stroke-width="7"/>`; break; }
-    case 'pallets': ch = [7, 15, 23, 31].map(x => `<rect x="${x}" y="0" width="4" height="48" fill="${a.c}"/>`).join(''); break;
-    case 'cross': ch = `<rect x="14" y="0" width="7" height="48" fill="${a.c}"/><rect x="0" y="16" width="40" height="7" fill="${a.c}"/>`; break;
-    case 'barry': { let s = ''; for (let i = 0; i < 10; i++) if (i % 2) s += `<rect x="0" y="${i * 5}" width="40" height="5" fill="${a.c}"/>`; ch = s; break; }
-    case 'perpale': ch = `<rect x="20" y="0" width="20" height="48" fill="${a.c}"/><circle cx="20" cy="22" r="5" fill="#e2b33c"/>`; break;
-    case 'perfess': ch = `<rect x="0" y="22" width="40" height="26" fill="${a.c}"/><circle cx="20" cy="22" r="5" fill="#f2ead6"/>`; break;
-    case 'semy': { let s = ''; for (let y = 6; y < 44; y += 9) for (let x = 6 + (y % 2) * 4; x < 38; x += 9) s += `<path d="M${x},${y - 3} l1.6,3 -1.6,3 -1.6,-3z" fill="${a.c}"/>`; ch = s; break; }
-    default: ch = `<path d="M8 14h24M8 22h24" stroke="${a.c}" stroke-width="1.5" opacity=".5"/>`;
+    case 'lion': return `<path d="M15 10c3-2 7-1 8 2l3-1-1 3c2 1 3 3 2 5l3 2-3 1 1 4c2 1 3 4 2 6l-3-2-2 5-2-1v-4l-4 2-1 5-3-1 1-6c-3-1-4-4-3-7l-3 1 1-4 3-1c-1-3 0-6 1-8z" fill="${a.c}"/>`;
+    case 'fess2': return `<rect x="0" y="12" width="40" height="6" fill="${a.c}"/><rect x="0" y="26" width="40" height="6" fill="${a.c}"/>`;
+    case 'bendCot': return `<path d="M-4,4 L8,-4 L46,40 L34,48Z" fill="${a.c}"/><path d="M-6,12 L-3,10 L37,52 L34,54Z M6,-6 L9,-8 L49,34 L46,36Z" fill="${a.c2 || '#e2b33c'}"/>`;
+    case 'bendy': { let s = ''; for (let i = -6; i < 8; i++) if (i % 2) s += `<path d="M${i * 7},0 L${i * 7 + 7},0 L${i * 7 + 47},48 L${i * 7 + 40},48Z" fill="${a.c}"/>`; return s + `<path d="${path}" fill="none" stroke="${a.c2}" stroke-width="5"/>`; }
+    case 'pallets': return [7, 15, 23, 31].map(x => `<rect x="${x}" y="0" width="4" height="48" fill="${a.c}"/>`).join('');
+    case 'cross': return `<rect x="14" y="0" width="7" height="48" fill="${a.c}"/><rect x="0" y="16" width="40" height="7" fill="${a.c}"/>`;
+    case 'barry': { let s = ''; for (let i = 0; i < 10; i++) if (i % 2) s += `<rect x="0" y="${i * 5}" width="40" height="5" fill="${a.c}"/>`; return s; }
+    case 'perpale': return `<rect x="20" y="0" width="20" height="48" fill="${a.c}"/><circle cx="20" cy="22" r="5" fill="#e2b33c"/>`;
+    case 'perfess': return `<rect x="0" y="22" width="40" height="26" fill="${a.c}"/><circle cx="20" cy="22" r="5" fill="#f2ead6"/>`;
+    case 'semy': { let s = ''; for (let y = 6; y < 44; y += 9) for (let x = 6 + (y % 2) * 4; x < 38; x += 9) s += `<path d="M${x},${y - 3} l1.6,3 -1.6,3 -1.6,-3z" fill="${a.c}"/>`; return s; }
+    // charges for a player's own arms
+    case 'chevron': return `<path d="M-2,38 L20,14 L42,38 L42,46 L20,22 L-2,46Z" fill="${a.c}"/>`;
+    case 'saltire': return `<path d="M-2,2 L4,-2 L42,44 L36,48Z M42,2 L36,-2 L-2,44 L4,48Z" fill="${a.c}"/>`;
+    case 'chief': return `<rect x="0" y="0" width="40" height="14" fill="${a.c}"/>`;
+    case 'bend': return `<path d="M-4,6 L6,-4 L46,38 L36,48Z" fill="${a.c}"/>`;
+    case 'quarterly': return `<rect x="20" y="0" width="20" height="20" fill="${a.c}"/><rect x="0" y="20" width="20" height="28" fill="${a.c}"/>`;
+    case 'pale': return `<rect x="14" y="0" width="12" height="48" fill="${a.c}"/>`;
+    case 'fess': return `<rect x="0" y="17" width="40" height="11" fill="${a.c}"/>`;
+    case 'fleur': return `<path d="M20 8c-3 4-3 9 0 13 3-4 3-9 0-13zM20 21c-4-3-10-2-11 4 4 1 8 0 11-4zm0 0c4-3 10-2 11 4-4 1-8 0-11-4zM16 24h8v3h-8zM18 27h4l-1 8h-2z" fill="${a.c}"/>`;
+    case 'eagle': return `<path d="M20 9c2 0 3 2 3 3l2 1-2 1v3l7-6 3 2-3 4 4 1-4 3 2 3-6-1-2 4 3 5h-3l-2-3-2 3h-3l3-5-2-4-6 1 2-3-4-3 4-1-3-4 3-2 7 6v-3l-2-1 2-1c0-1 1-3 3-3z" fill="${a.c}"/>`;
+    case 'star': return `<path d="M20 9l3.2 8.6 9.2.3-7.2 5.7 2.6 8.8-7.8-5.2-7.6 5.2 2.5-8.8-7.2-5.7 9.2-.3z" fill="${a.c}"/>`;
+    case 'tower': return `<path d="M12 36V18h3v-4h3v4h4v-4h3v4h3v18zM18 36v-6a2 2 0 0 1 4 0v6z" fill="${a.c}"/><rect x="18" y="22" width="4" height="4" fill="${a.f}"/>`;
+    case 'roundels': return [[12, 14], [28, 14], [20, 30]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="${a.c}"/>`).join('');
+    case 'plain': return '';
+    default: return `<path d="M8 14h24M8 22h24" stroke="${a.c}" stroke-width="1.5" opacity=".5"/>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="shield" viewBox="0 0 40 48" width="${size}" height="${Math.round(size * 1.2)}"><defs><clipPath id="${id}"><path d="${path}"/></clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs><g clip-path="url(#${id})"><rect width="40" height="48" fill="${a.f}"/>${ch}<rect width="40" height="48" fill="url(#${id}g)"/></g><path d="${path}" fill="none" stroke="#2a1d12" stroke-width="2.4"/></svg>`;
+}
+function armsSvg(a, size = 26, flag, border) {
+  const id = 'sh' + (shieldN++);
+  const path = flag ? 'M0,0 H40 V40 L30,48 L20,40 L10,48 L0,40 Z' : SHIELD_PATH;
+  const ch = armsCharge(a, path);
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="shield" viewBox="0 0 40 48" width="${size}" height="${Math.round(size * 1.2)}"><defs><clipPath id="${id}"><path d="${path}"/></clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs><g clip-path="url(#${id})"><rect width="40" height="48" fill="${a.f}"/>${ch}<rect width="40" height="48" fill="url(#${id}g)"/></g><path d="${path}" fill="none" stroke="${border || '#2a1d12'}" stroke-width="${border ? 3.2 : 2.4}"/></svg>`;
 }
 const fname = fid => fid ? FAC(fid).name : '';
 // replace an element's contents only when they changed (each shield carries a fresh id, so ids are ignored in the comparison)

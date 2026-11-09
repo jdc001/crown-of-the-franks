@@ -15,20 +15,23 @@ function openCatapult(p) {
   let target = Math.round(total * p.walls / 100);
   while (target-- > 0) { const open = h.map((v, i) => v < rows ? i : -1).filter(i => i >= 0); if (!open.length) break; h[pick(open)]++; }
   const wx = WXE - cols * CBW;
+  // a seat's outer ring: a lower wall in front of the moat
+  const ocols = hasOuter(p) ? 3 : 0, orows = 3 + lv, oh = Array(ocols).fill(0), ox = wx - 62 - ocols * CBW;
+  { let t = Math.round(ocols * orows * (p.outer ?? 100) / 100); while (t-- > 0) { const open = oh.map((v, i) => v < orows ? i : -1).filter(i => i >= 0); if (!open.length) break; oh[pick(open)]++; } }
   const crowd = [];
   const nFoot = Math.min(12, p.gar.foot + p.militia + p.gar.cav);
   const ground0 = p.gar.foot + p.militia + p.gar.cav, wall0 = p.gar.bow + p.gar.foot;
   for (let i = 0; i < nFoot; i++) crowd.push({ x: 660 + Math.random() * 120, v: (Math.random() < .5 ? -1 : 1) * (8 + Math.random() * 14), ph: Math.random() * 6, t: i < p.gar.cav ? 'cav' : i % 4 === 0 ? 'militia' : 'foot' });
   const clouds = Array.from({ length: 5 }, (_, i) => [i * 170 + Math.random() * 80, 30 + Math.random() * 80, 30 + Math.random() * 40, 6 + Math.random() * 6]);
-  CT = { p, h, cols, rows, lv, wx, ground0, wall0, shots: A.cat * catShots(me(), A), ammo: 'stone', wind: Math.round((Math.random() * 2 - 1) * 70), projs: [], drag: null, parts: [], fires: [], arrows: [], crowd, clouds, t: 0,
+  CT = { p, h, cols, rows, lv, wx, oh, ocols, orows, ox, o0: p.outer ?? 100, ground0, wall0, shots: A.cat * catShots(me(), A), ammo: 'stone', wind: Math.round((Math.random() * 2 - 1) * 70), projs: [], drag: null, parts: [], fires: [], arrows: [], crowd, clouds, t: 0,
     msg: 'Drag anywhere on the field and release to fire. Pull further for more power.', killed: 0, plague: 0, rats: [], w0: p.walls, last: 0, dead: false, color: p.owner ? FAC(p.owner).color : '#d8cba5' };
   setMusic('battle');
-  showModal(`<div class="cthud"><div class="ct"><div class="v" id="ct-shots"></div><div class="k">Shots</div></div><div class="ct"><div class="v" id="ct-walls"></div><div class="k">Walls</div></div><div class="ct"><div class="v" id="ct-def"></div><div class="k">Defenders</div></div><div class="ct"><div class="v" id="ct-wind"></div><div class="k">Wind</div></div></div>
+  showModal(`<div class="cthud"><div class="ct"><div class="v" id="ct-shots"></div><div class="k">Shots</div></div><div class="ct"><div class="v" id="ct-walls"></div><div class="k">${ocols ? 'Outer · inner' : 'Walls'}</div></div><div class="ct"><div class="v" id="ct-def"></div><div class="k">Defenders</div></div><div class="ct"><div class="v" id="ct-wind"></div><div class="k">Wind</div></div></div>
     <canvas id="ctc"></canvas>
     <div class="ctbar"><div id="ctmsg"></div>
       <div class="ammo">${AMMO.map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
-    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; 3 stones scatter wider. Flaming oil burns defenders inside at once and sets wooden walls alight; 3 flaming oil spread it wider. Plague rats fly over in a swarm and keep biting the garrison while you shoot, and may start a plague; a giant plague rat does the work of three and always brings the sickness. If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
+    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. A stone smashes a section of wall; 3 stones scatter wider. Flaming oil burns defenders inside at once and sets wooden walls alight; 3 flaming oil spread it wider. Plague rats fly over in a swarm and keep biting the garrison while you shoot, and may start a plague; a giant plague rat does the work of three and always brings the sickness. ${ocols ? ' A seat has two rings of walls: the outer wall in front must fall before the inner walls can be breached; aim over it to strike the inner walls.' : ''} If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
   const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
@@ -68,6 +71,15 @@ function launchVec(d) {
 }
 function ctBurst(x, y, color, n) { for (let i = 0; i < n; i++) CT.parts.push({ x, y, vx: (Math.random() - .5) * 260, vy: -Math.random() * 260, life: .6 + Math.random() * .6, color, s: 2 + Math.random() * 4 }); }
 const ctHit = (c, n) => { CT.h[c] = Math.max(0, CT.h[c] - n); };
+function ctHitOuter(c, q) {
+  const hit = (k, n) => { if (k >= 0 && k < CT.ocols) CT.oh[k] = Math.max(0, CT.oh[k] - n); };
+  if (q.type === 'stone') { hit(c, 3); if (Math.random() < .7) hit(c - 1, 1); if (Math.random() < .7) hit(c + 1, 1); CT.msg = 'Direct hit on the outer wall! A section comes down.'; sfx('wall'); buzz(40); }
+  else if (q.type === 'triple') { hit(c, 1); CT.msg = 'Stones hammer the outer wall.'; sfx('wall'); }
+  else if (q.type === 'oil') { if (Math.random() < 0.3) hit(c, 1); CT.msg = 'The fire splashes on the outer wall. Aim over both walls to burn the defenders.'; sfx('fire'); }
+  else { CT.msg = q.type === 'giant' ? 'The giant rat slams into the outer wall and limps away.' : 'The rats hit the outer wall and scatter.'; sfx('plague'); }
+  ctBurst(q.x, q.y, q.type === 'oil' ? '#ff8c1a' : q.type === 'rat' || q.type === 'giant' ? RAT_COL : '#8a816e', q.small || q.type === 'triple' ? 12 : 24);
+  if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; }
+}
 function ctHitWall(c, q) {
   const wood = CT.lv === 1;
   if (q.type === 'stone') { ctHit(c, 3); if (c > 0 && Math.random() < .7) ctHit(c - 1, 1); if (c < CT.cols - 1 && Math.random() < .7) ctHit(c + 1, 1); ctBurst(q.x, q.y, wood ? '#7a5530' : '#8a816e', 26); CT.msg = 'Direct hit! A section of wall collapses.'; sfx('wall'); buzz(40); }
@@ -94,7 +106,7 @@ function ctHitInside(q) {
   const p = CT.p; let k = 0;
   const empty = ctAlive() === 0;
   if (q.type === 'stone' || q.type === 'triple') { k = Math.random() < (q.type === 'stone' ? .5 : .25) ? killDefenders(p, 1) : 0; ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = empty ? 'The stone lands in an empty bailey.' : k ? 'The stone crashes into the bailey and crushes a defender.' : 'The stone lands in the bailey. The defenders scatter.'; sfx('wall'); }
-  else if (q.type === 'oil') { k = killDefenders(p, q.small ? 1 + rnd(2) : 2 + rnd(4)); CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
+  else if (q.type === 'oil') { k = killDefenders(p, q.small ? 1 + rnd(2) : 2 + rnd(4)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
   else if (q.type === 'rat') {
     ratNest(q.x, false); if (Math.random() < 0.12) ratPlague();
     ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague');
@@ -129,7 +141,7 @@ function ratsTick(dt) {
   if (k) { CT.killed += k; CT.ratKills = (CT.ratKills || 0) + k; if (!CT.projs.length) CT.msg = `The rats are at work in the bailey: ${CT.ratKills} defender${CT.ratKills === 1 ? '' : 's'} dead of their bites so far.`; sfx('plague'); buzz(10); }
 }
 // when the bombardment ends, rats still inside finish their work
-function ratsFinish() { let k = 0; for (const r of CT.rats) while (r.left > 0) k += ratBite(r); CT.rats = []; CT.killed += k; return k; }
+function ratsFinish() { let k = 0; for (const r of CT.rats) while (r.left > 0) k += ratBite(r); CT.rats = []; CT.killed += k; CT.ratKills = (CT.ratKills || 0) + k; return k; }
 const ctAlive = () => CT.p.militia + CT.p.gar.foot + CT.p.gar.bow + CT.p.gar.cav;
 function ctUpdate(dt) {
   CT.t += dt;
@@ -139,6 +151,7 @@ function ctUpdate(dt) {
     q.vy += GRAV * dt; q.vx += CT.wind * dt; q.x += q.vx * dt; q.y += q.vy * dt;
     q.trail.push([q.x, q.y]); if (q.trail.length > 30) q.trail.shift();
     let done = false;
+    for (let c = 0; c < CT.ocols && !done; c++) { const x0 = CT.ox + c * CBW; if (q.x + q.r > x0 && q.x - q.r < x0 + CBW && CT.oh[c] > 0 && q.y + q.r > GY - CT.oh[c] * CBH) { ctHitOuter(c, q); done = true; } }
     for (let c = 0; c < CT.cols && !done; c++) { const x0 = CT.wx + c * CBW; if (q.x + q.r > x0 && q.x - q.r < x0 + CBW && CT.h[c] > 0 && q.y + q.r > GY - CT.h[c] * CBH) { ctHitWall(c, q); done = true; } }
     if (!done && q.x > 705 && q.x < 755 && q.y > GY - 120) { ctHitInside(q); done = true; }
     if (!done && q.y >= GY) {
@@ -198,6 +211,12 @@ function ctDraw() {
       if (c % 2 === 1 && wallShown++ < wallN) figure(x, { x: CT.wx + c * CBW + CBW / 2, y: top - 10 + Math.sin(CT.t * 3 + c) }, 1, CT.color, c % 4 === 1 ? 'bow' : 'foot', c, true);
     } else { x.fillStyle = wood ? '#4a3320' : '#6e6656'; for (let k = 0; k < 4; k++) x.fillRect(CT.wx + c * CBW + (k * 5) % 16, GY - 4 - (k % 2) * 4, 5, 4); }
   }
+  for (let c = 0; c < CT.ocols; c++) {
+    for (let r = 0; r < CT.oh[c]; r++) { const bx = CT.ox + c * CBW, by = GY - (r + 1) * CBH; x.fillStyle = (r + c) % 2 ? '#8d846f' : '#80776a'; x.fillRect(bx, by, CBW, CBH); x.strokeStyle = '#5f584a'; x.lineWidth = 1; x.strokeRect(bx + .5, by + .5, CBW - 1, CBH - 1); }
+    const top = GY - CT.oh[c] * CBH;
+    if (CT.oh[c] > 0 && c % 2 === 0) { x.fillStyle = '#80776a'; x.fillRect(CT.ox + c * CBW + 3, top - 8, CBW - 6, 8); }
+    if (!CT.oh[c]) { x.fillStyle = '#5f584a'; for (let k = 0; k < 4; k++) x.fillRect(CT.ox + c * CBW + (k * 5) % 16, GY - 4 - (k % 2) * 4, 5, 4); }
+  }
   for (const f of CT.fires) for (let i = 0; i < 6; i++) { x.fillStyle = `rgba(255,${120 + rnd(100)},30,${0.5 * f.t / 5 + 0.2})`; x.beginPath(); x.arc(f.x + (Math.random() - .5) * 18, f.y - Math.random() * 24, 3 + Math.random() * 5, 0, 7); x.fill(); x.fillStyle = `rgba(60,50,40,${0.25 * f.t / 5})`; x.beginPath(); x.arc(f.x + (Math.random() - .5) * 24, f.y - 20 - Math.random() * 30, 5 + Math.random() * 6, 0, 7); x.fill(); }
   // catapult
   x.fillStyle = 'rgba(0,0,0,.18)'; x.beginPath(); x.ellipse(115, GY - 4, 60, 6, 0, 0, 7); x.fill();
@@ -238,7 +257,7 @@ function ctDraw() {
   // HUD (DOM)
   const integ = Math.round(CT.h.reduce((s, v) => s + v, 0) / (CT.cols * CT.rows) * 100);
   const set = (id, v) => { const el = document.getElementById(id); if (el && el.innerHTML !== v) el.innerHTML = v; };
-  set('ct-shots', String(CT.shots)); set('ct-walls', integ + '%'); set('ct-def', `${ctAlive()}${CT.killed ? ` <small style="color:#ff9c8c">−${CT.killed}</small>` : ''}${CT.plague ? ' ' + ico('skull') : ''}${CT.rats.length ? ' ' + ico('rat') : ''}`);
+  set('ct-shots', String(CT.shots)); set('ct-walls', CT.ocols ? `${Math.round(CT.oh.reduce((s, v) => s + v, 0) / (CT.ocols * CT.orows) * 100)}% · ${integ}%` : integ + '%'); set('ct-def', `${ctAlive()}${CT.killed ? ` <small style="color:#ff9c8c">−${CT.killed}</small>` : ''}${CT.plague ? ' ' + ico('skull') : ''}${CT.rats.length ? ' ' + ico('rat') : ''}`);
   set('ct-wind', `${CT.wind < 0 ? '◂' : CT.wind > 0 ? '▸' : '·'} ${Math.abs(CT.wind)}`);
   const m = document.getElementById('ctmsg'); if (m && m.textContent !== CT.msg) m.textContent = CT.msg;
 }
@@ -285,6 +304,7 @@ function finishCatapult() {
   ratsFinish();
   const c = CT, p = c.p, A = myA();
   const w = Math.round(c.h.reduce((s, v) => s + v, 0) / (c.cols * c.rows) * 100);
+  if (c.ocols) p.outer = Math.round(c.oh.reduce((s, v) => s + v, 0) / (c.ocols * c.orows) * 100);
   if (w <= 0) { p.walls = 1; damageWalls(p, 5); } else p.walls = w;
   A.bombarded = true; A.acted = true;
   note(`Bombardment of ${p.name}: walls ${c.w0}% → ${p.ruined ? 'ruined' : p.walls + '%'}, ${c.killed} defenders killed${c.plague ? ', plague sown inside' : ''}.`);

@@ -11,7 +11,7 @@ function assaultCfg(fid, A, p, aSt, dSt) {
   const aBon = { ...bonus(fid) }, dBon = { ...bonus(p.owner) };
   // Carolingian loyalists fight for Charles at Laon and Reims; the marcher castles of Barcelona hold hard
   if (fid === 'charles' && (p.id === 'laon' || p.id === 'reims')) aBon.atk += 0.15;
-  if (p.owner === 'barcelona') dBon.hp += 0.15;
+  if (p.owner === 'barcelona') dBon.hp += 0.05;
   return { A: armySide(A), D: defenders(p), castle: !!p.b.castle, wallLvl: wallLvl(p), castleLv: castleLv(p), moat: !!(p.b.moat && !p.ruined), ruined: !!p.ruined,
     aSt, dSt: dSt || defStance(p, power(armySide(A))), aGen: armyGen(fid, A), dGen: defGen(p), aMod: mods(fid), dMod: mods(p.owner), aBon, dBon, dRes: armySize(A) >= 9 && fighters(defenders(p)) >= 9 && !p.b.castle };
 }

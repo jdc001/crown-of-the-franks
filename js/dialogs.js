@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.0';
+const APP_VERSION = '6.1';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -159,6 +159,7 @@ function openHelp() {
       <p><b>Distance.</b> A prince's power fades with distance. Counties more than three steps from his seat pay less, and far-flung realms breed unrest sooner. The rich land is in the north.</p>
       <p><b>The league.</b> If one house holds more than a quarter of the kingdom, the princes may league against it for three years.</p>
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every county of theirs beside it. If the house still holds four connected counties, an heir rallies there once. Fragments go to independent castellans.</p>
+      <p><b>Ranks and trophies.</b> Every game you finish earns points, and 40 trophies earn more. Points raise you from Seigneur through Baron, Viscount, Count, Marquis, Duke and King to Emperor; each rank unlocks something for your coat of arms (a crown, supporters, laurels, a mantle), shown on the title screen and around your house's shield in a game. Design your arms under Medals and arms on the title screen. The Chronicler's Challenge on the title screen gives everyone the same start for a while, so you can compare results.</p>
       <p><b>The Peace of God.</b> For the first ${TRUCE} turns the Church forbids war between the great houses. Break it and you are excommunicated.</p>
       <p><b>A turn.</b> Build and raise troops, march your armies (${MOVES} counties each through your own and allied land), strike with each army once, petition the Pope once, court one lady. Then end the turn and the other houses move.</p>`,
     powers: `<p><b>Beyond the kingdom.</b> The hatched lands at the edge of the map are not for conquest. Their rulers act on France from outside.</p>
@@ -176,7 +177,7 @@ function openHelp() {
       <p><b>The reserve.</b> An army of 9 or more may hold back a third of its foot and bowmen. Commit them when the moment is right for a surge of +15% attack; a reserve never committed halves the losses of a beaten army and comes home intact. Reserve bowmen still shoot from behind the line.</p>
       <p><b>Battles and sieges, quickly.</b> Every battle can be auto-resolved from the pre-battle screen, and a siege can be auto-bombarded: the same rules, without the scene.</p>
       <p><b>Mining.</b> Instead of bombarding, an army of 4 or more footmen can dig a mine under the walls: steer the tunnel along the foundations, clear of rock, water and counter-mines. It brings down a section of wall whatever the walls are made of, so it is the better tool against stone.</p>
-      <p><b>Castles.</b> Wooden castle, stone castle, great walls, and a moat. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls (one, or 3 that scatter wider), flaming oil for the men inside (one, or 3), and plague rats that keep biting the garrison while the bombardment goes on and may start a plague. A giant plague rat does the work of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
+      <p><b>Castles.</b> A wooden castle goes up in a single turn for 35 d: a quick foothold, but its palisade barely slows an assault. Raise it to stone (3 turns) and great walls (4 turns), and dig a moat. A house's seat has two rings of walls: the outer wall must fall before the inner walls can be breached. Walls make defenders far stronger, and catapults in a garrison shoot from them. Bombard to break them: stones for walls (one, or 3 that scatter wider), flaming oil for the men inside (one, or 3), and plague rats that keep biting the garrison while the bombardment goes on and may start a plague. A giant plague rat does the work of three. A capital's household grows back each turn it is not besieged. If the walls fall completely, the castle is ruined: its upgrades are lost and it must be rebuilt.</p>
       <p><b>War buildings.</b> One forge (+15% hit points), one armory (+15% attack) and one royal stables (+25% cavalry) serve your whole realm.</p>
       <p><b>Captured lords.</b> If your lord's host is destroyed, or badly beaten, he may be captured, and his host cannot take the field. Any men who escaped go to the nearest garrison. His captor may hold him up to three turns: a ransom after one turn costs twice your income, after two your full income, then half, and after three turns it must be accepted. Your generals' armies fight on.</p>`,
     court: `<p><b>Unrest.</b> Large realms breed unrest, sooner if they sprawl far from the seat. When the lords around a far province mutter, you have two turns to put an army of at least 8 men in that province or buy them off (40 d + 4 per county). Otherwise a son or great vassal rises and carries a quarter of the realm with him.</p>
@@ -229,10 +230,12 @@ function showTitle() {
   const t = $('#title'); t.style.display = 'block';
   const card = f => `<div class="fcard" style="--c:${f.color}" onclick="openFaction('${f.id}')">${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
   t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="ad">ANNO DOMINI CMLXXXVII</div><h1>Crown of the Franks</h1><div class="orn">❦</div>
+    <div id="titlerank">${rankBox()}</div>
     <p class="lead">King Louis V is dead without an heir. At Senlis the princes have chosen Hugh Capet, but a crown is not a kingdom. Charles of Lorraine, the last Carolingian, wants it back, and from Flanders to Barcelona the great princes rule as they please. Who will be king in fact?</p>
     ${oldCampaign() ? `<div class="notebox" style="color:var(--ink,#2a1d12)">${ico('scroll')} A campaign from the old map of Europe is saved on this device. It plays on in <a href="https://jdc001.github.io/Emperor-1000/" style="color:inherit;font-weight:700">Emperor: 1000 AD</a>, which picks it up by itself.</div>` : ''}
     ${s && !s.over && s.v === 8 ? `<div class="contbox"><button class="btn gold big" onclick="continueGame()"><span class="lbl">${shield(s.player, 20)} Continue as ${s.fdefs.find(d => d.id === s.player).name}</span><small>${dateStr(s.turn)} · ${s.fdefs.filter(d => s.fac[d.id].alive).length - 1} rivals left</small></button></div>` : ''}
     ${anySlot() ? `<div class="row ctr" style="margin:6px 0 10px"><button class="btn" onclick="openSaves()"><span class="lbl">${ico('chest')}Load a saved game</span></button></div>` : ''}
+    ${challengeBox()}
     <h2>The north</h2><div class="facs">${FACTIONS.filter(f => TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <h2>The south</h2><div class="facs">${FACTIONS.filter(f => !TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <p class="sub ctr" style="opacity:.8;margin-top:18px">New games: ${GOALS[setGoal()].n.toLowerCase()} · ${DIFF[SET.diff || 'gentle'].n.toLowerCase()} rivals · change them on a house's page</p>

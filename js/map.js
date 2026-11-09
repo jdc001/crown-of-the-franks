@@ -201,6 +201,7 @@ function castleIcon(p) {
   if (p.ruined) s += `<path d="M-12,10 V2 L-8,-2 L-5,4 L-1,-4 L3,3 L7,-1 L12,6 V10Z" fill="${col}" stroke="#f3e8cc" stroke-width="1.4"/>`;
   else if (lv === 1) s += `<path d="M-12,10 V-4 L-10,-8 L-8,-4 V-5 L-6,-9 L-4,-5 L-2,-9 L0,-5 L2,-9 L4,-5 L6,-9 L8,-5 L10,-8 L12,-4 V10Z" fill="${col}" stroke="#f3e8cc" stroke-width="1.4"/>`;
   else s += `<path d="M-12,10 V-6 H-12 V-13 H-7.5 V-9 H-2.5 V-13 H2.5 V-9 H7.5 V-13 H12 V-6 V10 Z" fill="${col}" stroke="#f3e8cc" stroke-width="1.6"/>${lv === 3 ? '<path d="M-17,10 V-1 H-12 M17,10 V-1 H12" stroke="' + col + '" stroke-width="5" fill="none"/><path d="M-17,10 V-1 H-12 M17,10 V-1 H12" stroke="#f3e8cc" stroke-width="1.2" fill="none"/>' : ''}<path d="M-3,10 V3 a3,3 0 0 1 6,0 V10Z" fill="#f3e8cc"/>`;
+  if (hasOuter(p) && (p.outer ?? 100) < 100) { const o = p.outer ?? 100; s += `<rect x="-12" y="19" width="24" height="3" rx="1" fill="#0006"/><rect x="-12" y="19" width="${24 * o / 100}" height="3" rx="1" fill="#7a6a4a"/>`; }
   if (!p.ruined && p.walls < 100) s += `<rect x="-12" y="13" width="24" height="4" rx="1" fill="#0006"/><rect x="-12" y="13" width="${24 * p.walls / 100}" height="4" rx="1" fill="${p.walls < 34 ? '#c0392b' : p.walls < 67 ? '#d4a017' : '#5c8a3a'}"/>`;
   return s;
 }

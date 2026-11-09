@@ -1,8 +1,16 @@
-# Crown of the Franks: 987, v5.0
+# Crown of the Franks: 987, v6.1
 
 Play it at https://jdc001.github.io/crown-of-the-franks/ (open in Safari, then Share → Add to Home Screen).
 
 The old map of Europe (v4) lives on as **Emperor: 1000 AD**: https://jdc001.github.io/Emperor-1000/ . It picks up campaigns saved under v4 on the same device by itself.
+
+## New in v6
+- **No homage.** Every house plays for the crown. Goal: be crowned and hold half the kingdom's counties (or break every rival).
+- **Diplomacy** (`diplomacy.js`): unbreakable pacts (2 or 3 years), alliances that open each other's lands to armies, war alliances. A house names its price: nothing if it suits it, silver or a county if reluctant, refusal if hostile.
+- **Castles**: a wooden castle is one turn and 35 d but weak; stone 3 turns, great walls 4. House seats have an outer wall that must fall first (`hasOuter`, `p.outer`), drawn in the catapult scene.
+- **Endings and statistics** (`stats.js`, `ending.js`): per-turn snapshots of every house, player counters, a coronation or defeat screen, then three swipeable pages: this game (time-lapse map, counties chart, deeds), past games, and this game against your averages. History and profile live in localStorage (`cotf-history`, `cotf-profile`, `cotf-lastgame`).
+- **Ranks and trophies**: Seigneur to Emperor from points (40 trophies plus points per game). Personal arms, supporters, crowns, laurels and mantles (`heraldry.js`), shown on the title screen, the medals page, the statistics and around the house shield in the header.
+- **Sharing**: a 1080x1350 card through the iOS share sheet. **The Chronicler's Challenge**: a seeded start that rotates, the same for everyone while it lasts.
 
 ## New in v5: France in 987
 - **The map** is France and its edges: 103 counties (`PROV` in `data.js`), regions France, Lorraine, Arles and Catalonia. England, the Empire, Italy, Pamplona and Córdoba are hatched edge lands, not for conquest. No seas to sail: fleets and longships are gone; Danish raids are the sea.
