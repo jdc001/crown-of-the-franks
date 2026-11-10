@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.5';
+const APP_VERSION = '6.6';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -157,7 +157,7 @@ function openHelp() {
       <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
       <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. A prince with ${CROWN_GREAT} counties of the kingdom needs only Reims. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
-      <p><b>Sea crossings.</b> Dotted lines on the map join counties across the water: Barcelona and Marseille, and three crossings of the Channel to the south coast of England. An army marches or strikes along one as if the two counties touched. The English shires are held by their own ealdormen and do not count toward the kingdom of the Franks.</p>
+      <p><b>Sea crossings.</b> Dotted lines on the map join counties across the water: Barcelona and Marseille, and three crossings of the Channel to the south coast of England. An army marches or strikes along one as if the two counties touched. The English shires are held by their own ealdormen, are defended by their king, and do not count toward the kingdom of the Franks.</p>
       <p><b>Distance.</b> A prince's power fades with distance. Counties more than three steps from his seat pay less, and far-flung realms breed unrest sooner. The rich land is in the north.</p>
       <p><b>The league.</b> If one house holds more than a quarter of the kingdom, the princes may league against it for three years.</p>
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every county of theirs beside it. If the house still holds four connected counties, an heir rallies there once. Fragments go to independent castellans.</p>
@@ -168,6 +168,7 @@ function openHelp() {
       <p><b>Almanzor.</b> The hajib of Córdoba sends summer raids over the Pyrenees, against Barcelona and the far south. Pay him parias to go away, or meet him in the field.</p>
       <p><b>Pamplona and Arles.</b> The Basques raid Gascony and Toulouse. In Provence, the Kingdom of Arles watches any outsider who takes more than a foothold.</p>
       <p><b>The Empire.</b> The Emperor's regents hold Lorraine. Take its counties, or take Reims without the crown, and an imperial host may come to take them back.</p>
+      <p><b>England.</b> King Æthelred holds the south coast through his ealdormen. Take a shire across the Channel and, sooner or later, an English army comes to take it back.</p>
       <p><b>The Danes.</b> Normandy can open or close its ports to the Danes. Open, Normandy profits and Danish raiders range the coasts; closed, the Pope is pleased.</p>
       <p><b>Events.</b> Some things happened in these years: Robert crowned beside his father, Laon opened to Charles, an archbishop's death, a bishop's betrayal. The game follows them loosely.</p>`,
     war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} counties a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>

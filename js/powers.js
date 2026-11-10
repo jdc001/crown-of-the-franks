@@ -56,13 +56,22 @@ function pamplonaTick() {
 }
 // ---------- the Empire and the King of Arles ----------
 // the Ottonians want a weak king in France and their own men in Lorraine
+const POWER_TXT = { 'The Empire': ['the Empress Theophanu', 'the Empire', 'An imperial army fails'], 'King Conrad': ['King Conrad', 'Arles', "King Conrad's men fail"], 'England': ['King Æthelred', 'the English', 'The English fyrd fails'] };
 function intervene(power, p, n, lordName) {
-  const o = p.owner, r = pressBattle(p, forceOf(n, 0.3), 'balanced');
+  const o = p.owner, r = pressBattle(p, forceOf(n, 0.3), 'balanced'), T = POWER_TXT[power] || [power, power, power + ' fails'];
   if (r.won) {
     for (const a of armiesOf(o)) if (a.loc === p.id && !a.siege) a.loc = nearestHeld(o, p.id);
     freeMinor(p); p.lord = lordName; p.gar = { foot: 7, bow: 3, cav: 2, cat: 0 };
-    tell(o, `${power} takes ${p.name}`, `An army of ${power === 'The Empire' ? 'the Empress Theophanu' : 'King Conrad'} drives your men out of ${p.name} and gives it to ${lordName}. Your losses: ${r.lost}.`);
-  } else tell(o, `${p.name} holds against ${power === 'The Empire' ? 'the Empire' : 'Arles'}`, `${power === 'The Empire' ? 'An imperial army' : 'King Conrad\'s men'} fail${power === 'The Empire' ? 's' : ''} to take ${p.name}. Your losses: ${r.lost}.`);
+    tell(o, `${power === 'King Conrad' ? 'Arles' : power} takes ${p.name}`, `An army of ${T[0]} drives your men out of ${p.name} and gives it to ${lordName}. Your losses: ${r.lost}.`);
+  } else tell(o, `${p.name} holds against ${T[1]}`, `${T[2]} to take ${p.name}. Your losses: ${r.lost}.`);
+}
+// Æthelred is called the Ill-Counselled, but a French prince holding English shires is more than he will bear
+function englandTick() {
+  if (G.turn < TRUCE || G.turn - (G.ev.eng ?? -99) < 6) return;
+  const en = provList().filter(p => p.owner && p.r === 'en' && !isCap(p) && !besiegerOf(p));
+  if (!en.length || Math.random() > 0.18) return;
+  G.ev.eng = G.turn;
+  intervene('England', pick(en), Math.min(45, 18 + Math.round(G.turn * 0.3)), pick(['an ealdorman of King Æthelred', 'a thegn of King Æthelred', 'the Bishop of Winchester, for the king']));
 }
 function empireTick() {
   if (G.turn < TRUCE || G.turn - (G.ev.emp ?? -99) < EMP_EVERY) return;
@@ -168,7 +177,7 @@ function answerPlea(help) {
 }
 function powersTick() {
   if (G.over) return;
-  eventsTick(); almanzorTick(); pamplonaTick(); empireTick(); arlesTick(); danesTick();
+  eventsTick(); almanzorTick(); pamplonaTick(); empireTick(); arlesTick(); englandTick(); danesTick();
 }
 // a choice left unanswered when the player ends the turn takes its default
 function settlePending() {
