@@ -566,3 +566,5 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 #oops button { margin: 8px 4px 0; padding: 10px 16px; border-radius: 10px; border: 1px solid #5e4515; background: linear-gradient(#e0b654, #96701f); color: #fff8e4; font: 700 15px Cinzel, Georgia, serif; }
 #oops button.plain { background: #fffaf0; color: #2a1d12; }
 #oops small { display: block; margin-top: 10px; color: #5c4630; word-break: break-word; }
+
+.ammo .amn { display: block; font-size: 10px; opacity: .8; min-height: 12px; }

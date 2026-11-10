@@ -218,7 +218,8 @@ function renderMapFill() {
   }
   // thick coloured outline around the player's holdings, so your realm reads at a glance
   const mine = provList().filter(p => holds(me(), p.id));
-  $('#ownerlines').innerHTML = mine.map(p => `<path d="${CELLD[p.id]}" fill="none" stroke="${FAC(me()).color}" stroke-width="5" stroke-opacity=".55" stroke-linejoin="round"/>`).join('');
+  $('#ownerlines').innerHTML = mine.map(p => `<path d="${CELLD[p.id]}" fill="none" stroke="${FAC(me()).color}" stroke-width="5" stroke-opacity=".55" stroke-linejoin="round"/>`).join('')
+    + provList().filter(p => p.owner && p.owner !== me() && atPeace(me(), p.owner)).map(p => `<path d="${CELLD[p.id]}" fill="none" stroke="${allied(me(), p.owner) ? '#2f6fd6' : '#2e9a4a'}" stroke-width="4.5" stroke-opacity=".75" stroke-linejoin="round" stroke-dasharray="${allied(me(), p.owner) ? '' : '10 5'}"/>`).join('');
 }
 function renderOverlay() {
   const s = clamp(VIEW.w / 720, 0.5, 1.5); ovScale = s;

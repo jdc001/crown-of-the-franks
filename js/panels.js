@@ -83,6 +83,21 @@ function garrisonsHtml() {
   const ps = provList().filter(p => holds(me(), p.id)).sort((a, b) => garMen(b) - garMen(a) || a.name.localeCompare(b.name));
   return `<p class="sub">Men in a garrison stay put when your armies march. The number beside a castle on the map is its garrison. The levy is raised by each county and defends it too.</p><div class="rivals">${ps.map(p => `<div class="rival" onclick="goProv('${p.id}')"><div style="min-width:0"><b>${p.name}</b>${isCap(p) ? ' ' + ico('crown') : ''}<div class="sub" style="font-size:13px">${p.b.castle ? (p.ruined ? 'ruined castle' : CASTLE_N[castleLv(p)].toLowerCase() + ' · walls ' + p.walls + '%') : 'no castle'}${besieging(p) ? ' · <span class="bad">besieged</span>' : ''}</div></div><div class="pw"><b>${garMen(p)}</b>${p.gar.cat ? p.gar.cat + ' cat. · ' : ''}levy ${p.militia}</div></div>`).join('')}</div>`;
 }
+// where a house stands: with you, and with everyone else
+function houseStatus(o) {
+  const T = G.fac[o], rows = [];
+  const pu = peaceUntil(me(), o);
+  rows.push(allied(me(), o) ? `${ico('handshake')} <b style="color:#2f5aa8">Your ally</b> until ${dateStr(pu)}: your armies may cross each other's lands.` : atPeace(me(), o) ? `${ico('dove')} <b style="color:#2f6b3a">Pact of peace</b> with you until ${dateStr(pu)}.` : truce() ? `${ico('dove')} The Peace of God holds until ${dateStr(TRUCE)}.` : `${ico('swords')} <b>No pact</b>: you may attack each other.`);
+  if (T.warOn && T.warOn.target && G.fac[T.warOn.target] && G.fac[T.warOn.target].alive) rows.push(`${ico('swords')} Sworn to make war on ${T.warOn.target === me() ? '<b class="bad">you</b>' : esc(FAC(T.warOn.target).name)} until ${dateStr(T.warOn.until)}.`);
+  const others = alive().filter(f => f !== me() && f !== o);
+  const al = others.filter(f => allied(o, f)), pe = others.filter(f => atPeace(o, f) && !allied(o, f));
+  if (al.length) rows.push(`${ico('handshake')} Allied with ${al.map(f => esc(FAC(f).name)).join(', ')}.`);
+  if (pe.length) rows.push(`${ico('dove')} At peace with ${pe.map(f => esc(FAC(f).name)).join(', ')}.`);
+  if (isKing(o)) rows.push(`${ico('crown')} Wears the crown of the Franks.`);
+  if (T.excom > 0) rows.push(`${ico('interdict')} Excommunicated.`);
+  if (T.captive) rows.push(`${ico('chain')} Its lord is a prisoner${T.captive.by ? ' of ' + esc(fname(T.captive.by)) : ''}.`);
+  return `<div class="statcard">${rows.map(r => `<p style="margin:3px 0">${r}</p>`).join('')}</div>`;
+}
 function crownsHtml() {
   const F = G.fac[me()], k = king(), others = alive().filter(f => f !== me());
   let h = '';
@@ -218,6 +233,7 @@ function provHead(p) {
   if (p.build) tags.push(`<span class="tag">${ico('hammer')}${p.build.type === 'castle' ? CASTLE_N[castleLv(p) + 1] : p.build.type === 'rebuild' ? 'Rebuilding' : BLD[p.build.type].n}: ${p.build.left} turn${p.build.left > 1 ? 's' : ''}</span>`);
   if (bz) tags.push(`<span class="tag red">${ico('tent')}besieged by ${FAC(bz.fid).name}</span>`);
   if (p.plague) tags.push(`<span class="tag red">${ico('skull')}plague (${['', 'mild', 'spreading', 'raging'][p.plague.s]})</span>`);
+  if (p.sacked > 0) tags.push(`<span class="tag red">${ico('fire')}sacked: pays nothing for ${p.sacked} turn${p.sacked > 1 ? 's' : ''}</span>`);
   if (p.interdict > 0) tags.push(`<span class="tag red">${ico('interdict')}interdict, ${p.interdict} turn${p.interdict > 1 ? 's' : ''}</span>`);
   if (p.heiress && !p.owner) tags.push(`<span class="tag">${ico('ring')}Lady ${p.heiress}</span>`);
   h += `<p style="margin:0 0 4px">${tags.join('')}</p>`;
@@ -304,7 +320,7 @@ function ownPanel(p, F, A) {
 }
 const UT_ALL = ['foot', 'bow', 'cav', 'cat', 'bishop'];
 function buildButtons(p, F) {
-  if (p.build) return `<div class="notebox">${ico('hammer')} Work is under way: ${p.build.type === 'castle' ? CASTLE_N[castleLv(p) + 1] : p.build.type === 'rebuild' ? 'rebuilding the castle' : BLD[p.build.type].n}, ${p.build.left} turn${p.build.left > 1 ? 's' : ''} left. One project at a time.</div>`;
+  if (p.build) return `<div class="notebox">${ico('hammer')} Work is under way: ${p.build.type === 'castle' ? CASTLE_N[castleLv(p) + 1] : p.build.type === 'rebuild' ? 'rebuilding the castle' : BLD[p.build.type].n}, ${p.build.left} turn${p.build.left > 1 ? 's' : ''} left. One project at a time.</div>${p.build.turn === G.turn && p.build.cost != null ? `<button class="btn sm" onclick="act('unbuild')"><span class="lbl">${ico('back')}Cancel the work</span><small>begun this turn: ${p.build.cost} d back</small></button>` : ''}`;
   const opts = [];
   if (p.ruined && p.owner) opts.push('rebuild');
   for (const t of ['farm', 'market', 'port', 'mine', 'castle', 'moat', 'forge', 'armory', 'stables']) if (canBuild(p, t)) { if (BLD[t].realm && !p.owner) continue; opts.push(t); }
@@ -391,7 +407,7 @@ function foreignPanel(p, F, A) {
     if (p.heiress) { h += courtshipIntro(p, F); cta += courtshipBtn(p, F); }
   } else if (cur === 'treaty') {
     const o = p.owner, pu = peaceUntil(me(), o);
-    h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.${allied(me(), o) ? ` Your ally until ${dateStr(pu)}.` : atPeace(me(), o) ? ` You are at peace until ${dateStr(pu)}.` : ' No pact binds you.'}</p><p class="sub">Send envoys to offer a pact of peace, an alliance that opens your lands to each other's armies, or a war alliance against a third house. If it suits them they ask nothing; if not, they name a price.</p>`;
+    h += `<h3>${esc(FAC(o).name)}</h3><p>${esc(rulerOf(o))} holds ${owned(o).length} counties.</p>${houseStatus(o)}<p class="sub">Send envoys to offer a pact of peace, an alliance that opens your lands to each other's armies, or a war alliance against a third house. If it suits them they ask nothing; if not, they name a price.</p>`;
     cta += `<button class="btn gold" onclick="openDiplo('${o}')"><span class="lbl">${ico('handshake')}Send envoys to ${esc(FAC(o).name)}</span><small>pact · alliance · war alliance</small></button>`;
   } else {
     h += `<h3>Interdict</h3><p>${ico('interdict')} Ask the Pope to lay ${p.name} under interdict: the churches close and the county pays nothing for 4 turns.</p><p class="sub">${popeCost(me(), 'interdict')} d · ${Math.round(popeChance(me(), 'interdict', p.id) * 100)}% chance. One petition a turn.${F.popeUsed ? ' <span class="bad">You have already petitioned this turn.</span>' : ''}</p>`;
@@ -421,7 +437,8 @@ function act(c, a) {
   const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null, F = G.fac[me()], A = myA();
   tutorDid(c);
   switch (c) {
-    case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a) }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('coin'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
+    case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a), turn: G.turn, cost: c0 }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('coin'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
+    case 'unbuild': if (p.build && p.build.turn === G.turn && p.build.cost != null) { F.gold += p.build.cost; note(`Work is called off in ${p.name}.`); p.build = null; sfx('click'); toast('Work cancelled, silver returned', 'coin'); } break;
     case 'raise': {
       const cost = unitCost(me(), a); if (F.gold < cost) return toast('Not enough deniers', 'coin'); F.gold -= cost;
       if (a === 'bishop') { F.bishops++; toast('A bishop joins your council', 'bishop'); } else { p.gar[a]++; toast(`${UNIT[a].n} raised in ${p.name}`, UNIT_ICON[a]); }
@@ -470,7 +487,7 @@ function playerEndTurn(force) {
     if (F.gold >= 60) warn.push(`${F.gold} deniers lie unspent`);
     if (warn.length) {
       G.endWarned = true;
-      return showModal(`<div class="rep"><div class="sealmark">${ico('next')}</div><h2>End the turn?</h2><p>${warn.map(w => w[0].toUpperCase() + w.slice(1)).join(', and ')}.</p><div class="grid2"><button class="btn gold" onclick="closeModal();playerEndTurn(true)">End turn</button><button class="btn" onclick="closeModal()">Not yet</button></div><p class="sub ctr" style="margin-top:10px">This reminder can be turned off in settings.</p></div>`);
+      return showModal(`<div class="rep"><div class="sealmark">${ico('next')}</div><h2>End the turn?</h2><p>${warn.map(w => w[0].toUpperCase() + w.slice(1)).join(', and ')}.</p><div class="grid2"><button class="btn gold" id="endyes" onclick="closeModal();playerEndTurn(true)">End turn</button><button class="btn" onclick="closeModal()">Not yet</button></div><p class="sub ctr" style="margin-top:10px">This reminder can be turned off in settings.</p></div>`);
     }
   }
   closeModal(); closeDrawer(); closeHint();

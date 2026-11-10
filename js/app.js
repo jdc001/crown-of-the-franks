@@ -13,6 +13,11 @@ document.addEventListener('keydown', e => {
   if (!G || e.target.tagName === 'INPUT') return;
   if (e.key === 'Escape') { if (modalOpen()) { if (BV || CT) return; closeModal(); } else if (drawerOpen()) closeDrawer(); else if (G.sel) { G.sel = null; render(); } }
   else if ((e.key === 'e' || e.key === 'E') && !modalOpen() && !drawerOpen()) playerEndTurn();
+  else if (e.key === 'Enter') {
+    const yes = document.getElementById('endyes');
+    if (yes) { e.preventDefault(); yes.click(); }
+    else if (!modalOpen() && !drawerOpen() && !(typeof RP !== 'undefined' && RP)) { e.preventDefault(); showModal(`<div class="rep"><div class="sealmark">${ico('next')}</div><h2>End the turn?</h2><div class="grid2"><button class="btn gold" id="endyes" onclick="closeModal();playerEndTurn(true)">End turn <small>Enter</small></button><button class="btn" onclick="closeModal()">Not yet <small>Esc</small></button></div></div>`, '', { closable: true }); }
+  }
   else if (e.key === 'h' || e.key === 'H') homeView(true);
   else if (e.key === 'l' || e.key === 'L') { if (drawerOpen()) closeDrawer(); else openLog(); }
   else if (e.key === 'c' || e.key === 'C') openCourt();

@@ -29,8 +29,10 @@ function almanzorStrike(p, n) {
   if (r.won) {
     damageWalls(p, 45); p.militia = 0;
     const b = ['farm', 'market', 'port', 'mine'].filter(t => p.b[t] > 0); if (b.length) p.b[pick(b)]--;
-    const loot = Math.min(G.fac[o].gold, 30 + rnd(40)); G.fac[o].gold -= loot;
-    tell(o, `Almanzor sacks ${p.name}`, `The Caliph's army storms ${p.name}, burns what it cannot carry and rides south with ${loot} d of plunder and captives. The walls are broken. Your losses: ${r.lost}.`);
+    // a sack carries off a share of the treasury, and the county pays nothing while it recovers
+    const loot = Math.round(Math.min(G.fac[o].gold, 30 + rnd(40) + G.fac[o].gold * 0.25)); G.fac[o].gold -= loot;
+    p.sacked = 3; for (const u of ['foot', 'bow', 'cav']) p.gar[u] = Math.floor(p.gar[u] / 2);
+    tell(o, `Almanzor sacks ${p.name}`, `The Caliph's army storms ${p.name}, burns what it cannot carry and rides south with ${loot} d of plunder and captives. The walls are broken, half the garrison is dead or taken, and the county will pay nothing for three turns. Your losses: ${r.lost}.`);
   } else tell(o, `${p.name} holds against Almanzor`, `The Caliph's army is thrown back from ${p.name} and turns for home. Your losses: ${r.lost}.`);
   return r;
 }

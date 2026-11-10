@@ -182,7 +182,7 @@ function minorIncome(p) {
   return v;
 }
 function provIncome(p) {
-  if (besiegerOf(p) || p.interdict > 0) return 0;
+  if (besiegerOf(p) || p.interdict > 0 || p.sacked > 0) return 0;
   if (!p.owner) return p.ally ? Math.floor(minorIncome(p) / 2) : 0;
   const f = p.owner;
   let v = p.base * (isCap(p) ? 2 : 1);
@@ -222,16 +222,16 @@ function applyDefLoss(p, start, end) {
     for (const a of here) { if (loss <= 0) break; const k = Math.min(loss, a[t]); a[t] -= k; loss -= k; }
   }
 }
+// fire, rats and falling stone kill whoever is inside: the levy, the garrison, and any army sheltering there
 function killDefenders(p, k) {
   let n = 0;
+  const here = defArmies(p);
   while (k-- > 0) {
     const opts = [];
-    if (p.militia > 0) opts.push('militia', 'militia');
-    for (const t of ['foot', 'foot', 'bow', 'cav']) if (p.gar[t] > 0) opts.push(t);
+    if (p.militia > 0) opts.push([p, 'militia'], [p, 'militia']);
+    for (const t of ['foot', 'foot', 'bow', 'cav']) { if (p.gar[t] > 0) opts.push([p.gar, t]); for (const a of here) if (a[t] > 0) opts.push([a, t]); }
     if (!opts.length) break;
-    const t = pick(opts);
-    if (t === 'militia') p.militia--; else p.gar[t]--;
-    n++;
+    const [o, t] = pick(opts); o[t]--; n++;
   }
   return n;
 }
@@ -330,6 +330,8 @@ function newGame(playerId) {
   const cd = FAC('capet'); cd.kingOf = ['franks']; cd.title = 'King';
   G.fac.capet.cardinals = 1;
   for (const p of provList()) p.militia = levyMax(p);
+  // the princes who raised Hugh to the throne stand by him for his first years: Normandy, and his brother in Burgundy
+  for (const f of ['normandy', 'burgundy']) G.truces.push({ a: 'capet', b: f, until: TRUCE + 20, pact: true, treaty: true, pass: true });
   G.start = Object.fromEntries(provList().filter(p => p.owner).map(p => [p.id, p.owner]));
   const neut = provList().filter(p => !p.owner);
   for (let i = 0; i < 7; i++) { const c = neut.filter(p => !p.heiress); pick(c).heiress = pick(LADIES); }
@@ -420,6 +422,7 @@ function endRound() {
   for (const p of provList()) {
     const s = besiegerOf(p);
     if (p.interdict > 0) p.interdict--;
+    if (p.sacked > 0) p.sacked--;
     if (!s) {
       p.militia = Math.min(levyMax(p), p.militia + 1);
       if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + 8);
@@ -442,6 +445,7 @@ function endRound() {
   }
   if (!G.over) { for (const f of alive()) unrestTick(f); maybeLeague(); if (typeof powersTick === 'function') powersTick(); }
   G.turn++;
+  fixSieges(); // pacts that lapsed with the new turn send guests home
 }
 // no army goes on besieging a county its own house has come to hold, by marriage, conquest or treaty
 // titles follow the crown: only the living house that holds it is styled King
