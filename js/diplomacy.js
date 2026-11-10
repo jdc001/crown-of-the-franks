@@ -64,7 +64,7 @@ function signPact(kind) {
   const gave = paid(t, price, DP.county);
   const until = Math.max(G.turn, peaceUntil(me(), t)) + len;
   G.truces.push({ a: me(), b: t, until, pact: true, treaty: true, pass: kind === 'ally' }); (G.truceHist = G.truceHist || {})[pairKey(me(), t)] = until;
-  sfx('bell'); buzz();
+  sfx('bell'); buzz(); tutorDid('pact');
   report(kind === 'ally' ? 'An alliance' : 'A pact of peace', `${rulerOf(t)} ${kind === 'ally' ? 'swears an alliance with you' : 'swears on the relics to keep the peace with you'} until ${dateStr(until)}${gave ? `, for ${gave}` : ''}. Neither house may attack the other until then${kind === 'ally' ? ', and the armies of each may march through the other\'s lands' : ''}.`);
   DP.county = null; save(); closeModal(); render(); showReports();
 }

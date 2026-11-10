@@ -339,6 +339,8 @@ function aiWar(fid, A) {
   const grace = G.turn < TRUCE + D.grace;
   const few = alive().length <= 3;
   const warOn = F.warOn ? F.warOn.target : null;
+  const wantCrown = !isKing(fid), ambitious = wantCrown && domainHeld(fid) >= CROWN_LANDS - 2;
+  const goalCity = ambitious ? crownNeeds(fid).find(id => P(id).owner !== fid) : null;
   let best = null, bs = -1, bestS = null;
   for (const p of provList()) {
     const s = strikeFrom(fid, A, p);
@@ -353,11 +355,14 @@ function aiWar(fid, A) {
     const kin = p.owner && !foreign(p.owner) && !foreign(fid);
     let base = p.owner ? (cap ? 2.0 : 1.7) + (kin && G.turn < 30 ? 0.6 : 0) - (p.owner === leader ? 0.3 : 0) + (vsPlayer ? D.pNeed : 0) - (p.owner === warOn ? 0.3 : 0) : 1.3;
     let need = Math.max(1.05, base - 0.06 * A.idle) - (few ? 0.3 : 0);
+    if (ambitious && crownNeeds(fid).includes(p.id)) need = Math.max(1.05, need - 0.3);
     const canSiege = p.b.castle && armySize(A) >= (p.owner ? 12 : 7) && ap >= power(defenders(p)) * (cap ? 2.4 : p.owner ? 1.1 : 0.9) * (vsPlayer ? 1 + D.pNeed * 0.4 : 1);
     if (ratio < need && !canSiege) continue;
     let val = p.base + (cap ? (G.turn < 30 ? 6 : 18) : 0) + (p.owner === G.player ? D.pBonus : 0) + (p.owner ? 1 : 0) + (p.r === 'fr' ? 4 : 0) + (p.ally ? 1 : 0);
     // the crown cities, and the Empire's wrath in Lorraine
-    if (crownNeeds(fid).includes(p.id) && !isKing(fid)) val += 8;
+    // a house big enough to be anointed goes for Reims and its royal seat in earnest
+    if (wantCrown && crownNeeds(fid).includes(p.id)) val = (val + 8) * (ambitious ? 3 : 1);
+    else if (ambitious && goalCity) val *= 1 + 0.9 / (1 + (HOPS[goalCity][p.id] ?? 9));
     if (p.r === 'lo' && !(G.start && (G.start[p.id] === fid || G.start[p.id] === 'charles'))) val *= 0.6;
     if (s.dist) val *= 0.9;
     if (kin && G.turn < 30) val *= 0.6;

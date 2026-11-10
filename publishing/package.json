@@ -1,0 +1,11 @@
+{
+  "name": "crown-of-the-franks-app",
+  "version": "6.3.0",
+  "private": true,
+  "scripts": {
+    "copy": "rm -rf www && mkdir www && cp -R ../index.html ../css ../js ../icon-180.png ../icon-512.png ../icon.svg ../manifest.webmanifest ../service-worker.js www/",
+    "ios": "npm run copy && npx cap sync ios && npx cap open ios"
+  },
+  "dependencies": { "@capacitor/core": "^6.0.0", "@capacitor/ios": "^6.0.0" },
+  "devDependencies": { "@capacitor/cli": "^6.0.0" }
+}

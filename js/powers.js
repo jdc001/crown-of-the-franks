@@ -37,7 +37,7 @@ function almanzorStrike(p, n) {
 function almanzorTick() {
   if (G.turn < 4 || G.turn - (G.ev.alm ?? -99) < ((G.challenge && G.challenge.mod && G.challenge.mod.almEvery) || ALM_EVERY) || Math.random() > 0.3) return;
   const t = almanzorTargets(); if (!t.length) return;
-  const w = t.flatMap(p => p.r === 'ca' ? [p, p, p] : [p]), p = pick(w), n = Math.min(40, 14 + Math.round(G.turn * 0.35));
+  const w = t.flatMap(p => p.r === 'ca' ? [p, p, p] : [p]), p = pick(w), n = Math.min(60, 14 + Math.round(G.turn * 0.35) + Math.round(owned(p.owner).length * 0.6)); // a richer prince draws a bigger raid
   G.ev.alm = G.turn;
   if (p.owner === G.player) { G.pend = { kind: 'almanzor', p: p.id, n }; report(`Almanzor marches on ${p.name}`, `The hajib Almanzor, master of Córdoba, leads about ${n} companies over the frontier toward ${p.name}. He will take tribute (parias) to turn back, or fight for it.`, { kind: 'almanzor' }); return; }
   const F = G.fac[p.owner];

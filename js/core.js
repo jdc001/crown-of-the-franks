@@ -645,7 +645,9 @@ const isKing = fid => !!fid && king() === fid;
 const vassal = fid => false;
 const vassals = () => alive().filter(vassal);
 const crownIncome = fid => FRANCE.filter(id => P(id).owner === fid).length;
-const crownNeeds = fid => ['reims', fid === 'charles' ? 'laon' : 'paris'];
+// Reims always. With it, the royal seat (Paris; Laon for Charles), or else a realm so great the bishops cannot refuse.
+const CROWN_GREAT = 12;
+const crownNeeds = fid => domainHeld(fid) >= CROWN_GREAT ? ['reims'] : ['reims', fid === 'charles' ? 'laon' : 'paris'];
 // the bishops will not anoint a man with no lands in the kingdom to speak of
 const CROWN_LANDS = 8;
 function canCrown(fid, kid = 'franks') { return kid === 'franks' && !isKing(fid) && crownNeeds(fid).every(id => P(id).owner === fid) && domainHeld(fid) >= CROWN_LANDS; }

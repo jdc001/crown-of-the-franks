@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.2';
+const APP_VERSION = '6.3';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -130,7 +130,7 @@ function openSettings() {
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
     <p class="sub ctr" style="margin-top:12px">Add this page to your home screen for a full-screen game that also plays offline.</p>
-    <p class="sub ctr" style="font-size:13px">Crown of the Franks: 987 · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
+    <p class="sub ctr" style="font-size:13px">Crown of the Franks: 987 · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. <a href="privacy.html" target="_blank" style="color:inherit">Privacy and support</a>. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
   if (k === 'speed') v = Number(v);
@@ -155,7 +155,7 @@ function openHelp() {
   const T = {
     goal: `<p><b>France in 987.</b> King Louis V is dead. Hugh Capet holds the crown, but the great princes rule their own lands, and Charles of Lorraine, the last Carolingian, wants it back. Fourteen houses, from Flanders to Barcelona.</p>
       <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
-      <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
+      <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. A prince with ${CROWN_GREAT} counties of the kingdom needs only Reims. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
       <p><b>Distance.</b> A prince's power fades with distance. Counties more than three steps from his seat pay less, and far-flung realms breed unrest sooner. The rich land is in the north.</p>
       <p><b>The league.</b> If one house holds more than a quarter of the kingdom, the princes may league against it for three years.</p>

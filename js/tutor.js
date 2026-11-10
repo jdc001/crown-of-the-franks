@@ -11,8 +11,9 @@ const TUT = [
   { id: 'church', t: 'The Church', b: () => 'Open the Church and ask the Pope to bless your arms. Raise bishops at a castle later to win more favour in Rome.', done: d => d.pope },
   { id: 'march', t: 'March', b: () => 'Choose a county marked with green dots and tap March here. An army moves two counties a turn through your own and allied land.', done: d => d.move },
   { id: 'peace', t: 'The Peace of God', b: () => `No war between the great houses until ${dateStr(TRUCE)}. Keep building and raising men, and end turns until then. Lesser lords may be attacked at any time.`, done: () => G.turn >= TRUCE },
-  { id: 'war', t: 'To war', b: () => 'Tap a county with a red dashed border and attack it. Against a castle, lay siege first and bombard the walls, then storm.', done: d => d.battle || d.besiege },
-  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see how close you are to ${GOALS[goalId()].n.toLowerCase()}.`, done: d => d.goal },
+  { id: 'pact', t: 'Guard your back', b: () => 'Open Envoys, choose a neighbour you do not mean to fight, and sign a pact of peace. Neither of you can break it. An alliance also lets your armies cross their land.', done: d => d.pact || G.turn >= TRUCE + 6 },
+  { id: 'war', t: 'To war', b: () => 'Tap a county with a red dashed border and attack it. A wooden castle falls to a strong assault; against stone, lay siege first, bombard or mine the walls, then storm.', done: d => d.battle || d.besiege },
+  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see what you need: the crown, anointed at Reims, and half the kingdom in your own hands.`, done: d => d.goal },
 ];
 function tutorDid(k) { if (G && G.tut) { G.tut.did[k] = (G.tut.did[k] || 0) + 1; } }
 function tutorSkip() { if (!G.tut) return; G.tut.i++; sfx('click'); save(); renderTutor(); }
@@ -22,7 +23,7 @@ function renderTutor() {
   const T = G && G.tut;
   if (!T || G.over) { if (el) el.remove(); return; }
   while (T.i < TUT.length && TUT[T.i].done(T.did)) { T.i++; if (T.i > 0) { sfx('coin'); } }
-  if (T.i >= TUT.length) { G.tut = null; if (el) el.remove(); report('The guide is done', 'You know the whole of it now: build, raise, ally, march and strike, and use the Church and marriages to win what swords cannot. The rest is yours. How to play, in Settings, has the details.'); return; }
+  if (T.i >= TUT.length) { G.tut = null; if (el) el.remove(); report('The guide is done', 'You know the whole of it now: build, raise, ally, march and strike; sign pacts to guard your back; and use the Church and marriages to win what swords cannot. A wooden castle takes one turn to raise and makes any county a stepping stone. The rest is yours. How to play, in Settings, has the details.'); return; }
   if (!el) { el = document.createElement('div'); el.id = 'tutor'; $('#mapwrap').appendChild(el); }
   const s = TUT[T.i];
   setHTML(el, `<div class="tn">${T.i + 1}/${TUT.length}</div><div class="tb"><b>${esc(s.t)}</b>${esc(s.b())}</div><div class="tx"><button onclick="tutorSkip()">Skip</button><button onclick="tutorEnd()">End guide</button></div>`);

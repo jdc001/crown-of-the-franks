@@ -9,8 +9,8 @@
   --red: #8e1f1b; --red2: #b8342c; --lapis: #23407a; --good: #3f6b35; --good2: #6a9b4e;
   --leather: #2b1d13; --leather2: #1a120b;
   --tex: none; /* set at start-up by makeTex() in view.js: a small PNG grain instead of an SVG noise filter */
-  --head: 'Cinzel', 'Trajan Pro', Georgia, serif;
-  --body: 'IM Fell English', 'Iowan Old Style', Palatino, Georgia, serif;
+  --head: 'Cinzel', 'Trajan Pro', 'Copperplate', 'Baskerville', Georgia, serif;
+  --body: 'IM Fell English', 'Hoefler Text', 'Baskerville', 'Iowan Old Style', Palatino, Georgia, serif;
   --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
   --dock-h: 60px; --hdr-h: 56px; --sheet-peek: 92px;
   --r: 12px; --r2: 8px;
