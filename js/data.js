@@ -174,11 +174,18 @@ const PROV = [
   ['arles', 'Arles', 4.63, 43.62, 'lion', 0, 6, 'provence', 1, '', 'ar'],
   ['marseille', 'Marseille', 5.4, 43.3, 'lion', 1, 5, null, 1, 'Viscount Pons', 'ar'],
   ['nice', 'Nice', 6.9, 43.75, 'lion', 1, 3, null, 0, 'the Count of Nice', 'ar'],
+  // the south coast of England, reached only by sea
+  ['kent', 'Kent', 0.95, 51.2, 'channel,north', 0, 5, null, 1, 'the Ealdorman of Kent', 'en'],
+  ['sussex', 'Sussex', -0.3, 50.97, 'channel', 0, 4, null, 0, 'the Ealdorman of Sussex', 'en'],
+  ['wessex', 'Winchester', -1.5, 51.05, 'channel', 0, 6, null, 1, 'the Ealdorman of Hampshire', 'en'],
+  ['devon', 'Exeter', -3.5, 50.78, 'channel', 1, 4, null, 1, 'the Ealdorman of Devon', 'en'],
 ];
-const REGION_NAME = { fr: 'the kingdom of the Franks', lo: 'Lorraine', ar: 'Burgundy-Arles', ca: 'the Spanish March' };
+const REGION_NAME = { fr: 'the kingdom of the Franks', lo: 'Lorraine', ar: 'Burgundy-Arles', ca: 'the Spanish March', en: 'the kingdom of the English' };
+// crossings by sea, as on a board game: an army marches or strikes along them as if the two counties touched
+const SEA_ROUTES = [['barcelona', 'marseille'], ['boulogne', 'kent'], ['cotentin', 'wessex'], ['leon', 'devon']];
 // lands beyond the kingdom: drawn and named, never played; they press on the edges through events
 const EDGES = [
-  ['england', 'Anglo-Saxon England', -1.4, 51.5], ['empire1', 'The Empire', 7.6, 50.6], ['empire2', 'The Empire', 7.9, 48.7],
+  ['england', 'Anglo-Saxon England', -1.9, 51.62], ['empire1', 'The Empire', 7.6, 50.6], ['empire2', 'The Empire', 7.9, 48.7],
   ['empire3', 'The Empire', 6.2, 51.6], ['jura', 'Kingdom of Burgundy-Arles', 6.9, 46.5], ['italy', 'Kingdom of Italy', 8.4, 44.6],
   ['pamplona', 'Kingdom of Pamplona', -1.7, 42.6], ['cordoba1', 'Caliphate of Córdoba', 0.2, 41.2], ['cordoba2', 'Caliphate of Córdoba', -2.6, 41.6],
 ];
@@ -321,6 +328,8 @@ for (let i = 0; i < PROV.length; i++) for (let j = i + 1; j < PROV.length; j++) 
   for (let k = 1; k < 30; k++) { const t = k / 30; if (onLand([best[0][0] + (best[1][0] - best[0][0]) * t, best[0][1] + (best[1][1] - best[0][1]) * t])) inside++; }
   if (inside >= 2) { ADJ[PROV[i][0]].push(PROV[j][0]); ADJ[PROV[j][0]].push(PROV[i][0]); }
 }
+for (const [a, b] of SEA_ROUTES) { ADJ[a].push(b); ADJ[b].push(a); }
+const seaRoute = (a, b) => SEA_ROUTES.some(r => (r[0] === a && r[1] === b) || (r[0] === b && r[1] === a));
 // the kingdom of the Franks: the West Frankish counties and the Spanish March, which was still the king's in law
 const FRANCE = PROV.filter(r => r[10] === 'fr' || r[10] === 'ca').map(r => r[0]);
 const EMPIRE = FRANCE;

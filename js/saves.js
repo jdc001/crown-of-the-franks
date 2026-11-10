@@ -29,7 +29,7 @@ function loadGameObj(obj) {
   if (obj && obj._career) { const got = careerMerge(obj._career); delete obj._career; if (got) toast('Your trophies and past games were restored', 'star'); }
   if (!obj || obj.v !== 8 || !obj.fdefs || !obj.provs || !obj.fac) return toast('That save is not from this version of the game');
   if (obj.over) return toast('That campaign is already over');
-  G = obj; rebuildFmap();
+  G = obj; rebuildFmap(); ensureProvs();
   if (!G.army) G.army = 'a0';
   G.sel = null; G.reports = G.reports || []; PANEL.tab = null;
   $('#title').style.display = 'none'; closeModal(); closeDrawer();

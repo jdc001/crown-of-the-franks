@@ -297,23 +297,29 @@ const PNAMES = ['Louis', 'Robert', 'Odo', 'Hugh', 'Charles', 'Rudolf', 'Arnulf',
 function freshColor() { const used = new Set(G.fdefs.filter(d => G.fac[d.id] && G.fac[d.id].alive).map(d => d.color)); return NEW_COLORS.find(c => !used.has(c)) || pick(NEW_COLORS); }
 
 // ================= NEW GAME =================
+function makeProv(r, i) {
+  const [id, name, , lat, seas, hills, base, owner, castle, lord, reg] = r;
+  return { id, name, x: SEEDS[i][0], y: SEEDS[i][1], lat, seas: seas ? seas.split(',') : [], hills: !!hills, base, owner, ally: null, cap: null, r: reg,
+    b: { farm: 0, market: 0, port: 0, mine: 0, castle: castle ? (base >= 6 ? 2 : 1) : 0, moat: 0, forge: 0, armory: 0, stables: 0 }, build: null, walls: castle ? 100 : 0, ruined: false,
+    gar: eu(), militia: 0, heiress: null, lord, plague: null, interdict: 0 };
+}
+function garrisonAtStart(p) {
+  if (!p.owner && p.b.castle) p.gar = { foot: p.base - 1, bow: 2, cav: 1, cat: 0 };
+  // the far south, the March, Lorraine, Arles and England: hard country and lords who answer to no one
+  const k = p.owner ? 1 : p.r === 'ca' ? 1.6 : p.r === 'en' ? 1.5 : p.lat < 44.6 ? 1.4 : p.r !== 'fr' ? 1.3 : 1;
+  if (k > 1) p.gar = { foot: Math.round((p.gar.foot || 2) * k) + 1, bow: Math.round((p.gar.bow || 1) * k), cav: Math.round((p.gar.cav || 1) * k), cat: 0 };
+  if (!p.owner && p.b.castle && p.seas.length) p.b.port = 1;
+}
+// a game saved before a county was added to the map gets it now, held by its own lord
+function ensureProvs() {
+  PROV.forEach((r, i) => { if (!G.provs[r[0]]) { const p = G.provs[r[0]] = makeProv(r, i); p.owner = null; garrisonAtStart(p); p.militia = levyMax(p); } });
+}
 function newGame(playerId) {
   G = { v: 8, turn: 0, player: playerId, provs: {}, fac: {}, armies: {}, log: [], reports: [], over: false, winner: null, sel: null, army: 'a0',
     genPool: GENERALS.map(g => g.id), fdefs: FACTIONS.map(f => ({ ...f, arms: { ...f.arms }, kingOf: [] })), offers: [], truces: [], crowns: {}, coronated: {}, homage: {}, formed: {}, lastUnion: -99, newN: 0, diplo: null, court: null, ev: {} };
   rebuildFmap();
-  PROV.forEach((r, i) => {
-    const [id, name, , lat, seas, hills, base, owner, castle, lord, reg] = r;
-    G.provs[id] = { id, name, x: SEEDS[i][0], y: SEEDS[i][1], lat, seas: seas ? seas.split(',') : [], hills: !!hills, base, owner, ally: null, cap: null, r: reg,
-      b: { farm: 0, market: 0, port: 0, mine: 0, castle: castle ? (base >= 6 ? 2 : 1) : 0, moat: 0, forge: 0, armory: 0, stables: 0 }, build: null, walls: castle ? 100 : 0, ruined: false,
-      gar: eu(), militia: 0, heiress: null, lord, plague: null, interdict: 0 };
-  });
-  for (const p of provList()) {
-    if (!p.owner && p.b.castle) p.gar = { foot: p.base - 1, bow: 2, cav: 1, cat: 0 };
-    // the far south, the March, Lorraine and Arles: hard country and lords who answer to no one
-    const k = p.owner ? 1 : p.r === 'ca' ? 1.6 : p.lat < 44.6 ? 1.4 : p.r !== 'fr' ? 1.3 : 1;
-    if (k > 1) p.gar = { foot: Math.round((p.gar.foot || 2) * k) + 1, bow: Math.round((p.gar.bow || 1) * k), cav: Math.round((p.gar.cav || 1) * k), cat: 0 };
-    if (!p.owner && p.b.castle && p.seas.length) p.b.port = 1;
-  }
+  PROV.forEach((r, i) => { G.provs[r[0]] = makeProv(r, i); });
+  for (const p of provList()) garrisonAtStart(p);
   // Reims: the archbishop who crowns kings keeps a strong household
   P('reims').b.castle = 2; Object.assign(P('reims').gar, { foot: 9, bow: 4, cav: 2 });
   G.order = FACTIONS.map(f => f.id);

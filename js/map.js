@@ -87,6 +87,7 @@ function buildMap() {
   <g clip-path="url(#landclip)" pointer-events="none">${PROV.filter(r => r[5]).map(r => `<path d="${CELLD[r[0]]}" fill="url(#hills)"/>`).join('')}</g>
   <g clip-path="url(#landclip)" pointer-events="none" id="ownerlines"></g>
   ${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#3a2b1b" stroke-width="2.4"/>`).join('')}
+  <g clip-path="url(#seaclip)" pointer-events="none">${SEA_ROUTES.map(([a, b]) => { const A = SEEDS[PROV.findIndex(r => r[0] === a)], B = SEEDS[PROV.findIndex(r => r[0] === b)], mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), bow = Math.min(60, L * 0.18), sgn = a === 'barcelona' ? 1 : 0; return `<path class="searoute" d="M${A[0].toFixed(1)},${A[1].toFixed(1)} Q${(mx + dy / L * bow * sgn).toFixed(1)},${(my - dx / L * bow * sgn).toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)}"/>`; }).join('')}</g>
   ${EDGES.map(e => `<text class="geo edge" x="${px(e[2])}" y="${py(e[3])}">${e[1]}</text>`).join('')}
   ${[['Corsica', 9.1, 42.2]].map(([n, lo, la]) => `<text class="geo" x="${px(lo)}" y="${py(la)}">${n}</text>`).join('')}
   ${SEA_LABELS.map(s => `<text class="seal" x="${px(s[1])}" y="${py(s[2])}">${s[0]}</text>`).join('')}

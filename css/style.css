@@ -568,3 +568,5 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 #oops small { display: block; margin-top: 10px; color: #5c4630; word-break: break-word; }
 
 .ammo .amn { display: block; font-size: 10px; opacity: .8; min-height: 12px; }
+
+.searoute { fill: none; stroke: #2a1d12; stroke-width: 3.2; stroke-dasharray: 3 9; stroke-linecap: round; opacity: .7; }
