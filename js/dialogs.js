@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.8';
+const APP_VERSION = '6.9';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -190,7 +190,7 @@ function openHelp() {
       <p><b>The Church.</b> Bishops sit in your council; raise them to cardinal to win votes in the college. Your share of the college decides how often the Pope agrees: blessings, mercenaries, absolution, dispensations, excommunication, a Truce of God or an interdict.</p>
       <p><b>Forged charters.</b> With a bishop in your council, your scriptorium can forge an old charter for a lesser lord who borders you (25 d, once every 4 turns). Trace the old hand and press the seal at the right moment: a good copy makes him swear to you for nothing; a poor one may be exposed, and the Pope excommunicates you.</p>
       <p><b>Ransoms.</b> When your lord is a prisoner, his captor's envoy names a price you can haggle down. When you hold a prisoner, you can haggle his house up. Push too hard and the envoy rides home for the turn.</p>
-      <p><b>The fair at Troyes.</b> Each summer, if you hold a market town, you may take a purse to the fair: six days of buying and selling cloth, wine, salt, spices, furs and wax. Rumours are right more often than not.</p>
+      <p><b>The fair at Troyes.</b> Each summer, if you hold a market town, your carts go to Troyes with what your lands produce: grain and wool from farms, cloth from market towns, metal from mines, salt and fish from ports. Each building level is a lot to sell, higher levels bring finer goods, and each extra kind of goods draws 10% more buyers. Over three days, sell each kind when the price is good; the merchants' word on tomorrow is usually right. Champagne sells for 40% more and always hears the truth.</p>
       <p><b>Raiders.</b> Danish longships sometimes fall on a coastal county. Meet them on the beach yourself, leave it to the garrison, or pay them to go.</p>
       <p><b>Minor lords and generals.</b> Ally with minor lords for half their income; your armies march through their land. Generals lead your armies or command a castle.</p>`,
     map: `<p><b>Reading the map.</b></p>

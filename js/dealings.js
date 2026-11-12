@@ -202,71 +202,97 @@ function haggleWalk() {
 function haggleLeave() { HG = null; closeModal(); render(); }
 
 // ================= THE CHAMPAGNE FAIR =================
-// Once a year, in summer, the fair at Troyes. Bring a purse, buy and sell over six days, and read the rumours
-// (they are right more often than not). What the purse holds at the end comes home to the treasury.
-const GOODS = [['cloth', 'Flemish cloth', 30, '#7a5aa0', .10], ['wine', 'Rhenish wine', 22, '#8e1f1b', .12], ['salt', 'Salt', 12, '#9aa3a8', .08], ['spice', 'Spices of the East', 58, '#c0761c', .18], ['furs', 'Furs from the north', 40, '#5c4630', .14], ['wax', 'Beeswax', 16, '#d4a017', .09]];
-const FAIR_DAYS = 6;
+// Once a year, in summer, the fair at Troyes. You bring what your lands produce: grain and wool from your farms,
+// cloth from your market towns, metal from your mines, salt and fish from your ports. More buildings mean more
+// lots to sell; higher levels mean finer goods; more kinds of goods draw more buyers. Over three days you choose
+// when to sell each kind: a merchant's word on tomorrow's buyers is usually right.
+const WARES = [
+  { id: 'farm', grades: ['Grain', 'Wool', 'Fine wool'], v: 9, col: '#b58a3a' },
+  { id: 'market', grades: ['Cloth', 'Dyed cloth', 'Scarlet cloth'], v: 18, col: '#7a3f8f' },
+  { id: 'mine', grades: ['Iron', 'Lead', 'Silver'], v: 20, col: '#6b7480' },
+  { id: 'port', grades: ['Salt', 'Salt fish', 'Wine by sea'], v: 14, col: '#2a7a8a' },
+];
+const GOODS = WARES.map(w => [w.id]);
+const FAIR_DAYS = 3;
 const yearOf = t => 987 + Math.floor((t + 1) / 4);
 const markets = () => owned(me()).filter(p => p.b.market).length;
-const fairOpen = () => !!G && !G.over && G.turn >= 1 && (G.turn + 1) % 4 === 1 && G.fairYear !== yearOf(G.turn) && markets() > 0;
-const fairCap = () => Math.round(Math.min(220, 40 + 30 * markets()) * (me() === 'champagne' ? 1.5 : 1));
+const fairOpen = () => !!G && !G.over && G.turn >= 1 && (G.turn + 1) % 4 === 1 && G.fairYear !== yearOf(G.turn) && (markets() > 0 || me() === 'champagne');
+// what the realm brings: lots of each ware (one per building level) and the grade of the best of them
+function fairStock() {
+  const out = [];
+  for (const w of WARES) {
+    const lv = owned(me()).map(p => p.b[w.id] || 0).filter(n => n > 0);
+    if (!lv.length) continue;
+    const lots = lv.reduce((a, b) => a + b, 0), grade = Math.min(2, Math.max(...lv) - 1);
+    out.push({ id: w.id, n: w.grades[grade], lots, each: Math.round(w.v * [1, 1.3, 1.6][grade]), col: w.col });
+  }
+  return out;
+}
+const fairBonus = st => (1 + 0.1 * Math.max(0, st.length - 1)) * (me() === 'champagne' ? 1.4 : 1);
+const fairWorth = st => Math.round(st.reduce((s, x) => s + x.lots * x.each, 0) * fairBonus(st));
+const fairCap = () => fairWorth(fairStock());
 let FR = null;
 function openFair() {
   if (!fairOpen()) return toast('The fair opens each summer, for lords who hold a market town');
-  const F = G.fac[me()], cap = Math.min(fairCap(), F.gold);
-  if (cap < 10) return toast('You need at least 10 deniers to trade');
-  const stake = Math.min(cap, Math.round(cap * 0.6 / 10) * 10 || cap);
-  mgIntro('The fair at Troyes', 'market', `Merchants from Flanders, the Rhine and Venice fill the market of Troyes for the summer fair. Bring a purse of up to ${cap} d (more for each market town you hold), buy and sell over six days, and watch the rumours: they are right more often than not. Whatever your purse holds at the end comes home.${me() === 'champagne' ? ' As Count of Champagne, your factors hear the true rumours.' : ''}
-    <h3>Your purse</h3><div class="ctr"><b class="num" id="fstake" style="font-size:22px">${stake} d</b></div><input type="range" id="fstr" min="10" max="${cap}" step="5" value="${stake}" style="width:100%;accent-color:#b8892c" oninput="document.getElementById('fstake').textContent=this.value+' d'">`,
-    [[`${ico('market')}Go to the fair`, `startFair(+document.getElementById('fstr').value)`, 'gold big'], [`${ico('skip')}Send your factor`, `autoFair(+document.getElementById('fstr').value)`, '', 'resolved at once, usually a modest profit'], ['Not this year', 'closeModal()', 'ghost']]);
+  const st = fairStock();
+  if (!st.length) return toast('Your lands have nothing to sell: build farms, markets, mines or ports');
+  const list = st.map(x => `<div class="frow"><span class="fdot" style="background:${x.col}"></span><span class="fname">${x.n}</span><span class="fheld">${x.lots} lot${x.lots > 1 ? 's' : ''}</span><span class="fpr num">${x.each} d each</span></div>`).join('');
+  mgIntro('The fair at Troyes', 'market', `Merchants from Flanders, the Rhine and Venice fill Troyes for the summer fair. Your carts carry what your lands produce. Over three days, sell each kind when buyers pay best; whatever is unsold on the last day goes cheap.
+    <h3>Your carts</h3><div class="ftab">${list}</div>
+    <p class="sub">Worth about <b>${fairWorth(st)} d</b> at a fair price${st.length > 1 ? `, with ${Math.round((0.1 * (st.length - 1)) * 100)}% more for bringing ${st.length} kinds of goods` : ''}${me() === 'champagne' ? ', and 40% more as Count of Champagne' : ''}. More farms, markets, mines and ports bring more lots; higher levels bring finer goods.</p>`,
+    [[`${ico('market')}Go to the fair`, `startFair()`, 'gold big'], [`${ico('skip')}Send your factor`, `autoFair()`, '', 'sells everything at a fair price'], ['Not this year', 'closeModal()', 'ghost']]);
 }
-function rumour(FRs) {
-  const g = pick(GOODS), up = Math.random() < 0.5, mag = 0.15 + Math.random() * 0.2;
-  const why = up ? pick(['The Venetian convoy is late', 'A bishop orders for his new church', 'Count Odo is buying for a wedding', 'The roads from the Rhine are closed']) : pick(['A great caravan arrives from Flanders', 'The Lombards are selling off their stock', 'Too many carts came in today', 'The Duke\'s steward has stopped buying']);
-  return { id: g[0], up, mag, true: Math.random() < (me() === 'champagne' ? 0.95 : 0.7), text: `${why}: ${g[1].toLowerCase()} will be ${up ? 'dear' : 'cheap'} tomorrow, they say.` };
+// a price for each ware today, and what the merchants say about tomorrow
+function fairDayPrices() {
+  for (const x of FR.stock) {
+    const t = FR.tip[x.id];
+    let m = FR.day === 1 ? 0.85 + Math.random() * 0.3 : FR.pct[x.id] * (t && t.real === 'up' ? 1.2 + Math.random() * 0.2 : t && t.real === 'down' ? 0.72 + Math.random() * 0.12 : 0.95 + Math.random() * 0.1);
+    FR.pct[x.id] = clamp(m, 0.6, 1.6);
+    if (FR.day < FAIR_DAYS) {
+      const real = Math.random() < 0.5 ? 'up' : 'down', honest = me() === 'champagne' || Math.random() < 0.85;
+      FR.tip[x.id] = { real, said: honest ? real : real === 'up' ? 'down' : 'up' };
+    } else FR.tip[x.id] = null;
+  }
 }
-function startFair(stake) {
-  const F = G.fac[me()]; stake = Math.min(stake, F.gold); if (stake < 10) return;
-  F.gold -= stake; G.fairYear = yearOf(G.turn); tutorDid('fair');
-  FR = { stake, purse: stake, day: 1, prices: {}, prev: {}, held: {}, rum: null };
-  for (const g of GOODS) { FR.prices[g[0]] = Math.round(g[2] * (0.85 + Math.random() * 0.3)); FR.prev[g[0]] = FR.prices[g[0]]; FR.held[g[0]] = 0; }
-  FR.rum = rumour(); setMusic('map'); drawFair();
+function startFair() {
+  const st = fairStock(); if (!st.length) return;
+  G.fairYear = yearOf(G.turn); tutorDid('fair');
+  FR = { stake: 0, stock: st, left: Object.fromEntries(st.map(x => [x.id, x.lots])), pct: {}, tip: {}, take: 0, day: 1, bonus: fairBonus(st) };
+  fairDayPrices(); setMusic('map'); drawFair();
 }
-const sellPrice = (id, last) => Math.max(1, Math.floor(FR.prices[id] * (last ? 0.9 : 0.95)));
+const fairPrice = x => Math.max(1, Math.round(x.each * FR.pct[x.id] * FR.bonus));
+const pctWord = p => p >= 1.3 ? ['Buyers crowd your stall', 'good'] : p >= 1.1 ? ['Brisk trade', 'good'] : p >= 0.92 ? ['A fair price', ''] : p >= 0.75 ? ['Slow trade', 'bad'] : ['Few buyers', 'bad'];
 function drawFair() {
   const last = FR.day === FAIR_DAYS;
-  const worth = FR.purse + GOODS.reduce((s, g) => s + FR.held[g[0]] * sellPrice(g[0], true), 0);
-  const rows = GOODS.map(([id, n, , col]) => { const p = FR.prices[id], d = p - FR.prev[id]; return `<div class="frow"><span class="fdot" style="background:${col}"></span><span class="fname">${n}</span><span class="fpr num">${p}<small class="${d > 0 ? 'bad' : d < 0 ? 'good' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : ''}${d ? Math.abs(d) : ''}</small></span><span class="fheld">${FR.held[id] || ''}</span><button class="btn sm" onclick="fairTrade('${id}',-1)" ${FR.held[id] ? '' : 'disabled'}>Sell ${sellPrice(id, false)}</button><button class="btn sm" onclick="fairTrade('${id}',1)" ${FR.purse >= p ? '' : 'disabled'}>Buy</button></div>`; }).join('');
+  const stall = FR.stock.reduce((s, x) => s + FR.left[x.id] * fairPrice(x), 0);
+  const rows = FR.stock.map(x => {
+    const n = FR.left[x.id], p = FR.pct[x.id], [w, c] = pctWord(p), t = FR.tip[x.id];
+    return `<div class="fcard${n ? '' : ' sold'}"><div class="fc1"><span class="fdot" style="background:${x.col}"></span><b>${x.n}</b><small>${n ? `${n} lot${n > 1 ? 's' : ''} left` : 'all sold'}</small></div>
+      <div class="fc2"><span class="num" style="font-size:20px">${fairPrice(x)} d</span><small class="${c}">${w} (${Math.round(p * 100)}%)</small>${t ? `<small><i>Tomorrow: ${t.said === 'up' ? 'more buyers are coming, they say' : 'buyers are leaving, they say'}</i></small>` : ''}</div>
+      <div class="fc3"><button class="btn sm gold" onclick="fairSell('${x.id}',1)" ${n ? '' : 'disabled'}>Sell all</button><button class="btn sm" onclick="fairSell('${x.id}',0.5)" ${n > 1 ? '' : 'disabled'}>Sell half</button></div></div>`;
+  }).join('');
   showModal(`<h2>${ico('market')} The fair at Troyes · day ${FR.day} of ${FAIR_DAYS}</h2>
-    <div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile">${ico('coin')}<div class="v">${FR.purse}</div><div class="k">Purse</div></div><div class="tile">${ico('market')}<div class="v">${worth}</div><div class="k">Worth</div></div><div class="tile">${ico('star')}<div class="v" style="color:${worth >= FR.stake ? 'var(--good)' : 'var(--red)'}">${worth >= FR.stake ? '+' : ''}${worth - FR.stake}</div><div class="k">Profit</div></div></div>
-    ${!last && FR.rum ? `<div class="notebox">${ico('people')} <i>${esc(FR.rum.text)}</i></div>` : `<div class="notebox bad">${ico('info')} The last day: anything still in your stall is sold at a tenth below the price.</div>`}
-    <div class="ftab"><div class="frow fhead"><span></span><span>Goods</span><span>Price</span><span>Held</span><span></span><span></span></div>${rows}</div>
-    <div class="row ctr">${last ? `<button class="btn gold big" onclick="closeFair()">Close the stall · take ${worth} d home</button>` : `<button class="btn gold big" onclick="fairNextDay()"><span class="lbl">${ico('next')}Next day</span></button>`}</div>`, 'wide', {});
+    <div class="tiles" style="grid-template-columns:repeat(2,1fr)"><div class="tile">${ico('coin')}<div class="v">${FR.take}</div><div class="k">Sold so far</div></div><div class="tile">${ico('market')}<div class="v">${stall}</div><div class="k">Still in the stall, today</div></div></div>
+    <p class="sub">${last ? 'The last day: anything you do not sell now goes to the Lombards at four-fifths of today\'s price.' : 'Sell what fetches a good price today; hold what the merchants say will rise. They are usually right.'}</p>
+    <div class="fcards">${rows}</div>
+    <div class="row ctr">${last ? `<button class="btn gold big" onclick="closeFair()">Close the stall</button>` : `<button class="btn gold big" onclick="fairNextDay()"><span class="lbl">${ico('next')}Next day</span></button>`}</div>`, 'wide', {});
 }
-function fairTrade(id, n) {
-  if (n > 0) { const p = FR.prices[id]; if (FR.purse < p) return; FR.purse -= p; FR.held[id]++; sfx('coin'); }
-  else { if (!FR.held[id]) return; FR.held[id]--; FR.purse += sellPrice(id, false); sfx('click'); }
-  drawFair();
+function fairSell(id, frac) {
+  const x = FR.stock.find(s => s.id === id), n = Math.max(1, Math.ceil(FR.left[id] * frac));
+  if (!x || !FR.left[id]) return;
+  const k = Math.min(n, FR.left[id]); FR.left[id] -= k; FR.take += k * fairPrice(x); sfx('coin'); buzz(8); drawFair();
 }
-function fairNextDay() {
-  const r = FR.rum;
-  for (const [id, , base, , vol] of GOODS) {
-    FR.prev[id] = FR.prices[id];
-    let m = Math.exp((Math.random() * 2 - 1) * vol) * (1 + (base / FR.prices[id] - 1) * 0.15);
-    if (r && r.id === id) m *= r.true ? (r.up ? 1 + r.mag : 1 - r.mag) : (r.up ? 1 - r.mag * 0.4 : 1 + r.mag * 0.4);
-    FR.prices[id] = Math.max(3, Math.round(FR.prices[id] * m));
-  }
-  FR.day++; FR.rum = FR.day < FAIR_DAYS ? rumour() : null; sfx('bell'); drawFair();
-}
+function fairTrade(id, n) { if (n < 0) fairSell(id, 1); }
+function fairNextDay() { FR.day++; fairDayPrices(); sfx('bell'); drawFair(); }
 function closeFair() {
-  const worth = FR.purse + GOODS.reduce((s, g) => s + FR.held[g[0]] * sellPrice(g[0], true), 0), profit = worth - FR.stake;
+  const rest = FR.stock.reduce((s, x) => s + FR.left[x.id] * Math.round(fairPrice(x) * 0.8), 0), worth = FR.take + rest;
   G.fac[me()].gold += worth; FR = null;
-  note(`At the fair of Troyes you ${profit >= 0 ? 'make' : 'lose'} ${Math.abs(profit)} d.`);
-  mgResult(profit >= 0 ? 'A good fair' : 'A poor fair', `You bring home ${worth} d from a purse of ${worth - profit} d: ${profit >= 0 ? 'a profit' : 'a loss'} of ${Math.abs(profit)} d.`, profit >= 0, 'market');
+  note(`At the fair of Troyes your goods fetch ${worth} d.`);
+  mgResult('The fair is over', `Your carts come home from Troyes with ${worth} d${rest ? `, ${rest} d of it from the Lombards on the last day` : ''}.`, true, 'market');
 }
-function autoFair(stake) {
-  const F = G.fac[me()]; stake = Math.min(stake, F.gold); if (stake < 10) return;
-  G.fairYear = yearOf(G.turn); const profit = Math.round(stake * (-0.06 + Math.random() * 0.3) * (me() === 'champagne' ? 1.4 : 1));
-  F.gold += profit; note(`Your factor ${profit >= 0 ? 'makes' : 'loses'} ${Math.abs(profit)} d at the fair of Troyes.`);
-  mgResult(profit >= 0 ? 'Your factor returns' : 'Your factor returns, sheepish', `He took ${stake} d to Troyes and brings back ${stake + profit} d: ${profit >= 0 ? 'a profit' : 'a loss'} of ${Math.abs(profit)} d.`, profit >= 0, 'market');
+function autoFair() {
+  const st = fairStock(); if (!st.length) return;
+  G.fairYear = yearOf(G.turn); const worth = Math.round(fairWorth(st) * (0.95 + Math.random() * 0.1));
+  G.fac[me()].gold += worth; note(`Your factor sells your goods at Troyes for ${worth} d.`);
+  mgResult('Your factor returns', `He sold everything your carts carried at a fair price: ${worth} d.`, true, 'market');
 }

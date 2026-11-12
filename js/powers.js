@@ -60,7 +60,7 @@ const POWER_TXT = { 'The Empire': ['the Empress Theophanu', 'the Empire', 'An im
 function intervene(power, p, n, lordName) {
   const o = p.owner, r = pressBattle(p, forceOf(n, 0.3), 'balanced'), T = POWER_TXT[power] || [power, power, power + ' fails'];
   if (r.won) {
-    for (const a of armiesOf(o)) if (a.loc === p.id && !a.siege) a.loc = nearestHeld(o, p.id);
+    for (const f of [o, p.ally].filter(Boolean)) for (const a of armiesOf(f)) if (a.loc === p.id && !a.siege) a.loc = nearestHeld(f, p.id) || homeOf(f);
     freeMinor(p); p.lord = lordName; p.gar = { foot: 7, bow: 3, cav: 2, cat: 0 };
     tell(o, `${power === 'King Conrad' ? 'Arles' : power} takes ${p.name}`, `An army of ${T[0]} drives your men out of ${p.name} and gives it to ${lordName}. Your losses: ${r.lost}.`);
   } else tell(o, `${p.name} holds against ${T[1]}`, `${T[2]} to take ${p.name}. Your losses: ${r.lost}.`);

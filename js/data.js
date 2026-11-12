@@ -22,7 +22,7 @@ const FACTIONS = [
     blurb: "The cloth towns of the north and a long quarrel with everyone around them.", trait: "Cloth towns: market towns yield +3 more.",
     arms: { t: 'lion', f: '#e2b33c', c: '#1d1d1d' } },
   { id: 'champagne', title: 'Count', pname: "Herbert the Younger", name: 'Champagne', ruler: "Count Herbert the Younger", color: '#3f7f3a', home: 'troyes', realm: 'France',
-    blurb: "The Herbertian counts of Troyes, Meaux and Vermandois, who boxed in the old kings and mean to box in the new one.", trait: "The fair at Troyes: market towns yield +4 more, Troyes starts with one, and the summer fair is always open to you.",
+    blurb: "The Herbertian counts of Troyes, Meaux and Vermandois, who boxed in the old kings and mean to box in the new one.", trait: "The fair at Troyes: market towns yield +4 more, Troyes starts with one, and your goods sell for 40% more at the summer fair.",
     arms: { t: 'bendCot', f: '#2d5ea8', c: '#f2ead6', c2: '#f2ead6' } },
   { id: 'blois', title: 'Count', pname: "Odo of Blois", name: 'Blois', ruler: "Count Odo of Blois", color: '#2a7a8a', home: 'blois', realm: 'France',
     blurb: "Odo of Blois, Chartres and Tours: the richest count on the Loire and the most ambitious man in the kingdom.", trait: "Odo's purse: lesser lords swear to you for a quarter less.",

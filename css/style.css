@@ -570,3 +570,12 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .ammo .amn { display: block; font-size: 10px; opacity: .8; min-height: 12px; }
 
 .searoute { fill: none; stroke: #2a1d12; stroke-width: 3.2; stroke-dasharray: 3 9; stroke-linecap: round; opacity: .7; }
+
+.fcards { display: grid; gap: 8px; margin: 8px 0; }
+.fcard { display: grid; grid-template-columns: 1.1fr 1.2fr auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line2, #c9b48a); border-radius: 10px; background: #fff6; }
+.fcard.sold { opacity: .5; }
+.fcard small { display: block; font-size: 12px; }
+.fcard .fc1 b { font: 700 15px var(--head); }
+.fcard .fc3 { display: flex; flex-direction: column; gap: 4px; }
+.fcard .fdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+@media (max-width: 480px) { .fcard { grid-template-columns: 1fr 1fr; } .fcard .fc3 { grid-column: 1 / -1; flex-direction: row; } .fcard .fc3 .btn { flex: 1; } }

@@ -342,6 +342,7 @@ function aiWar(fid, A) {
   const wantCrown = !isKing(fid), ambitious = wantCrown && domainHeld(fid) >= CROWN_LANDS - 2;
   const goalCity = ambitious ? crownNeeds(fid).find(id => P(id).owner !== fid) : null;
   let best = null, bs = -1, bestS = null;
+  const hitP = G.hitP = G.hitP || {};
   for (const p of provList()) {
     const s = strikeFrom(fid, A, p);
     if (!s) continue;
@@ -350,6 +351,8 @@ function aiWar(fid, A) {
     if (bz && bz.fid === fid) continue;
     const vsPlayer = p.owner === G.player || (!p.owner && p.ally === G.player);
     if (vsPlayer && grace && p.owner === G.player) continue;
+    // no pile-on: once enough houses are already at the player, others wait their turn, unless the player leads the kingdom or they are sworn to war on him
+    if (p.owner === G.player && !(hitP[fid] >= G.turn - 3) && leader !== G.player && !(F.warOn && F.warOn.target === G.player) && Object.keys(hitP).filter(f => f !== fid && hitP[f] >= G.turn - 3 && G.fac[f] && G.fac[f].alive).length >= (D.pile || 2)) continue;
     const ratio = ap / defPow(p);
     const cap = isCap(p);
     const kin = p.owner && !foreign(p.owner) && !foreign(fid);
@@ -374,6 +377,7 @@ function aiWar(fid, A) {
   }
   if (!best) { A.idle++; stepToward(fid, A); return; }
   A.acted = true; A.idle = 0; F.struck = true;
+  if (best.owner === G.player) hitP[fid] = G.turn;
   A.mp -= bestS.dist; A.siege = null; A.loc = bestS.stage;
   if (best.b.castle && ap <= defPow(best) * 1.6) {
     A.siege = best.id; A.loc = best.id;
