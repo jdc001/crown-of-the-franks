@@ -125,6 +125,7 @@ const truce = () => G.turn < TRUCE;
 function unitCost(fid, t) {
   if (t === 'cav' && fid === 'normandy') return 16;
   if (t === 'cav' && fid === 'gascony') return 17;
+  if (t === 'bow' && fid === 'roussillon') return 8;
   if (t === 'bishop' && fid === 'burgundy') return 18;
   return UNIT[t].c;
 }

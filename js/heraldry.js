@@ -106,7 +106,7 @@ function openMedals(tab) {
       <div class="row ctr"><button class="btn gold" onclick="shareRank()"><span class="lbl">${ico('star')}Share your rank</span></button>${H.length ? `<button class="btn" onclick="closeModal();openStats(null, 1)"><span class="lbl">${ico('scroll')}Past games</span></button>` : ''}</div>`;
   } else if (MED.tab === 'trophies') {
     const card = t => { const g = P.trophies[t.id]; return `<div class="trophy${g ? ' on' : ''}"><div class="tm">${ico(g ? 'star' : 'lock')}</div><div style="min-width:0"><b>${t.n}</b><small>${t.d}</small>${g ? `<i>Won ${new Date(g.when).toLocaleDateString()}${g.house && FACMAP[g.house] ? ' as ' + FACMAP[g.house].name : ''}</i>` : ''}</div><div class="tp">${t.pts}</div></div>`; };
-    body = `<h3>The houses</h3><p class="sub">Win the crown with each of the fourteen houses.</p><div class="trophies">${TROPHIES.filter(t => t.kind === 'house').map(card).join('')}</div>
+    body = `<h3>The houses</h3><p class="sub">Win the crown with each of the fifteen houses.</p><div class="trophies">${TROPHIES.filter(t => t.kind === 'house').map(card).join('')}</div>
       <h3>Feats</h3><div class="trophies">${TROPHIES.filter(t => t.kind !== 'house').map(card).join('')}</div>`;
   } else {
     const a = P.arms, L = P.look;

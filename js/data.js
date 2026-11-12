@@ -51,6 +51,9 @@ const FACTIONS = [
   { id: 'provence', title: 'Count', pname: "William the Liberator", name: 'Provence', ruler: "Count William the Liberator", color: '#2f8f7f', home: 'arles', realm: 'Arles',
     blurb: "William the Liberator, who drove the Saracens from Fraxinet. Provence belongs to the King of Arles, in name.", trait: "Fraxinet's veterans: generals cost a quarter less, and ports yield +3 more.",
     arms: { t: 'bendCot', f: '#2f8f7f', c: '#e2b33c', c2: '#f2ead6' } },
+  { id: 'roussillon', title: 'Count', pname: "Gausfred", name: 'Roussillon', ruler: "Count Gausfred", color: '#8a5a9a', home: 'roussillon', realm: 'France',
+    blurb: "Gausfred, Count of Empúries and Roussillon, cousin and rival of Borrell. He holds the coast road between Narbonne and Barcelona.", trait: "Mountain archers: bowmen cost 8 instead of 10.",
+    arms: { t: 'chief', f: '#e2b33c', c: '#26408a' } },
 ];
 const FACMAP = Object.fromEntries(FACTIONS.map(f => [f.id, f]));
 function FAC(id) { return (G && G.fmap && G.fmap[id]) || FACMAP[id]; }
@@ -155,7 +158,7 @@ const PROV = [
   ['narbonne', 'Narbonne', 3.0, 43.18, 'lion', 0, 6, null, 1, 'Viscount Raymond', 'fr'],
   ['beziers', 'Béziers', 3.3, 43.45, 'lion', 0, 4, null, 0, 'the Viscount of Béziers', 'fr'],
   ['nimes', 'Nîmes', 4.36, 43.84, 'lion', 0, 5, null, 1, 'the Viscount of Nîmes', 'fr'],
-  ['roussillon', 'Roussillon', 2.89, 42.7, 'lion', 1, 4, null, 1, 'Count Gausfred', 'ca'],
+  ['roussillon', 'Roussillon', 2.89, 42.7, 'lion', 1, 5, 'roussillon', 1, '', 'ca'],
   // the Spanish March
   ['barcelona', 'Barcelona', 2.17, 41.39, 'lion', 0, 7, 'barcelona', 1, '', 'ca'],
   ['girona', 'Girona', 2.82, 41.98, 'lion', 1, 5, 'barcelona', 1, '', 'ca'],
@@ -179,6 +182,7 @@ const PROV = [
   ['sussex', 'Sussex', -0.3, 50.97, 'channel', 0, 4, null, 0, 'the Ealdorman of Sussex', 'en'],
   ['wessex', 'Winchester', -1.5, 51.05, 'channel', 0, 6, null, 1, 'the Ealdorman of Hampshire', 'en'],
   ['devon', 'Exeter', -3.5, 50.78, 'channel', 1, 4, null, 1, 'the Ealdorman of Devon', 'en'],
+  ['empuries', 'Empúries', 3.0, 42.27, 'lion', 1, 4, 'roussillon', 1, '', 'ca'],
 ];
 const REGION_NAME = { fr: 'the kingdom of the Franks', lo: 'Lorraine', ar: 'Burgundy-Arles', ca: 'the Spanish March', en: 'the kingdom of the English' };
 // crossings by sea, as on a board game: an army marches or strikes along them as if the two counties touched

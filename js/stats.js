@@ -121,7 +121,7 @@ const rankNow = () => RANKS[rankOf(profile().points)];
 
 // ---------- trophies ----------
 // test(S, P) gets the game summary and the profile; points are worth more the stranger the feat
-const HOUSE_TROPHY = { capet: ['The Capetian line', 25], charles: ['Last of the Carolingians', 30], normandy: ['Duke of the Northmen', 25], flanders: ['The Lion of Flanders', 25], champagne: ['Count of the Fairs', 25], blois: ['Between the Lions', 30], anjou: ['The Black Count', 25], brittany: ['Breton Kingship', 40], aquitaine: ['Lord of the South-West', 30], burgundy: ['The Burgundian Crown', 25], toulouse: ['The Raymondine Throne', 30], barcelona: ['Count of the March', 25], gascony: ['Basque Crown', 40], provence: ['From Beyond the Rhône', 40] };
+const HOUSE_TROPHY = { capet: ['The Capetian line', 25], charles: ['Last of the Carolingians', 30], normandy: ['Duke of the Northmen', 25], flanders: ['The Lion of Flanders', 25], champagne: ['Count of the Fairs', 25], blois: ['Between the Lions', 30], anjou: ['The Black Count', 25], brittany: ['Breton Kingship', 40], aquitaine: ['Lord of the South-West', 30], burgundy: ['The Burgundian Crown', 25], toulouse: ['The Raymondine Throne', 30], barcelona: ['Count of the March', 25], gascony: ['Basque Crown', 40], provence: ['From Beyond the Rhône', 40], roussillon: ['Lord of the Coast Road', 40] };
 const TROPHIES = [
   ...Object.keys(HOUSE_TROPHY).map(h => ({ id: 'win_' + h, n: HOUSE_TROPHY[h][0], d: `Win as ${FACMAP[h] ? FACMAP[h].name : h}.`, pts: HOUSE_TROPHY[h][1], kind: 'house', test: S => S.won && S.house === h })),
   { id: 'first', n: 'Anointed', d: 'Win your first game.', pts: 20, test: S => S.won },

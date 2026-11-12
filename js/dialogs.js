@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.7';
+const APP_VERSION = '6.8';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -153,7 +153,7 @@ const HELP = { tab: 'goal' };
 function openHelp() {
   const rows = ['foot', 'bow', 'cav', 'cat'].map(t => `<tr><td>${ico(UNIT_ICON[t])} ${UNIT[t].n}</td><td>${UNIT[t].c} d</td><td>${UNIT[t].atk || '–'}</td><td>${UNIT[t].rng || '–'}</td><td>${UNIT[t].chg || '–'}</td><td>${UNIT[t].hp || '–'}</td></tr>`).join('');
   const T = {
-    goal: `<p><b>France in 987.</b> King Louis V is dead. Hugh Capet holds the crown, but the great princes rule their own lands, and Charles of Lorraine, the last Carolingian, wants it back. Fourteen houses, from Flanders to Barcelona.</p>
+    goal: `<p><b>France in 987.</b> King Louis V is dead. Hugh Capet holds the crown, but the great princes rule their own lands, and Charles of Lorraine, the last Carolingian, wants it back. Fifteen houses, from Flanders to Barcelona.</p>
       <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
       <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. A prince with ${CROWN_GREAT} counties of the kingdom needs only Reims. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
@@ -161,7 +161,7 @@ function openHelp() {
       <p><b>Distance.</b> A prince's power fades with distance. Counties more than three steps from his seat pay less, and far-flung realms breed unrest sooner. The rich land is in the north.</p>
       <p><b>The league.</b> If one house holds more than a quarter of the kingdom, the princes may league against it for three years.</p>
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every county of theirs beside it. If the house still holds four connected counties, an heir rallies there once. Fragments go to independent castellans.</p>
-      <p><b>Ranks and trophies.</b> Every game you finish earns points, and 40 trophies earn more. Points raise you from Seigneur through Baron, Viscount, Count, Marquis, Duke and King to Emperor; each rank unlocks something for your coat of arms (a crown, supporters, laurels, a mantle), shown on the title screen and around your house's shield in a game. Design your arms under Medals and arms on the title screen. The Chronicler's Challenge on the title screen gives everyone the same start for a while, so you can compare results.</p>
+      <p><b>Ranks and trophies.</b> Every game you finish earns points, and ${TROPHIES.length} trophies earn more. Points raise you from Seigneur through Baron, Viscount, Count, Marquis, Duke and King to Emperor; each rank unlocks something for your coat of arms (a crown, supporters, laurels, a mantle), shown on the title screen and around your house's shield in a game. Design your arms under Medals and arms on the title screen. The Chronicler's Challenge on the title screen gives everyone the same start for a while, so you can compare results.</p>
       <p><b>The Peace of God.</b> For the first ${TRUCE} turns the Church forbids war between the great houses. Break it and you are excommunicated.</p>
       <p><b>A turn.</b> Build and raise troops, march your armies (${MOVES} counties each through your own and allied land), strike with each army once, petition the Pope once, court one lady. Then end the turn and the other houses move.</p>`,
     powers: `<p><b>Beyond the kingdom.</b> The hatched lands at the edge of the map are not for conquest. Their rulers act on France from outside.</p>
