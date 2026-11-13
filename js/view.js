@@ -276,9 +276,11 @@ function shrinkToFit(cv, LW, LH, lastSel) {
   const card = cv && cv.closest('.card'); if (!card || cv.closest('.rotbox') || document.body.classList.contains('m')) { if (cv) cv._fit = null; return; }
   cv._fit = [LW, LH, lastSel]; cv.style.width = ''; cv.style.height = ''; cv.style.margin = '';
   const kids = [...card.querySelectorAll(lastSel || '.btn')].filter(e => e.offsetParent); const last = kids[kids.length - 1]; if (!last) return;
-  const pad = parseFloat(getComputedStyle(card).paddingBottom) || 0, over = last.getBoundingClientRect().bottom + pad - card.getBoundingClientRect().bottom + 2;
+  // measured from layout offsets, not screen rectangles, so the card's opening animation cannot skew it
+  const top = el => { let y = 0; for (let e = el; e && e !== card; e = e.offsetParent) y += e.offsetTop; return y; };
+  const pad = parseFloat(getComputedStyle(card).paddingBottom) || 0, over = top(last) + last.offsetHeight + pad - card.clientHeight + 2;
   if (over <= 0) return;
-  const h0 = cv.getBoundingClientRect().height, h = Math.max(150, h0 * 0.55, h0 - over);
+  const h0 = cv.offsetHeight, h = Math.max(150, h0 * 0.55, h0 - over);
   cv.style.height = h + 'px'; cv.style.width = Math.round(h * LW / LH) + 'px'; cv.style.margin = '0 auto';
 }
 window.addEventListener('resize', () => { for (const cv of document.querySelectorAll('.card canvas')) if (cv._fit) shrinkToFit(cv, ...cv._fit); });
