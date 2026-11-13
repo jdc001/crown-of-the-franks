@@ -200,6 +200,33 @@ function hireGeneral(fid, gid) {
   F.gens.push({ id: gid, at });
   return true;
 }
+// raise a new army in a county: a general takes command of the next free army slot, here.
+// gid is a captain from the pool (hired now) or a general already serving in this castle.
+function newArmyOptions(fid, pid) {
+  const p = P(pid), F = G.fac[fid], slot = emptyArmySlot(fid);
+  if (!slot || !p || p.owner !== fid || besiegerOf(p)) return { slot: null, here: null, pool: [] };
+  const here = p.b.castle ? genAt(fid, p.id) : null;
+  const pool = F.gens.length < 3 ? G.genPool.map(id => GENMAP[id]) : [];
+  return { slot, here, pool };
+}
+function raiseArmyHere(fid, pid, gid) {
+  const F = G.fac[fid], p = P(pid), o = newArmyOptions(fid, pid); if (!o.slot) return null;
+  const fromCastle = o.here && o.here.id === gid, d = GENMAP[gid];
+  if (!fromCastle && (!G.genPool.includes(gid) || F.gens.length >= 3 || F.gold < genCost(fid, d))) return null;
+  // anything left in the old slot's ranks goes to a garrison rather than vanishing
+  const old = army(fid, o.slot);
+  if (old && (armySize(old) || old.cat)) {
+    const to = old.loc && holds(fid, old.loc) && P(old.loc).b.castle ? P(old.loc) : p.b.castle ? p : null;
+    if (to) for (const t of ['foot', 'bow', 'cav', 'cat']) { to.gar[t] += old[t]; old[t] = 0; }
+  }
+  const keep = old && !(armySize(old) || old.cat) ? null : old, i = armiesOf(fid).findIndex(a => a.id === o.slot);
+  const a = keep && keep.loc === pid ? keep : Object.assign(newArmy(o.slot, pid), keep ? { foot: keep.foot, bow: keep.bow, cav: keep.cav, cat: keep.cat } : {});
+  a.loc = pid; a.siege = null; a.acted = false; a.mp = MOVES; a.gf = 0;
+  armiesOf(fid)[i] = a;
+  if (fromCastle) F.gens.find(x => x.id === gid).at = o.slot;
+  else { F.gold -= genCost(fid, d); G.genPool = G.genPool.filter(x => x !== gid); F.gens.push({ id: gid, at: o.slot }); }
+  return a;
+}
 const genCost = (fid, g) => fid === 'provence' ? Math.round(g.c * 0.75) : g.c;
 // move a general between postings: a castle, an empty army slot, or the lord's host
 function postGeneral(fid, gid, at) {

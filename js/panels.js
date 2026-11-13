@@ -30,7 +30,7 @@ function renderArmyBar() {
   setHTML(el, armiesOf(me()).map(a => {
     const st = slotState(a), n = armySize(a), on = a.id === A.id;
     if (st === 'locked') return `<button class="ab lock" onclick="openCourt()" title="${ARMY_IDS.indexOf(a.id) === 1 ? 'Hold 9 counties to field a second army' : 'Hold 25 counties, or be a king with two princes sworn to you, to field a third army'}">${ico('lock')}<span>${ARMY_NUM(a)}</span></button>`;
-    if (st === 'nogen') return `<button class="ab lock" onclick="openCourt()" title="Needs a general">${ico('fleur')}<span>${ARMY_NUM(a)}</span></button>`;
+    if (st === 'nogen') return `<button class="ab lock" onclick="nogenClick()" title="Needs a general: tap to raise it">${ico('fleur')}<span>${ARMY_NUM(a)}</span></button>`;
     return `<button class="ab${on ? ' on' : ''}${a.acted ? ' done' : ''}" onclick="pickArmy('${a.id}')"><b>${ARMY_NUM(a)}</b><span class="n">${st === 'captive' ? ico('chain') : ico('foot') + n}</span><small>${st === 'captive' ? 'captive' : (a.loc ? P(a.loc).name : '—')}${a.siege ? ' ⚔' : ''}</small><small class="mv">${st === 'captive' ? '' : a.acted ? 'done' : a.mp + '/' + MOVES + ' mv'}</small></button>`;
   }).join(''));
 }
@@ -365,12 +365,44 @@ function ownPanel(p, F, A) {
     h += `<h3>Build</h3>` + buildButtons(p, F);
   } else {
     if (here && canRaiseInto(me(), A)) h += `<h3>Raise into army ${ARMY_NUM(A)}</h3><div class="grid">${['foot', 'bow', 'cav', 'cat'].map(t => `<button class="btn" onclick="act('raiseA','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}>${haveBadge(A[t], 'in army ' + ARMY_NUM(A))}<span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${UPKEEP[t]} d a turn · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Men raised into an army are paid every turn.</p>${A.cat ? `<button class="btn" style="margin-top:6px;width:100%" onclick="act('greek')" ${(A.gf || 0) < GF_MAX && F.gold >= gfCost(me(), A) ? '' : 'disabled'}>${haveBadge(A.gf || 0, 'jars')}<span class="lbl">${ico('oil')}A jar of Greek fire</span><small>${gfCost(me(), A)} d${armyGen(me(), A) && armyGen(me(), A).siege ? ', made by your Greek engineer' : ' from Venetian traders (25 d with a Greek engineer)'} · at most ${GF_MAX} · each throw may burn the catapult</small></button>` : ''}`;
+    h += newArmyHtml(p, F);
     if (p.b.castle) h += `<h3>Raise into the garrison</h3><div class="grid">${UT_ALL.map(t => `<button class="btn" onclick="act('raise','${t}')" ${F.gold >= unitCost(me(), t) ? '' : 'disabled'}>${haveBadge(t === 'bishop' ? F.bishops : p.gar[t], t === 'bishop' ? 'in council' : 'in garrison')}<span class="lbl">${ico(UNIT_ICON[t])}${UNIT[t].n}</span><small>${unitCost(me(), t)} d · ${statLine(t)}</small></button>`).join('')}</div><p class="sub">Garrisons cost nothing to keep. Bishops join your council of bishops.</p>`;
     h += defenceHtml(p);
   }
   return h + (cta ? `<div class="cta">${cta}</div>` : '');
 }
 const UT_ALL = ['foot', 'bow', 'cav', 'cat', 'bishop'];
+// a new army, raised here under a general
+function newArmyHtml(p, F) {
+  const o = newArmyOptions(me(), p.id); if (!o.slot) return '';
+  const n = ARMY_IDS.indexOf(o.slot) + 1, cheap = o.pool.length ? Math.min(...o.pool.map(d => genCost(me(), d))) : null;
+  if (!o.here && !o.pool.length) return `<h3>A new army</h3><p class="sub">Your realm can field army ${n}, but it needs a general and none is free. ${F.gens.length >= 3 ? 'You already keep three: post one from a castle to command it at the court.' : 'No captain is seeking a lord just now.'}</p>`;
+  const can = o.here || F.gold >= cheap;
+  return `<h3>A new army</h3><button class="btn gold" style="width:100%" onclick="openNewArmy('${p.id}')" ${can ? '' : 'disabled'}><span class="lbl">${ico('fleur')}Raise army ${n} here under a general</span><small>${o.here ? `${o.here.n.split(' ')[0]} is in the castle and can take command` : `hire a captain from ${coin(cheap)}`} · the army starts empty: fill it from the garrison or raise men into it</small></button>`;
+}
+// tapping an empty army slot raises it in the county you are looking at, or at home
+function nogenClick() { const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null; const at = p && newArmyOptions(me(), p.id).slot ? p.id : homeOf(me()); const o = newArmyOptions(me(), at); if (o.slot && (o.here || o.pool.length)) openNewArmy(at); else openCourt(); }
+function openNewArmy(pid, gid) {
+  const p = P(pid), F = G.fac[me()], o = newArmyOptions(me(), pid); if (!o.slot) return;
+  const n = ARMY_IDS.indexOf(o.slot) + 1, stat = d => genSummary(d).split(' · ').map(s => `<span class="tag">${s}</span>`).join('');
+  if (gid) {
+    const d = GENMAP[gid], fromCastle = o.here && o.here.id === gid, cost = fromCastle ? 0 : genCost(me(), d);
+    return showModal(`<div class="rep"><div class="sealmark">${ico('fleur')}</div><h2>Raise army ${n}?</h2>
+      <p class="ctr">${esc(d.n)} ${fromCastle ? `leaves the castle at ${esc(p.name)}` : `enters your service for ${coin(cost)}`} and raises your banner at ${esc(p.name)} as the commander of army ${n}.</p>
+      <p class="sub ctr">This cannot be undone. ${fromCastle ? 'The castle loses its strategist.' : 'The silver is spent'}${fromCastle ? '' : ', and a general can only leave an army by moving to a castle or dying with it'}. The new army costs upkeep for every man in it while it campaigns.</p>
+      <div class="grid2"><button class="btn gold" onclick="doNewArmy('${pid}','${gid}')"><span class="lbl">${ico('flag')}Raise the army</span></button><button class="btn" onclick="openNewArmy('${pid}')">Back</button></div></div>`, '', { closable: true });
+  }
+  const row = (d, fromCastle) => { const cost = fromCastle ? 0 : genCost(me(), d), ok = fromCastle || F.gold >= cost; return `<div class="gen${fromCastle ? ' on' : ''}"><div class="gname">${ico('fleur')} ${esc(d.n)}</div><div class="sub">${esc(d.d)}</div><div class="gstats">${stat(d)}</div><button class="btn sm${ok ? ' gold' : ''}" onclick="openNewArmy('${pid}','${d.id}')" ${ok ? '' : 'disabled'}>${fromCastle ? 'Give him command' : `Hire · ${coin(cost)}`}</button></div>`; };
+  showModal(`<h2>${ico('fleur')} Raise army ${n} at ${esc(p.name)}</h2><p>Choose the general who will lead it. You have ${coin(F.gold)}.</p>
+    ${o.here ? `<h3>In the castle</h3><div class="gens">${row(GENMAP[o.here.id], true)}</div>` : ''}
+    ${o.pool.length ? `<h3>Seeking a lord</h3><div class="gens">${o.pool.map(d => row(d, false)).join('')}</div>` : ''}`, '', { closable: true });
+}
+function doNewArmy(pid, gid) {
+  const a = raiseArmyHere(me(), pid, gid); if (!a) { closeModal(); return toast('The army could not be raised'); }
+  const d = GENMAP[gid]; G.army = a.id; PANEL.tab = 'raise';
+  note(`${d.n} raises your banner at ${P(pid).name}: army ${ARMY_NUM(a)} takes the field.`);
+  sfx('horn'); buzz(30); closeModal(); save(); render(); toast(`Army ${ARMY_NUM(a)} raised under ${d.n.split(' ')[0]}`, 'flag');
+}
 function buildButtons(p, F) {
   if (p.build) return `<div class="notebox">${ico('hammer')} Work is under way: ${p.build.type === 'castle' ? CASTLE_N[castleLv(p) + 1] : p.build.type === 'rebuild' ? 'rebuilding the castle' : BLD[p.build.type].n}, ${p.build.left} turn${p.build.left > 1 ? 's' : ''} left. One project at a time.</div>${p.build.turn === G.turn && p.build.cost != null ? `<button class="btn sm" onclick="act('unbuild')"><span class="lbl">${ico('back')}Cancel the work</span><small>begun this turn: ${p.build.cost} d back</small></button>` : ''}`;
   const opts = [];

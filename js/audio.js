@@ -369,7 +369,7 @@ function ambience(end, kind) {
 
 // ================= EFFECTS =================
 // each effect plays through its own little bus, levelled so that a click and a falling wall sit right together
-const FXL = { click: 5, coin: 2.2, horn: 0.7, plague: 2, rat: 3, miss: 2, splash: 2, clash: 7, arrows: 7, cheer: 9, raise: 2.2, ship: 4, fire: 1.2, build: 1.1 };
+const FXL = { greek: 0.9, click: 5, coin: 2.2, horn: 0.7, plague: 2, rat: 3, miss: 2, splash: 2, clash: 7, arrows: 7, cheer: 9, raise: 2.2, ship: 4, fire: 1.2, build: 1.1 };
 let FXB = null;
 const fx = () => FXB || SND.sfx;
 function clink(t, f, vol, pan) { for (const [r, a, d] of [[1, 1, 0.25], [2.76, 0.5, 0.15], [5.4, 0.3, 0.08], [8.9, 0.15, 0.05]]) { const o = SND.ctx.createOscillator(), g = SND.ctx.createGain(); o.type = 'sine'; o.frequency.value = f * r; g.gain.setValueAtTime(vol * a, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); route(g, fx(), pan, 0.25); o.start(t); o.stop(t + d + 0.02); } }
@@ -389,7 +389,11 @@ function sfxPlay(kind, t) {
     case 'launch': { const c = SND.ctx, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(110, t + 0.18); f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = 3; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.25, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22); o.connect(f); f.connect(g); route(g, fx(), -0.4, 0.2); o.start(t); o.stop(t + 0.25); skin(fx(), t + 0.16, 90, 45, 0.3, 0.5, -0.4); noiseBurst(fx(), t + 0.15, 'bandpass', 1400, 1, 0.5, 0.3, -0.2, 0.3, 350); break; }
     case 'wall': skin(fx(), t, 80, 32, 0.6, 0.85, 0.3, 0.45); noiseBurst(fx(), t, 'lowpass', 900, 0.7, 0.45, 0.7, 0.3, 0.4, 150); rumble(t + 0.08, 0.7, 0.5); break;
     case 'fire': noiseBurst(fx(), t, 'lowpass', 500, 0.5, 0.7, 0.55, 0.3, 0.3); noiseBurst(fx(), t, 'bandpass', 2200, 0.8, 1.0, 0.25, 0.3, 0.3, 900); for (let i = 0; i < 8; i++) noiseBurst(fx(), t + rr(0.1, 1.2), 'highpass', rr(2500, 5000), 1, 0.015, rr(0.15, 0.35), rr(-0.2, 0.6), 0.1); break;
-    case 'greek': noiseBurst(fx(), t, 'lowpass', 300, 0.6, 1.3, 0.8, 0.3, 0.4); skin(fx(), t, 70, 35, 0.8, 0.6, 0.3, 0.5); for (let i = 0; i < 14; i++) noiseBurst(fx(), t + rr(0.1, 1.6), 'highpass', rr(2000, 5000), 1, 0.02, rr(0.15, 0.4), rr(-0.3, 0.7), 0.1); break;
+    case 'greek': // a crack, a deep thump you feel more than hear, the roar of the fireball, then crackling and falling stone
+      noiseBurst(fx(), t, 'highpass', 1800, 0.7, 0.12, 0.9, 0.2, 0.3); skin(fx(), t, 110, 28, 1.6, 1.0, 0.2, 0.5); skin(fx(), t + 0.02, 60, 24, 2.2, 0.8, 0, 0.6);
+      noiseBurst(fx(), t, 'lowpass', 900, 0.6, 2.2, 0.9, 0.2, 0.6, 120); noiseBurst(fx(), t + 0.05, 'bandpass', 500, 0.5, 1.8, 0.5, -0.3, 0.6, 180);
+      rumble(t + 0.25, 1.4, 0.7);
+      for (let i = 0; i < 26; i++) noiseBurst(fx(), t + rr(0.15, 3.2), 'highpass', rr(2000, 5500), 1, rr(0.01, 0.03), rr(0.15, 0.45), rr(-0.6, 0.7), 0.15); break;
     case 'plague': noiseBurst(fx(), t, 'lowpass', 700, 1, 0.25, 0.5, 0.3, 0.2); skin(fx(), t, 150, 60, 0.3, 0.3, 0.3); break;
     case 'rat': for (let i = 0; i < 2 + rnd(3); i++) { const c = SND.ctx, s = t + i * rr(0.08, 0.16), o = c.createOscillator(), m = c.createOscillator(), mg = c.createGain(), g = c.createGain(), f = rr(2800, 4200); o.type = 'sine'; o.frequency.value = f; m.frequency.value = rr(30, 60); mg.gain.value = f * 0.12; m.connect(mg); mg.connect(o.frequency); g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.08, s + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, s + rr(0.06, 0.14)); o.connect(g); route(g, fx(), rr(0, 0.6), 0.2); o.start(s); m.start(s); o.stop(s + 0.16); m.stop(s + 0.16); } break;
     case 'miss': skin(fx(), t, 70, 40, 0.25, 0.45, 0.2, 0.2); noiseBurst(fx(), t, 'lowpass', 400, 0.6, 0.25, 0.35, 0.2, 0.1); break;

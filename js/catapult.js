@@ -57,7 +57,7 @@ function openCatapult(p) {
       if (!(A.gf > 0)) { CT.msg = 'No Greek fire left. Buy jars on the Raise tab of a county where the army stands.'; CT.ammo = 'stone'; $$('[data-am]').forEach(x => x.classList.toggle('on', x.dataset.am === 'stone')); sfx('miss'); return; }
       A.gf--;
       // a third of the time the naphtha splashes back on the throwing arm, and the catapult burns
-      if (Math.random() < 1 / 3) { const share = Math.ceil(CT.shots / Math.max(1, A.cat)); A.cat = Math.max(0, A.cat - 1); CT.shots = A.cat ? Math.max(0, CT.shots - share) : 1; CT.lostCat = (CT.lostCat || 0) + 1; ctBurst(112, GY - 64, '#ff8c1a', 50); CT.fires.push({ x: 112, y: GY - 30, t: 5 }); CT.burnMsg = true; sfx('fire'); buzz(60); }
+      if (Math.random() < 1 / 3) { const share = Math.ceil(CT.shots / Math.max(1, A.cat)); A.cat = Math.max(0, A.cat - 1); CT.shots = A.cat ? Math.max(0, CT.shots - share) : 1; CT.lostCat = (CT.lostCat || 0) + 1; ctBoom(112, GY - 64, 0.7); CT.fires.push({ x: 112, y: GY - 30, t: 5 }); CT.burnMsg = true; sfx('fire'); buzz(60); }
     }
     const pool = CT.ammo === 'rats' || CT.ammo === 'giant' ? 'cages' : null;
     if (pool) { if (CT[pool] <= 0) { CT.msg = pool === 'pots' ? 'No fire pots left. Stones are all you have.' : 'No cages of rats left. Stones are all you have.'; CT.ammo = 'stone'; $$('[data-am]').forEach(x => x.classList.toggle('on', x.dataset.am === 'stone')); sfx('miss'); return; } CT[pool]--; }
@@ -79,11 +79,23 @@ function launchVec(d) {
   const k = Math.min(len, 170) / len; dx *= k; dy *= k;
   return { vx: dx * 4.2, vy: dy * 4.2, pow: Math.min(len, 170) / 170 };
 }
+// Greek fire going off: a flash, a fireball, a shock ring, burning gobbets, flying stone, a column of black smoke,
+// embers drifting down long after, and a shake of the whole scene
+function ctBoom(x, y, big = 1) {
+  CT.booms = CT.booms || []; CT.booms.push({ x, y, t: 0, big });
+  CT.shake = Math.max(CT.shake || 0, 0.55 * big); CT.flash = Math.max(CT.flash || 0, 0.9 * big);
+  const P = CT.parts, R = Math.random;
+  for (let i = 0; i < 46 * big; i++) { const a = R() * Math.PI * 2, v = 120 + R() * 380; P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 140, life: 0.7 + R() * 0.9, color: pick(['#fff3b0', '#ffd23f', '#ff8c1a', '#ff5a1a']), s: 3 + R() * 5, round: 1, glow: 1, g: 0.8 }); }
+  for (let i = 0; i < 22 * big; i++) { const a = -Math.PI * R(), v = 180 + R() * 320; P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.2 + R() * 0.8, color: pick(['#6d6658', '#8a816e', '#4e483e']), s: 3 + R() * 6, g: 1 }); }
+  for (let i = 0; i < 34 * big; i++) P.push({ x: x + (R() - .5) * 30, y: y - R() * 20, vx: (R() - .5) * 50 + (CT.wind || 0) * 0.4, vy: -40 - R() * 90, life: 2 + R() * 2.2, max: 4.2, color: R() < .5 ? '#2b2620' : '#46403a', s: 8 + R() * 10, grow: 14 + R() * 14, round: 1, smoke: 1, g: -0.04 });
+  for (let i = 0; i < 40 * big; i++) P.push({ x: x + (R() - .5) * 40, y: y - R() * 50, vx: (R() - .5) * 140, vy: -60 - R() * 200, life: 2 + R() * 2.5, color: pick(['#ffb347', '#ff7a1a', '#ffe08a']), s: 1.5 + R() * 2, round: 1, glow: 1, g: 0.12, flick: 1 });
+  for (let i = 0; i < 4 * big; i++) CT.fires.push({ x: x + (R() - .5) * 70, y: Math.min(GY - 4, y + R() * 30), t: 5 + R() * 4 });
+}
 function ctBurst(x, y, color, n) { for (let i = 0; i < n; i++) CT.parts.push({ x, y, vx: (Math.random() - .5) * 260, vy: -Math.random() * 260, life: .6 + Math.random() * .6, color, s: 2 + Math.random() * 4 }); }
 const ctHit = (c, n) => { CT.h[c] = Math.max(0, CT.h[c] - n); };
 function ctHitOuter(c, q) {
   const hit = (k, n) => { if (k >= 0 && k < CT.ocols) CT.oh[k] = Math.max(0, CT.oh[k] - n); };
-  if (q.type === 'greek') { hit(c, 9); hit(c - 1, 3); hit(c + 1, 3); ctBurst(q.x, q.y, '#ff8c1a', 50); CT.msg = 'Greek fire bursts on the outer wall and brings a stretch of it down.'; sfx('greek'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
+  if (q.type === 'greek') { hit(c, 9); hit(c - 1, 3); hit(c + 1, 3); ctBoom(q.x, q.y); CT.msg = 'Greek fire bursts on the outer wall and brings a stretch of it down.'; sfx('greek'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
   if (q.type === 'stone') { hit(c, 3); if (Math.random() < .7) hit(c - 1, 1); if (Math.random() < .7) hit(c + 1, 1); CT.msg = 'Direct hit on the outer wall! A section comes down.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple') { if (Math.random() < 0.5) { hit(c, 1); CT.msg = 'Stones chip the outer wall.'; sfx('wall'); } else { CT.msg = 'A small stone glances off the outer wall.'; sfx('miss'); } }
   else if (q.type === 'oil') { if (Math.random() < 0.3) hit(c, 1); CT.msg = 'The fire splashes on the outer wall. Aim over both walls to burn the defenders.'; sfx('fire'); }
@@ -93,7 +105,7 @@ function ctHitOuter(c, q) {
 }
 function ctHitWall(c, q) {
   const wood = CT.lv === 1;
-  if (q.type === 'greek') { ctHit(c, wood ? 12 : 9); if (c > 0) ctHit(c - 1, 3); if (c < CT.cols - 1) ctHit(c + 1, 3); CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBurst(q.x, q.y, '#ff8c1a', 50); ctBurst(q.x, q.y, '#8a816e', 30); CT.msg = 'Greek fire bursts against the wall! The stones crack in the heat and a whole stretch comes down.'; sfx('greek'); sfx('fire'); buzz(60); return; }
+  if (q.type === 'greek') { ctHit(c, wood ? 12 : 9); if (c > 0) ctHit(c - 1, 3); if (c < CT.cols - 1) ctHit(c + 1, 3); CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBoom(q.x, q.y); CT.msg = 'Greek fire bursts against the wall! The stones crack in the heat and a whole stretch comes down.'; sfx('greek'); sfx('fire'); buzz(60); return; }
   if (q.type === 'stone') { ctHit(c, wood ? 4 : 3); if (c > 0 && Math.random() < .7) ctHit(c - 1, 1); if (c < CT.cols - 1 && Math.random() < .7) ctHit(c + 1, 1); ctBurst(q.x, q.y, wood ? '#7a5530' : '#8a816e', 26); CT.msg = 'Direct hit! A section of wall collapses.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple' && Math.random() > (CT.lv === 1 ? 1 : CT.lv === 2 ? 0.5 : 0.2)) { ctBurst(q.x, q.y, '#8a816e', 6); CT.msg = CT.lv === 3 ? 'The small stones rattle off the great walls. It takes a heavy stone to break these.' : 'A small stone glances off the masonry.'; sfx('miss'); }
   else if (q.type === 'triple') { ctHit(c, 1); if (CT.lv === 1 && Math.random() < .35) { const n = c + (Math.random() < .5 ? -1 : 1); if (n >= 0 && n < CT.cols) ctHit(n, 1); } ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = 'Stones hammer the wall.'; sfx('wall'); buzz(20); }
@@ -119,7 +131,7 @@ function ctHitInside(q) {
   const p = CT.p; let k = 0;
   const empty = ctAlive() === 0;
   if (q.type === 'stone' || q.type === 'triple') { k = Math.random() < (q.type === 'stone' ? .5 : .25) ? killDefenders(p, 1) : 0; ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = empty ? 'The stone lands in an empty bailey.' : k ? 'The stone crashes into the bailey and crushes a defender.' : 'The stone lands in the bailey. The defenders scatter.'; sfx('wall'); }
-  else if (q.type === 'greek') { const tired = Math.max(0.3, 1 - 0.1 * (CT.fireN || 0)); CT.fireN = (CT.fireN || 0) + 1; const e = 4.4 * tired; k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBurst(q.x, q.y, '#ff8c1a', 60); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('greek'); buzz(50); }
+  else if (q.type === 'greek') { const tired = Math.max(0.3, 1 - 0.1 * (CT.fireN || 0)); CT.fireN = (CT.fireN || 0) + 1; const e = 4.4 * tired; k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBoom(q.x, q.y, 1.15); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('greek'); buzz(50); }
   else if (q.type === 'oil') { k = killDefenders(p, fireKills(q.small)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
   else if (q.type === 'rat') {
     ratNest(q.x, false); if (Math.random() < 0.12) ratPlague();
@@ -187,8 +199,10 @@ function ctUpdate(dt) {
     if (done) q.dead = true;
   }
   if (CT.projs.length && CT.projs.every(q => q.dead)) { CT.projs = []; CT.wind = Math.round((Math.random() * 2 - 1) * 70); if (CT.shots <= 0) CT.msg += ' Out of ammunition.'; }
-  CT.parts.forEach(t => { t.vy += 600 * dt; t.x += t.vx * dt; t.y += t.vy * dt; t.life -= dt; });
-  CT.parts = CT.parts.filter(t => t.life > 0 && t.y < GY + 4);
+  CT.parts.forEach(t => { t.vy += 600 * (t.g ?? 1) * dt; if (t.smoke) { t.vx *= 1 - dt * 0.8; t.vy *= 1 - dt * 0.6; t.vx += (CT.wind || 0) * 0.15 * dt; } if (t.grow) t.s += t.grow * dt; t.x += t.vx * dt; t.y += t.vy * dt; t.life -= dt; });
+  CT.parts = CT.parts.filter(t => t.life > 0 && (t.y < GY + 4 || t.smoke));
+  if (CT.booms) { CT.booms.forEach(b => b.t += dt); CT.booms = CT.booms.filter(b => b.t < 1.2); }
+  if (CT.shake) CT.shake = Math.max(0, CT.shake - dt); if (CT.flash) CT.flash = Math.max(0, CT.flash - dt * 3.2);
   CT.fires.forEach(f => f.t -= dt); CT.fires = CT.fires.filter(f => f.t > 0);
   ratsTick(dt);
   for (const r of CT.rats) { r.x += r.v * dt; r.ph += dt * (r.big ? 9 : 16); if (r.x < 662 || r.x > 788) r.v = -r.v; }
@@ -202,6 +216,7 @@ function ctUpdate(dt) {
 }
 function ctDraw() {
   const x = CT.ctx, p = CT.p, wood = CT.lv === 1;
+  x.save(); if (CT.shake && !document.body.classList.contains('nomotion')) { const k = 10 * CT.shake; x.translate((Math.random() - .5) * k, (Math.random() - .5) * k); }
   x.drawImage(CT.sky, 0, 0, CW, CH);
   x.fillStyle = 'rgba(255,255,255,.75)';
   for (const [cx, cy, w, h] of CT.clouds) { x.beginPath(); x.ellipse(cx, cy, w, h, 0, 0, 7); x.ellipse(cx + w * 0.5, cy - h * 0.4, w * 0.6, h * 0.9, 0, 0, 7); x.ellipse(cx - w * 0.5, cy - h * 0.2, w * 0.5, h * 0.8, 0, 0, 7); x.fill(); }
@@ -276,8 +291,28 @@ function ctDraw() {
     if (q.type === 'oil') { x.fillStyle = '#ffd36b'; x.beginPath(); x.arc(q.x - 3, q.y - 3, 3, 0, 7); x.fill(); }
   }
   for (const r of CT.rats) drawRat(x, r.x, GY - (r.big ? 9 : 4), r.big ? 1.2 : 0.5, Math.sign(r.v), r.ph, false);
-  CT.parts.forEach(t => { x.globalAlpha = Math.max(0, Math.min(1, t.life)); x.fillStyle = t.color; x.fillRect(t.x, t.y, t.s, t.s); });
+  // smoke first, then the fireball and its ring, then everything glowing on top
+  for (const t of CT.parts) if (t.smoke) {
+    const al = Math.max(0, Math.min(0.6, t.life / (t.max || 3) * 0.75)), young = Math.max(0, 1 - ((t.max || 3) - t.life) / 0.9);
+    const g = x.createRadialGradient(t.x, t.y, 0, t.x, t.y, t.s); const c = young > 0 ? `${Math.round(43 + 180 * young)},${Math.round(38 + 60 * young)},${Math.round(32 + 10 * young)}` : (t.color === '#2b2620' ? '43,38,32' : '70,64,58');
+    g.addColorStop(0, `rgba(${c},${al})`); g.addColorStop(0.6, `rgba(${c},${al * 0.6})`); g.addColorStop(1, `rgba(${c},0)`); x.fillStyle = g; x.beginPath(); x.arc(t.x, t.y, t.s, 0, 7); x.fill();
+  }
   x.globalAlpha = 1;
+  for (const b of CT.booms || []) {
+    const k = b.t, r = (24 + 120 * Math.min(1, k / 0.3) + 18 * Math.sin(Math.min(k, 0.6) * 18) * (1 - k)) * b.big, a = Math.max(0, 1 - k / 0.95);
+    if (a > 0) { const g = x.createRadialGradient(b.x, b.y, 0, b.x, b.y, r); g.addColorStop(0, `rgba(255,255,230,${a})`); g.addColorStop(0.25, `rgba(255,220,90,${a})`); g.addColorStop(0.55, `rgba(255,120,20,${a * 0.85})`); g.addColorStop(1, 'rgba(160,30,0,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, r, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; }
+    if (k < 0.5) { x.strokeStyle = `rgba(255,240,200,${0.7 * (1 - k / 0.5)})`; x.lineWidth = 6 * (1 - k / 0.5) + 1; x.beginPath(); x.arc(b.x, b.y, (30 + 260 * k) * b.big, 0, 7); x.stroke(); }
+  }
+  for (const t of CT.parts) {
+    if (t.smoke) continue;
+    x.globalAlpha = Math.max(0, Math.min(1, t.life)) * (t.flick ? 0.6 + 0.4 * Math.random() : 1); x.fillStyle = t.color;
+    if (t.glow) x.globalCompositeOperation = 'lighter';
+    if (t.round) { x.beginPath(); x.arc(t.x, t.y, t.s, 0, 7); x.fill(); } else x.fillRect(t.x, t.y, t.s, t.s);
+    x.globalCompositeOperation = 'source-over';
+  }
+  x.globalAlpha = 1;
+  x.restore();
+  if (CT.flash) { x.fillStyle = `rgba(255,236,190,${Math.min(0.85, CT.flash)})`; x.fillRect(0, 0, CW, CH); }
   // HUD (DOM)
   const integ = Math.round(CT.h.reduce((s, v) => s + v, 0) / (CT.cols * CT.rows) * 100);
   const set = (id, v) => { const el = document.getElementById(id); if (el && el.innerHTML !== v) el.innerHTML = v; };
