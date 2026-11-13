@@ -217,6 +217,11 @@ body.d .cta { padding-bottom: 14px; margin-bottom: -40px; }
 .selp { fill: #fff5; stroke: #e2b33c; }
 .mrch { fill: #3f6b3522; stroke: #3f6b35; stroke-dasharray: 2 5; stroke-linecap: round; }
 .mrch.far { fill: #c0902018; stroke: #b07d14; stroke-dasharray: 2 6; }
+.ambbar { display: flex; align-items: center; gap: 10px; width: 100%; margin: 4px 0 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line2, #b39a64); background: var(--tex), linear-gradient(#f7eccf, #e8d6a8); color: var(--ink); font: inherit; text-align: left; cursor: pointer; box-shadow: 0 1px 3px #0003; }
+.ambbar:active { transform: translateY(1px); }
+.ambbar .t { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ambbar .t small { color: var(--ink2); font-style: italic; }
+.ambbar > .ic { width: 22px; height: 22px; opacity: .7; }
 .notebox.warnbox { border-color: #a87a1e; background: #f3e2b0; }
 .fire { transform-origin: center; }
 @keyframes flick { from { opacity: .75; transform: scale(.94); } to { opacity: 1; transform: scale(1.06); } }

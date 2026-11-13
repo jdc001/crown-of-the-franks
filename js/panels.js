@@ -266,7 +266,7 @@ function wealthCard(p) {
   const mine = incomeFor(p, me()), steps = reachOf(me(), p), now = p.owner ? incomeFor(p, p.owner) : p.ally ? Math.floor(minorIncome(p) / 2) : 0;
   const lots = WARES.map(w => [w, p.b[w.id] || 0]).filter(x => x[1]).map(([w, n]) => `${n} lot${n > 1 ? 's' : ''} of ${w.grades[Math.min(2, n - 1)].toLowerCase()}`);
   const bl = ['farm', 'market', 'port', 'mine'].filter(t => p.b[t]).map(t => `${BLD[t].n.toLowerCase()} ${ROMAN[p.b[t]]}`);
-  return `<div class="statcard wealth"><p style="margin:0">${ico('coin')} ${p.owner ? `Pays ${esc(FAC(p.owner).name)} <b>${now} d</b> a turn.` : p.ally ? `Pays ${esc(fname(p.ally))} <b>${now} d</b> a turn as an ally.` : `Its lord keeps <b>${p.base} d</b> a turn.`} Yours, it would pay <b>${mine} d</b> a turn${steps > 3 ? ` <span class="sub">(${steps} steps from your seat, so ${Math.round(reachMult(me(), p) * 100)}%)</span>` : ''}${p.cap && p.cap === p.owner ? ' <span class="sub">A seat pays double only to its own house.</span>' : ''}.</p>
+  return `<div class="statcard wealth"><p style="margin:0">${ico('coin')} ${p.owner ? `Pays ${esc(FAC(p.owner).name)} <b>${now} d</b> a turn.` : p.ally ? `Pays ${esc(fname(p.ally))} <b>${now} d</b> a turn as an ally.` : `Its lord keeps <b>${p.base} d</b> a turn.`} Yours, it would pay <b>${mine} d</b> a turn${steps > 3 ? ` <span class="sub">(${steps} steps from your seat, so ${Math.round(reachMult(me(), p) * 100)}%)</span>` : ''}.${p.cap && p.cap === p.owner ? ' <span class="sub">A seat pays double only to its own house.</span>' : ''}</p>
     <p style="margin:4px 0 0" class="sub">${bl.length ? `Buildings: ${bl.join(', ')}.` : 'No farms, markets, mines or ports yet.'}${lots.length ? ` At the fair it would add ${lots.join(', ')}.` : ''}</p></div>`;
 }
 function provHead(p) {
@@ -448,12 +448,17 @@ function courtshipIntro(p, F) {
 function courtshipBtn(p, F) {
   return `<button class="btn gold" onclick="openCourtshipDlg('${p.id}')" ${F.sons && !F.proposed && !G.court ? '' : 'disabled'}><span class="lbl">${ico('ring')}Court Lady ${p.heiress}</span><small>${F.proposed ? 'already courted this turn' : F.sons ? `sons: ${F.sons} · one courtship a turn` : 'no unmarried sons'}</small></button>`;
 }
+// every county of a great house carries a quick way to its ambassador, whatever tab is open
+function ambassadorBar(o) {
+  const a = attitude(o, me()), st = allied(me(), o) ? 'allied' : atPeace(me(), o) ? 'at peace' : atWar(me(), o) ? 'at war' : truce() ? 'Peace of God' : 'no treaty';
+  return `<button class="ambbar" onclick="openDiplo('${o}')">${shield(o, 26)}<span class="t"><b>Speak with their ambassador</b><small>${esc(FAC(o).name)} · ${attWord(a)} · ${st}</small></span>${ico('handshake')}</button>`;
+}
 function foreignPanel(p, F, A) {
   const tabs = [{ id: 'war', n: 'War', ic: 'swords' }];
   if (!p.owner) tabs.push({ id: 'dip', n: 'Diplomacy', ic: 'handshake', dot: (p.heiress && F.sons && !F.proposed) || (canAlly(me(), p) && F.gold >= allyCost(me(), p)) });
   if (p.owner && p.owner !== me()) tabs.push({ id: 'treaty', n: 'Envoys', ic: 'handshake' }, { id: 'church', n: 'Church', ic: 'church' });
   const cur = keptTab(tabs) || 'war';
-  let h = tabsHtml(tabs, cur), cta = '';
+  let h = (p.owner && p.owner !== me() ? ambassadorBar(p.owner) : '') + tabsHtml(tabs, cur), cta = '';
   if (cur === 'war') {
     h += `<h3>War · army ${ARMY_NUM(A)}</h3>`;
     const bz = besieging(p);
