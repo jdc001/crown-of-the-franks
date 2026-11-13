@@ -84,10 +84,11 @@ function signWar() {
 function openDiplo(fid) {
   const F = G.fac[me()], houses = alive().filter(f => f !== me());
   if (fid && fid !== DP.f) { DP.f = fid; DP.county = null; DP.target = null; }
-  if (!houses.includes(DP.f)) DP.f = houses[0] || null;
+  if (DP.f !== 'me' && !houses.includes(DP.f)) DP.f = 'me';
   const t = DP.f;
-  const picker = `<div class="dpick">${houses.map(f => `<button class="${f === t ? 'on' : ''}" onclick="DP.f='${f}';DP.county=null;DP.target=null;openDiplo()" title="${esc(FAC(f).name)}">${shield(f, 22)}<span>${esc(FAC(f).name.replace(/^The /, ''))}</span>${allied(me(), f) ? '<i>✦</i>' : atPeace(me(), f) ? '<i>✓</i>' : ''}</button>`).join('')}</div>`;
-  if (!t) return showModal(`<h2>${ico('handshake')} Diplomacy</h2><p>No other house stands.</p>`, '', { closable: true });
+  const picker = `<div class="dpick"><button class="${DP.f === 'me' ? 'on' : ''} meb" onclick="DP.f='me';openDiplo()" title="All your relations">${shield(me(), 22)}<span>You: all relations</span></button>${houses.map(f => `<button class="${f === t ? 'on' : ''}" onclick="DP.f='${f}';DP.county=null;DP.target=null;openDiplo()" title="${esc(FAC(f).name)}">${shield(f, 22)}<span>${esc(FAC(f).name.replace(/^The /, ''))}</span>${allied(me(), f) ? '<i>✦</i>' : atPeace(me(), f) ? '<i>✓</i>' : ''}</button>`).join('')}</div>`;
+  if (!houses.length) return showModal(`<h2>${ico('handshake')} Diplomacy</h2><p>No other house stands.</p>`, '', { closable: true });
+  if (t === 'me') return showModal(`<h2>${ico('handshake')} Diplomacy</h2><p class="sub">Choose a house to treat with it, or see all your relations below.</p>${picker}${relationsTable()}`, '', { closable: true });
   const T = G.fac[t], d = FAC(t);
   const r = relPower(t, me());
   const strength = r > 1.5 ? '<span class="bad">much stronger than you</span>' : r > 1.1 ? 'stronger than you' : r > 0.9 ? 'about your equal' : r > 0.6 ? 'weaker than you' : '<span class="good">much weaker than you</span>';
@@ -116,4 +117,16 @@ function openDiplo(fid) {
     ${DP.target ? `<p style="margin:8px 0 0">${priceTxt(t, wp)}</p>${signBtn('red', 'swords', `War on ${esc(FAC(DP.target).name)}`, wp, 'signWar()')}` : '<p class="sub">Choose the house they should make war on.</p>'}` : `<p class="sub">${esc(d.name)} borders no house it could make war on just now.</p>`}`;
   const marry = `<h3>A marriage</h3><p class="sub">${PACT_COST} d in gifts and one of your sons: peace for ${PACT_TURNS} turns, if they accept.</p><button class="btn" onclick="closeModal();doPact('${t}')" ${canPact(me(), t) && F.gold >= PACT_COST ? '' : 'disabled'}><span class="lbl">${ico('ring')}Offer a marriage</span><small>${!F.sons ? 'no unmarried sons' : F.proposed ? 'already courted this turn' : atPeace(me(), t) ? 'already at peace' : recentPeace(me(), t) ? 'too soon after the last peace' : Math.round(pactChance(me(), t) * 100) + '% chance'}</small></button>`;
   showModal(`<h2>${ico('handshake')} Diplomacy</h2><p class="sub">Choose a house. A house that gains from a pact asks nothing; a reluctant one names its price.</p>${picker}${head}${county}${pact}${ally}${war}${marry}`, '', { closable: true });
+}
+
+// every house at a glance: where things stand, how long a pact has left, and how they feel about you
+function relationsTable() {
+  const rank = f => allied(me(), f) ? 0 : atPeace(me(), f) ? 1 : atWar(me(), f) ? 3 : 2;
+  const list = alive().filter(f => f !== me()).sort((a, b) => rank(a) - rank(b) || attitude(b, me()) - attitude(a, me()));
+  const left = f => { const n = peaceUntil(me(), f) - G.turn; return `${n} turn${n === 1 ? '' : 's'} left`; };
+  const state = f => allied(me(), f) ? ['Allied', '#2f6fd6', left(f)] : atPeace(me(), f) ? ['Pact', '#2e9a4a', left(f)] : atWar(me(), f) ? ['At war', '#a3222c', 'fought in the last two years'] : ['No pact', '#8a7458', truce() ? `Peace of God: ${TRUCE - G.turn} turns` : 'may attack each other'];
+  const counts = [0, 1, 2, 3].map(k => list.filter(f => rank(f) === k).length);
+  return `<p class="sub">${counts[0]} allied · ${counts[1]} at peace · ${counts[2]} without a pact · ${counts[3]} at war${truce() ? ` · the Peace of God holds for ${TRUCE - G.turn} more turn${TRUCE - G.turn === 1 ? '' : 's'}` : ''}</p>
+    <div class="reltab">${list.map(f => { const [n, c, sub] = state(f), a = attitude(f, me()); return `<div class="relrow" onclick="DP.f='${f}';DP.county=null;DP.target=null;openDiplo()">${shield(f, 26)}<div class="rn"><b>${esc(FAC(f).name)}</b><small>${owned(f).length} counties${isKing(f) ? ' · the king' : ''}</small></div><div class="rs"><span class="pill" style="background:${c}">${n}</span><small>${sub}</small></div><div class="rm"><div class="mood mini"><i style="left:${((a + 1) / 2 * 100).toFixed(0)}%"></i></div><small>${attWord(a)}</small></div></div>`; }).join('')}</div>
+    <p class="sub">Tap a house to treat with it.</p>`;
 }

@@ -127,7 +127,8 @@ function openTreasury() {
     <h3>Richest counties</h3><table class="sttab">${top.slice(0, 6).map(([p, v]) => `<tr><td><span style="cursor:pointer;text-decoration:underline" onclick="closeModal();goProv('${p.id}')">${p.name}</span></td><td>${v} d</td></tr>`).join('')}</table>`, '', { closable: true });
 }
 // peace and war, at a glance
-function openRelations() {
+function openRelations() { DP.f = 'me'; return openDiplo(); }
+function openRelationsOld() {
   const left = TRUCE - G.turn, others = alive().filter(f => f !== me());
   const rowsFor = list => list.map(([f, extra]) => `<div class="rival" onclick="closeModal();openDiplo('${f}')">${shield(f, 22)}<div style="min-width:0"><b>${esc(FAC(f).name)}</b><div class="sub" style="font-size:13px">${extra}</div></div></div>`).join('');
   const wars = others.filter(f => atWar(me(), f)).map(f => [f, `fought in the last two years · ${attWord(attitude(f, me())).toLowerCase()}`]);
