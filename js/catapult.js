@@ -317,7 +317,7 @@ function ctDraw() {
   // HUD (DOM)
   const integ = Math.round(CT.h.reduce((s, v) => s + v, 0) / (CT.cols * CT.rows) * 100);
   const set = (id, v) => { const el = document.getElementById(id); if (el && el.innerHTML !== v) el.innerHTML = v; };
-  set('ct-shots', String(CT.shots)); set('ct-walls', CT.ocols ? `${Math.round(CT.oh.reduce((s, v) => s + v, 0) / (CT.ocols * CT.orows) * 100)}% · ${integ}%` : integ + '%'); set('ct-def', `${ctAlive()}${CT.killed ? ` <small style="color:#ff9c8c">−${CT.killed}</small>` : ''}${CT.plague ? ' ' + ico('skull') : ''}${CT.rats.length ? ' ' + ico('rat') : ''}`);
+  set('ct-shots', String(CT.shots)); set('ct-walls', CT.ocols ? `${Math.round(CT.oh.reduce((s, v) => s + v, 0) / (CT.ocols * CT.orows) * 100)}% · ${integ < RUIN_AT ? `<span style="color:#ff9c8c">${integ}% ruin</span>` : integ + '%'}` : (integ < RUIN_AT ? `<span style="color:#ff9c8c">${integ}% ruin</span>` : integ + '%')); set('ct-def', `${ctAlive()}${CT.killed ? ` <small style="color:#ff9c8c">−${CT.killed}</small>` : ''}${CT.plague ? ' ' + ico('skull') : ''}${CT.rats.length ? ' ' + ico('rat') : ''}`);
   set('am-rats', CT.cages + ' left'); set('am-giant', CT.cages + ' left'); set('am-greek', (myA().gf || 0) + ' left');
   set('ct-wind', `${CT.wind < 0 ? '◂' : CT.wind > 0 ? '▸' : '·'} ${Math.abs(CT.wind)}`);
   const m = document.getElementById('ctmsg'); if (m && m.textContent !== CT.msg) m.textContent = CT.msg;
@@ -367,7 +367,7 @@ function finishCatapult() {
   if (c.lostCat) note(`${c.lostCat} catapult${c.lostCat > 1 ? 's' : ''} burned in your own Greek fire.`);
   const w = Math.round(c.h.reduce((s, v) => s + v, 0) / (c.cols * c.rows) * 100);
   if (c.ocols) p.outer = Math.round(c.oh.reduce((s, v) => s + v, 0) / (c.ocols * c.orows) * 100);
-  if (w <= 0) { p.walls = 1; damageWalls(p, 5); } else p.walls = w;
+  p.walls = Math.round(w); ruinIfBroken(p);
   A.bombarded = true; A.acted = true;
   note(`Bombardment of ${p.name}: walls ${c.w0}% → ${p.ruined ? 'ruined' : p.walls + '%'}, ${c.killed} defenders killed${c.plague ? ', plague sown inside' : ''}.`);
   c.dead = true; releaseScene(c); CT = null; closeModal(); save(); render();

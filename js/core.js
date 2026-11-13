@@ -78,15 +78,19 @@ function wallLvl(p) {
   const outer = hasOuter(p) && (p.outer ?? 100) > 0 ? ((p.outer ?? 100) >= 50 ? 1.5 : 0.75) : 0;
   return inner > 0 || outer > 0 ? inner + outer : 0;
 }
+// walls mend by a tenth a turn when no enemy sits outside them; inner walls broken below a fifth bring the castle down
+const WALL_MEND = 10, RUIN_AT = 20;
+function ruinIfBroken(p) {
+  if (!p.b.castle || p.ruined || p.walls >= RUIN_AT) return;
+  p.ruined = true; p.b.castle = 1; p.b.moat = 0; p.walls = 0;
+  const txt = `The walls of ${p.name} are thrown down. The castle lies in ruins and must be rebuilt.`;
+  if (p.owner === G.player || besiegerOf(p) === G.player) note(txt);
+}
 function damageWalls(p, amt) {
   if (!p.b.castle || p.ruined) return;
   if (hasOuter(p) && (p.outer ?? 100) > 0) { const o = p.outer ?? 100; p.outer = Math.max(0, o - amt); amt = Math.max(0, amt - o); if (p.outer <= 0 && (p.owner === G.player || besiegerOf(p) === G.player)) note(`The outer wall of ${p.name} is breached. Only the inner walls stand.`); if (!amt) return; }
   p.walls = Math.max(0, p.walls - amt);
-  if (p.walls <= 0) {
-    p.ruined = true; p.b.castle = 1; p.b.moat = 0;
-    const txt = `The walls of ${p.name} are thrown down. The castle lies in ruins and must be rebuilt.`;
-    if (p.owner === G.player || besiegerOf(p) === G.player) note(txt);
-  }
+  ruinIfBroken(p);
 }
 function realmHas(fid, t) { return owned(fid).some(p => p.b[t] || (p.build && p.build.type === t)); }
 function canBuild(p, t) {
@@ -503,8 +507,8 @@ function endRound() {
     if (p.sacked > 0) p.sacked--;
     if (!s) {
       p.militia = Math.min(levyMax(p), p.militia + 1);
-      if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + 8);
-      if (hasOuter(p) && (p.outer ?? 100) < 100) p.outer = Math.min(100, (p.outer ?? 100) + 6);
+      if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + WALL_MEND);
+      if (hasOuter(p) && (p.outer ?? 100) < 100) p.outer = Math.min(100, (p.outer ?? 100) + WALL_MEND);
       if (!p.owner && !p.ally && G.turn % 2 === 1 && p.gar.foot < (p.r === 'fr' ? p.base + 2 : p.base * 2 + 4) && (p.b.castle || p.r !== 'fr')) p.gar.foot++;
       if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot += p.owner === 'toulouse' ? 2 : 1; if (G.turn % 2 === 1) p.gar.bow++; }
     }
