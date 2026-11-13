@@ -15,6 +15,7 @@ function mgResult(title, body, good, icon) {
 }
 // a canvas scene inside the open modal, sized to what the screen can show
 function mgScene(W, H) {
+  if (!$('#mgc').closest('.rotbox')) shrinkToFit($('#mgc'), W, H);
   const cv = $('#mgc'), dpr = clamp((cv.getBoundingClientRect().width || W) * (window.devicePixelRatio || 1) / W, 1, 2);
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);

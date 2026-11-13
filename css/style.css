@@ -294,7 +294,7 @@ body.m .bhud .nm { font-size: 13px; } body.m .bhud .cnts { font-size: 12px; } bo
 /* catapult */
 .cthud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
 .cthud .ct { background: #2a1d12; color: var(--vel); border: 1px solid var(--gold); border-radius: 8px; padding: 6px 4px; text-align: center; }
-.cthud .ct .v { font-family: var(--head); font-weight: 700; font-size: 17px; color: var(--gold3); }
+.cthud .ct .v { font-family: var(--head); font-weight: 700; font-size: 17px; color: var(--gold3); min-height: 1.3em; }
 .cthud .ct .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; font-family: var(--head); }
 .ctbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .ctbar .ammo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; flex: 1 1 100%; }

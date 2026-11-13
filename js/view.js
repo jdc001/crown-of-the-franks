@@ -270,9 +270,21 @@ function endTurnReady() { return usableArmies(me()).every(a => a.acted || armySi
 
 // ---------- canvas fitting: in portrait on a phone the field is turned sideways to fill the screen ----------
 const portraitPhone = () => isPhone() && window.innerHeight > window.innerWidth * 1.1;
+// shrink a scene so that the whole card, down to its last control, fits on the screen without scrolling
+// (an iPad on its side is wide but short, and a full-width field pushed the buttons off the bottom)
+function shrinkToFit(cv, LW, LH, lastSel) {
+  const card = cv && cv.closest('.card'); if (!card || cv.closest('.rotbox') || document.body.classList.contains('m')) { if (cv) cv._fit = null; return; }
+  cv._fit = [LW, LH, lastSel]; cv.style.width = ''; cv.style.height = ''; cv.style.margin = '';
+  const kids = [...card.querySelectorAll(lastSel || '.btn')].filter(e => e.offsetParent); const last = kids[kids.length - 1]; if (!last) return;
+  const pad = parseFloat(getComputedStyle(card).paddingBottom) || 0, over = last.getBoundingClientRect().bottom + pad - card.getBoundingClientRect().bottom + 2;
+  if (over <= 0) return;
+  const h0 = cv.getBoundingClientRect().height, h = Math.max(150, h0 * 0.55, h0 - over);
+  cv.style.height = h + 'px'; cv.style.width = Math.round(h * LW / LH) + 'px'; cv.style.margin = '0 auto';
+}
+window.addEventListener('resize', () => { for (const cv of document.querySelectorAll('.card canvas')) if (cv._fit) shrinkToFit(cv, ...cv._fit); });
 function fitCanvas(cv, LW, LH) {
   const wrap = cv.parentElement;
-  if (!portraitPhone()) { cv.style.cssText = ''; return { rotated: false, pt: e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * LW / r.width, y: (e.clientY - r.top) * LH / r.height }; } }; }
+  if (!portraitPhone()) { cv.style.cssText = ''; shrinkToFit(cv, LW, LH); return { rotated: false, pt: e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * LW / r.width, y: (e.clientY - r.top) * LH / r.height }; } }; }
   const W = wrap.clientWidth || window.innerWidth - 12, maxH = window.innerHeight - 250;
   const H = Math.min(W * LW / LH, maxH), w = H * LH / LW;
   const box = document.createElement('div'); box.className = 'rotbox'; box.style.cssText = `position:relative;width:${w}px;height:${H}px;margin:0 auto;overflow:hidden;border-radius:8px;border:1px solid #5e4515`;
