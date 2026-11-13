@@ -288,6 +288,8 @@ return {
     { id: 'brothers', n: 'The Brothers', house: 'mercia', diff: 'original', d: 'Mercia, caught between Harold and the north.' },
   ],
   art: {
+    // the siege screen: a grand castle behind the realm's capital, a cathedral behind the great sees
+    grand: ['london'], cathedrals: ['kent', 'york', 'winchester', 'armagh', 'stdavids', 'fife', 'dublin', 'cashel', 'durham', 'rouen'],
     mountains: ['ross', 'sutherland', 'atholl', 'argyll', 'skye', 'lewis', 'gwynedd', 'sogn', 'bergen', 'uplands', 'mar'],
     woods: ['sussex', 'kent', 'surrey', 'winchester', 'nottingham', 'gloucester', 'warwick', 'essex', 'somerset', 'shrewsbury', 'hertford', 'ossory', 'meath', 'breifne', 'strathclyde', 'evreux', 'avranches', 'agder', 'stavanger', 'powys', 'deheubarth', 'denmark', 'franks', 'maine', 'flanders', 'empire'],
     rivers: [

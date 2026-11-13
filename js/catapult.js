@@ -8,6 +8,70 @@ const VOLLEY = { triple: 'triple', oil3: 'oil' };
 // rats do not kill at once: once inside, each one bites every second or so, a few times, while you keep shooting
 const RAT = { small: { rounds: 3, bite: 0.3 }, giant: { rounds: 4 }, every: 1.3 };
 const RAT_COL = '#4b4038';
+// ================= LANDMARKS BEHIND THE SIEGE =================
+// a house's seat shows a great castle on the far ridge, the realm's capital a grand one, and the great sees a cathedral
+const SILH = '#3c3040', LIT = 'rgba(255,200,110,.9)';
+function crenels(x, l, t, w, step = 6) { for (let i = l; i < l + w - 1; i += step * 2) x.fillRect(i, t - 4, Math.min(step, l + w - i), 4); }
+function towerS(x, cx, base, w, h, roof) {
+  x.fillRect(cx - w / 2, base - h, w, h);
+  if (roof) { x.beginPath(); x.moveTo(cx - w / 2 - 3, base - h); x.lineTo(cx, base - h - roof); x.lineTo(cx + w / 2 + 3, base - h); x.fill(); }
+  else crenels(x, cx - w / 2, base - h, w, 3);
+}
+function slitS(x, cx, y, tall) { x.fillStyle = LIT; x.fillRect(cx - 1, y, 2, tall ? 5 : 3); x.fillStyle = SILH; }
+function flagS(x, cx, top, col) {
+  x.fillRect(cx - 0.6, top - 16, 1.4, 16);
+  x.fillStyle = col; x.beginPath(); x.moveTo(cx + 1, top - 16); x.quadraticCurveTo(cx + 9, top - 15, cx + 15, top - 12); x.quadraticCurveTo(cx + 8, top - 10, cx + 1, top - 9); x.fill(); x.fillStyle = SILH;
+}
+function castleSilhouette(x, cx, base, grand, col) {
+  x.fillStyle = SILH;
+  const span = grand ? 230 : 150, wallH = grand ? 34 : 26, tw = grand ? 20 : 16, th = grand ? 58 : 50, l = cx - span / 2;
+  // the curtain wall with its crenels, the towers at the corners and along it
+  x.fillRect(l, base - wallH, span, wallH + 30); crenels(x, l, base - wallH, span);
+  const towers = grand ? [0, 0.24, 0.76, 1] : [0, 1];
+  for (const f of towers) towerS(x, l + f * span, base, tw, th + (f > 0 && f < 1 ? 8 : 0), grand ? 18 : 0);
+  // the keep, and for the capital a palace hall and a second great tower beside it
+  const kw = grand ? 48 : 40, kh = grand ? 96 : 80;
+  x.fillRect(cx - kw / 2, base - kh, kw, kh); crenels(x, cx - kw / 2, base - kh, kw, 4);
+  towerS(x, cx + kw / 2 - 5, base - kh + 2, 10, 18, grand ? 14 : 0);
+  if (grand) {
+    x.fillRect(cx - kw / 2 - 52, base - 60, 52, 60); x.beginPath(); x.moveTo(cx - kw / 2 - 54, base - 60); x.lineTo(cx - kw / 2 - 26, base - 76); x.lineTo(cx - kw / 2 + 2, base - 60); x.fill();
+    towerS(x, cx + kw / 2 + 22, base, 22, 82, 26);
+    for (let i = 0; i < 4; i++) { x.fillStyle = LIT; x.fillRect(cx - kw / 2 - 46 + i * 12, base - 48, 4, 7); x.fillStyle = SILH; }
+    slitS(x, cx + kw / 2 + 22, base - 66, 1); slitS(x, cx + kw / 2 + 22, base - 46, 0);
+    flagS(x, cx + kw / 2 + 22, base - 108, col); flagS(x, cx, base - kh - 4, col);
+  } else flagS(x, cx, base - kh - 4, col);
+  for (const [dx, dy] of [[-10, 52], [8, 52], [-2, 30], [10, 30]]) slitS(x, cx + dx * (kw / 40), base - kh + (kh - dy) * 0.55 + 6, 1);
+  for (const f of towers) slitS(x, l + f * span, base - th + 14, 0);
+}
+function cathedralSilhouette(x, cx, base) {
+  x.fillStyle = SILH;
+  const nave = 150, nh = 40, l = cx - nave / 2, r = cx + nave / 2;
+  // the long nave under a steep roof, buttresses along its flank, the round apse at the east end
+  x.fillRect(l, base - nh, nave, nh + 30);
+  x.beginPath(); x.moveTo(l, base - nh); x.lineTo(l + 8, base - nh - 14); x.lineTo(r - 4, base - nh - 14); x.lineTo(r, base - nh); x.fill();
+  x.beginPath(); x.arc(r, base - nh / 2 + 4, nh / 2 + 2, -Math.PI / 2, Math.PI / 2); x.fill();
+  for (let i = 0; i < 6; i++) { const bx = l + 34 + i * 18; x.beginPath(); x.moveTo(bx, base - nh + 6); x.lineTo(bx + 9, base - nh + 26); x.lineTo(bx + 9, base); x.lineTo(bx + 3, base); x.fill(); }
+  // two west towers with spires, a lantern and spire over the crossing
+  for (const tx of [l - 6, l + 18]) { x.fillRect(tx - 9, base - 86, 18, 86); x.beginPath(); x.moveTo(tx - 10, base - 86); x.lineTo(tx, base - 132); x.lineTo(tx + 10, base - 86); x.fill(); }
+  x.fillRect(l - 6, base - 62, 24, 62);
+  const cxr = l + nave * 0.66; x.fillRect(cxr - 11, base - nh - 34, 22, 34); x.beginPath(); x.moveTo(cxr - 12, base - nh - 34); x.lineTo(cxr, base - nh - 84); x.lineTo(cxr + 12, base - nh - 34); x.fill();
+  // the rose window and the lancets, lit for vespers
+  const g = x.createRadialGradient(l + 6, base - 46, 0, l + 6, base - 46, 9); g.addColorStop(0, '#fff0c0'); g.addColorStop(.6, 'rgba(255,190,90,.95)'); g.addColorStop(1, 'rgba(200,90,60,.9)');
+  x.fillStyle = g; x.beginPath(); x.arc(l + 6, base - 46, 7, 0, 7); x.fill();
+  x.strokeStyle = SILH; x.lineWidth = 1; x.beginPath(); for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; x.moveTo(l + 6, base - 46); x.lineTo(l + 6 + Math.cos(a) * 7, base - 46 + Math.sin(a) * 7); } x.stroke();
+  x.fillStyle = LIT; for (let i = 0; i < 6; i++) { const wx = l + 40 + i * 18; x.fillRect(wx, base - nh + 10, 3, 9); x.beginPath(); x.arc(wx + 1.5, base - nh + 10, 1.5, Math.PI, 0); x.fill(); }
+  x.fillRect(l - 7, base - 76, 2, 6); x.fillRect(l + 17, base - 76, 2, 6); x.fillRect(cxr - 1, base - nh - 26, 2, 6);
+  // a cross on the crossing spire
+  x.fillStyle = SILH; x.fillRect(cxr - 0.7, base - nh - 94, 1.4, 10); x.fillRect(cxr - 3, base - nh - 91, 6, 1.4);
+}
+function skylineLandmarks(x, p, col) {
+  const A = SC.art || {}, grand = (A.grand || []).includes(p.id), seat = grand || !!p.cap, cath = (A.cathedrals || []).includes(p.id);
+  if (!seat && !cath) return;
+  const base = GY - 82, dark = mix(col, '#2a1a20', 0.3);
+  if (seat && cath) { cathedralSilhouette(x, 195, base); castleSilhouette(x, grand ? 360 : 340, base, grand, dark); }
+  else if (cath) cathedralSilhouette(x, 300, base);
+  else castleSilhouette(x, grand ? 320 : 300, base, grand, dark);
+}
 function openCatapult(p) {
   if (CT) { CT.dead = true; releaseScene(CT); CT = null; }
   const A = myA(), lv = Math.max(1, castleLv(p));
@@ -56,6 +120,7 @@ function openCatapult(p) {
     x.fillStyle = '#3c3040';
     for (const [tx, w, h, spire] of [[330, 16, 34, 1], [348, 22, 20, 0], [372, 12, 26, 0], [386, 26, 16, 0], [414, 14, 40, 1], [430, 20, 18, 0], [452, 10, 24, 0], [462, 24, 14, 0]]) { const by = GY - 82; x.fillRect(tx, by - h, w, h + 30); if (spire) { x.beginPath(); x.moveTo(tx - 2, by - h); x.lineTo(tx + w / 2, by - h - 22); x.lineTo(tx + w + 2, by - h); x.fill(); } else { x.beginPath(); x.moveTo(tx - 2, by - h); x.lineTo(tx + w / 2, by - h - 7); x.lineTo(tx + w + 2, by - h); x.fill(); } }
     x.fillStyle = 'rgba(255,200,110,.85)'; for (const [wx, wy] of [[336, -40], [419, -46], [355, -26], [392, -22], [436, -24], [466, -18]]) x.fillRect(wx, GY - 82 + wy + 16, 2, 3);
+    skylineLandmarks(x, CT.p, CT.color);
     ridge(GY - 62, 14, 'near', '#4a4a3a', 'rgba(255,160,90,.14)');
     // the near field: dark olive with a rim of sunset along its crest
     x.fillStyle = '#3f4a28'; x.beginPath(); x.moveTo(0, GY - 22); x.quadraticCurveTo(200, GY - 46, 420, GY - 18); x.quadraticCurveTo(620, GY - 36, 800, GY - 16); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();

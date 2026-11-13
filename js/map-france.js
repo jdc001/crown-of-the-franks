@@ -278,6 +278,8 @@ return {
   },
   fair: { at: 'Troyes', name: 'the fair at Troyes', title: 'The fair at Troyes', who: 'Merchants from Flanders, the Rhine and Venice fill Troyes for the summer fair.', lord: 'Count of Champagne', open: 'The summer fair at Troyes is open' },
   art: {
+    // the siege screen: a grand castle behind the realm's capital, a cathedral behind the great sees
+    grand: ['paris'], cathedrals: ['reims', 'sens', 'tours', 'rouen', 'berry', 'bordeaux', 'lyon', 'narbonne', 'auch', 'besancon', 'vienne', 'arles', 'chartres', 'laon', 'cambrai', 'liege'],
     mountains: ['bearn', 'bigorre', 'pallars', 'urgell', 'cerdanya', 'roussillon', 'grenoble', 'nice', 'auvergne', 'velay', 'osona', 'italy', 'jura', 'pamplona'],
     woods: ['ardennes', 'maine', 'belleme', 'chateaudun', 'vendome', 'berry', 'bourbon', 'nevers', 'marche', 'limoges', 'perigord', 'gascony', 'vannes', 'rennes', 'soissons', 'senlis', 'autun', 'namur', 'hainaut', 'dol', 'empire1', 'empire2', 'empire3', 'angouleme', 'thouars', 'loudun', 'velay', 'rouergue', 'kent', 'sussex', 'wessex', 'devon', 'vexin', 'evreux', 'besancon'],
     rivers: [
