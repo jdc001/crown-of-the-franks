@@ -236,7 +236,7 @@ const SEA = [[-20, 40], [20, 40], [20, 70], [-20, 70]];
 
 return {
   id: 'britain', FACTIONS, PROV, REGION_NAME, SEA_ROUTES, EDGES, SEA_LABELS, GENERALS, LADIES,
-  name: 'The Islands, 1066', sub: 'England, Scotland, Wales, Ireland and the North', game: 'Crown of the English',
+  name: 'Great Britain & Ireland, 1066', sub: 'England, Scotland, Wales, Ireland and the North', game: 'Crown of the English',
   geo: { LON0: -11.0, LAT1: 61.4, SX: 57, SY: 98, MW: 1220, MH: 1310, lands: [CONTI, GB, IRE, NOR, ORK, SHE, LEW, UIST, SKYE, MULL, ISLAY, MAN, WIGHT], seas: [SEA], isles: [] },
   realm: 'England', foreignTxt: 'English thegns resent foreign rule', foreignAsk: 'English thegns ask double of foreigners',
   kingdom: { regions: ['en'], core: 'en', n: 'the English', short: 'England', keys: ['london'], at: 'Westminster' },

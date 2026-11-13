@@ -326,6 +326,8 @@ function marchBtn(p, A) {
   if (!A.siege && isForced(me(), A, p.id)) return `<div class="notebox warnbox">${ico('flag')} <b>Forced march.</b> ${P(p.id).name} is one county beyond army ${ARMY_NUM(A)}'s march. It can get there, but the men arrive spent: <b>no attack, siege or bombardment this turn</b>, and no further marching.</div><button class="btn" onclick="openForced('${p.id}')"><span class="lbl">${ico('flag')}Forced march here</span><small>army ${ARMY_NUM(A)} · its turn ends on arrival</small></button>`;
   const others = usableArmies(me()).filter(b => b !== A && canMarch(me(), b, p.id));
   if (others.length) return `<button class="btn" onclick="pickArmy('${others[0].id}')"><span class="lbl">${ico('flag')}Army ${ARMY_NUM(others[0])} can march here</span><small>switch to it</small></button>`;
+  const hard = usableArmies(me()).filter(b => b !== A && !b.siege && isForced(me(), b, p.id));
+  if (hard.length) return `<button class="btn" onclick="pickArmy('${hard[0].id}')"><span class="lbl">${ico('flag')}Army ${ARMY_NUM(hard[0])} can reach here by forced march</span><small>switch to it · no attack this turn on arrival</small></button>`;
   return `<p class="sub">${A.acted ? `Army ${ARMY_NUM(A)} has ${A.forced ? 'made a forced march and rests' : 'fought'} this turn.` : A.siege ? `Army ${ARMY_NUM(A)} is besieging ${P(A.siege).name}; march from there only to lift the siege.` : `Out of reach for army ${ARMY_NUM(A)} this turn (${MOVES} moves a turn through your own and allied land, or ${MOVES + FORCED} by forced march with no attack).`}</p>`;
 }
 // trade men with another of your armies standing in the same county

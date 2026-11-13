@@ -43,7 +43,7 @@ surprised by a paywall leave one-star reviews; players who were told up front mo
 
 ## Expansion maps
 
-Each extra map (the first is *The Islands, 1066*) is its own **non-consumable** product, for example
+Each extra map (the first is *Great Britain & Ireland, 1066*) is its own **non-consumable** product, for example
 `com.yourname.crownofthefranks.britain` at Tier 4 ($3.99). In the store build a map that has not been bought
 shows an "Expansion" badge on the title screen, and tapping it opens its unlock screen. The game calls
 `window.COTF_BUY('britain')` for it; when the store reports the product as owned, call `cotfMapUnlocked('britain')`.
