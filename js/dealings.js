@@ -223,11 +223,14 @@ function fairStock() {
   for (const w of WARES) {
     const lv = owned(me()).map(p => p.b[w.id] || 0).filter(n => n > 0);
     if (!lv.length) continue;
-    const lots = lv.reduce((a, b) => a + b, 0), grade = Math.min(2, Math.max(...lv) - 1);
-    out.push({ id: w.id, n: w.grades[grade], lots, each: Math.round(w.v * [1, 1.3, 1.6][grade]), col: w.col });
+    const lots = lv.reduce((a, b) => a + b, 0), grade = Math.min(2, Math.max(...lv) - 1), full = w.v * [1, 1.3, 1.6][grade];
+    // the buyers at one fair can only take so much of one thing: past two lots, each extra lot fetches less
+    const each = Math.max(1, Math.round(full * fairDepth(lots) / lots));
+    out.push({ id: w.id, n: w.grades[grade], lots, each, full: Math.round(full), col: w.col });
   }
   return out;
 }
+const fairDepth = n => n <= 2 ? n : 2 * Math.sqrt(n / 2);
 const fairBonus = st => (1 + 0.1 * Math.max(0, st.length - 1)) * (me() === 'champagne' ? 1.4 : 1);
 const fairWorth = st => Math.round(st.reduce((s, x) => s + x.lots * x.each, 0) * fairBonus(st));
 const fairCap = () => fairWorth(fairStock());
@@ -236,18 +239,18 @@ function openFair() {
   if (!fairOpen()) return toast('The fair opens each summer, for lords who hold a market town');
   const st = fairStock();
   if (!st.length) return toast('Your lands have nothing to sell: build farms, markets, mines or ports');
-  const list = st.map(x => `<div class="frow"><span class="fdot" style="background:${x.col}"></span><span class="fname">${x.n}</span><span class="fheld">${x.lots} lot${x.lots > 1 ? 's' : ''}</span><span class="fpr num">${x.each} d each</span></div>`).join('');
+  const list = st.map(x => `<div class="frow"><span class="fdot" style="background:${x.col}"></span><span class="fname">${x.n}</span><span class="fheld">${x.lots} lot${x.lots > 1 ? 's' : ''}</span><span class="fpr num">${x.each} d each${x.each < x.full ? ` <small class="sub">(${x.full} d for the first lots)</small>` : ''}</span></div>`).join('');
   mgIntro('The fair at Troyes', 'market', `Merchants from Flanders, the Rhine and Venice fill Troyes for the summer fair. Your carts carry what your lands produce. Over three days, sell each kind when buyers pay best; whatever is unsold on the last day goes cheap.
     <h3>Your carts</h3><div class="ftab">${list}</div>
-    <p class="sub">Worth about <b>${fairWorth(st)} d</b> at a fair price${st.length > 1 ? `, with ${Math.round((0.1 * (st.length - 1)) * 100)}% more for bringing ${st.length} kinds of goods` : ''}${me() === 'champagne' ? ', and 40% more as Count of Champagne' : ''}. More farms, markets, mines and ports bring more lots; higher levels bring finer goods.</p>`,
+    <p class="sub">Worth about <b>${fairWorth(st)} d</b> at a fair price${st.length > 1 ? `, with ${Math.round((0.1 * (st.length - 1)) * 100)}% more for bringing ${st.length} kinds of goods` : ''}${me() === 'champagne' ? ', and 40% more as Count of Champagne' : ''}. More farms, markets, mines and ports bring more lots, though a glut of one ware lowers what each lot fetches; higher levels bring finer goods, and more kinds of goods draw more buyers.</p>`,
     [[`${ico('market')}Go to the fair`, `startFair()`, 'gold big'], [`${ico('skip')}Send your factor`, `autoFair()`, '', 'sells everything at a fair price'], ['Not this year', 'closeModal()', 'ghost']]);
 }
 // a price for each ware today, and what the merchants say about tomorrow
 function fairDayPrices() {
   for (const x of FR.stock) {
     const t = FR.tip[x.id];
-    let m = FR.day === 1 ? 0.85 + Math.random() * 0.3 : FR.pct[x.id] * (t && t.real === 'up' ? 1.2 + Math.random() * 0.2 : t && t.real === 'down' ? 0.72 + Math.random() * 0.12 : 0.95 + Math.random() * 0.1);
-    FR.pct[x.id] = clamp(m, 0.6, 1.6);
+    let m = FR.day === 1 ? 0.85 + Math.random() * 0.3 : FR.pct[x.id] * (t && t.real === 'up' ? 1.1 + Math.random() * 0.12 : t && t.real === 'down' ? 0.78 + Math.random() * 0.1 : 0.95 + Math.random() * 0.1);
+    FR.pct[x.id] = clamp(m, 0.65, 1.4);
     if (FR.day < FAIR_DAYS) {
       const real = Math.random() < 0.5 ? 'up' : 'down', honest = me() === 'champagne' || Math.random() < 0.85;
       FR.tip[x.id] = { real, said: honest ? real : real === 'up' ? 'down' : 'up' };
