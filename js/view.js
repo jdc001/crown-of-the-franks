@@ -278,7 +278,7 @@ function shrinkToFit(cv, LW, LH, lastSel) {
   const kids = [...card.querySelectorAll(lastSel || '.btn')].filter(e => e.offsetParent); const last = kids[kids.length - 1]; if (!last) return;
   // measured from layout offsets, not screen rectangles, so the card's opening animation cannot skew it
   const top = el => { let y = 0; for (let e = el; e && e !== card; e = e.offsetParent) y += e.offsetTop; return y; };
-  const pad = parseFloat(getComputedStyle(card).paddingBottom) || 0, over = top(last) + last.offsetHeight + pad - card.clientHeight + 2;
+  const pad = parseFloat(getComputedStyle(card).paddingBottom) || 0, over = top(last) + last.offsetHeight + pad - card.clientHeight + 10;
   if (over <= 0) return;
   const h0 = cv.offsetHeight, h = Math.max(150, h0 * 0.55, h0 - over);
   cv.style.height = h + 'px'; cv.style.width = Math.round(h * LW / LH) + 'px'; cv.style.margin = '0 auto';

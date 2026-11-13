@@ -506,7 +506,7 @@ function ambassadorBar(o) {
 function foreignPanel(p, F, A) {
   const tabs = [{ id: 'war', n: 'War', ic: 'swords' }];
   if (!p.owner) tabs.push({ id: 'dip', n: 'Diplomacy', ic: 'handshake', dot: (p.heiress && F.sons && !F.proposed) || (canAlly(me(), p) && F.gold >= allyCost(me(), p)) });
-  if (p.owner && p.owner !== me()) tabs.push({ id: 'treaty', n: 'Envoys', ic: 'handshake' }, { id: 'church', n: 'Church', ic: 'church' });
+  if (p.owner && p.owner !== me()) tabs.push({ id: 'church', n: 'Church', ic: 'church' });
   const cur = keptTab(tabs) || 'war';
   let h = (p.owner && p.owner !== me() ? ambassadorBar(p.owner) : '') + tabsHtml(tabs, cur), cta = '';
   if (cur === 'war') {
