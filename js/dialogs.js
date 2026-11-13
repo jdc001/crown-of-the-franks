@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.17';
+const APP_VERSION = '6.18';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -330,4 +330,50 @@ function showCoronation(fid, kid, onDone) {
   window._coronDone = onDone || null;
   showModal(`<div class="splash">${coronationScene(fid, kid)}<div class="splashtxt"><h2>${title}</h2><p>${body}</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();(window._coronDone||(()=>{render();showReports();}))()">Long live the King</button></div></div></div>`, 'splashcard');
+}
+
+// ================= TITLES =================
+// Every land you hold carries a title. A house's seat carries the house's title (Duke of Normandy, Count of Flanders);
+// every other county carries its own, from the lord who held it in 987: count, viscount, lord, or, for a bishop's
+// lands, advocate, the lay protector of the see. Lesser lords sworn to you make you their overlord.
+const TITLE_RANK = { King: 0, Duke: 1, Marquis: 2, Count: 3, Viscount: 4, Advocate: 5, Lord: 6, Overlord: 7 };
+function landTitle(p) {
+  const r = PROV.find(x => x[0] === p.id) || [], lord = r[9] || '';
+  if (!lord) return 'Count';
+  if (/viscount/i.test(lord)) return 'Viscount';
+  if (/count|duke|duchess|margrave/i.test(lord)) return 'Count';
+  if (/bishop|abbot|abbess/i.test(lord)) return 'Advocate';
+  return 'Lord';
+}
+function titlesOf(fid) {
+  const out = [], seats = new Set(), mine = owned(fid);
+  const orig = id => (PROV.find(x => x[0] === id) || [])[7];
+  if (wears(fid)) out.push({ rank: 'King', n: 'King of the Franks', sub: 'Anointed at Reims', w: 1e9, crown: 1 });
+  else if (G.crowns.franks === fid) out.push({ rank: 'King', n: 'King of the Franks', sub: 'Chosen, but not yet anointed at Reims', w: 1e9, crown: 1 });
+  for (const f of FACTIONS) {
+    const seat = P(f.home); if (!seat || seat.owner !== fid) continue;
+    seats.add(f.home);
+    const lands = provList().filter(q => orig(q.id) === f.id), held = lands.filter(q => q.owner === fid).length;
+    const king = out.some(t => t.crown), rank = f.id === 'capet' ? (king ? 'Count' : 'Duke') : f.title === 'King' ? 'Duke' : f.title, name = f.id === 'capet' ? (king ? 'Paris' : 'the Franks') : f.name;
+    out.push({ rank, n: `${rank} of ${name}`, sub: `${held} of ${lands.length} counties of ${f.id === 'capet' ? 'the royal domain' : f.name} held${f.id === fid ? ' · your own house' : ''}`, w: (f.id === fid ? 1000 : 0) + held * 10 + seat.base, house: f.id, pid: f.home });
+  }
+  for (const p of mine) if (!seats.has(p.id)) { const rank = landTitle(p); out.push({ rank, n: `${rank} of ${p.name}`, sub: `${provIncome(p)} d a turn`, w: p.base, pid: p.id }); }
+  for (const p of allies(fid)) out.push({ rank: 'Overlord', n: `Overlord of ${p.name}`, sub: `${p.lord} is sworn to you`, w: p.base, pid: p.id });
+  return out.sort((a, b) => TITLE_RANK[a.rank] - TITLE_RANK[b.rank] || b.w - a.w);
+}
+function titleStyle(fid) {
+  const T = titlesOf(fid), f = FAC(fid), main = T.filter(t => t.rank !== 'Overlord');
+  const top = main.slice(0, 3).map(t => t.n), rest = main.length - top.length;
+  const list = top.length > 1 ? top.slice(0, -1).join(', ') + (rest ? ', ' : ' and ') + top[top.length - 1] : top[0] || 'a lord without land';
+  return `${f.pname}, by the grace of God ${list}${rest ? `, and of ${rest} more title${rest === 1 ? '' : 's'} besides` : ''}`;
+}
+function openTitles() {
+  const T = titlesOf(me()), groups = [['King', 'The crown'], ['Duke', 'Duchies'], ['Marquis', 'Marches'], ['Count', 'Counties'], ['Viscount', 'Viscounties'], ['Advocate', 'Church lands under your protection'], ['Lord', 'Lordships'], ['Overlord', 'Lords sworn to you']];
+  const row = t => `<div class="trow"${t.pid ? ` onclick="closeModal();goProv('${t.pid}')"` : ''}><span class="tico">${t.crown ? ico('crown') : t.house ? shield(t.house, 26) : ico(t.rank === 'Advocate' ? 'church' : t.rank === 'Overlord' ? 'handshake' : t.rank === 'Lord' ? 'castle' : 'fleur')}</span><span class="tn"><b>${esc(t.n)}</b><small>${esc(t.sub)}</small></span></div>`;
+  const body = groups.map(([r, h]) => { const g = T.filter(t => t.rank === r); return g.length ? `<h3>${h} <span class="sub" style="text-transform:none;letter-spacing:0">${g.length}</span></h3><div class="tlist">${g.map(row).join('')}</div>` : ''; }).join('');
+  showModal(`<div class="ctr">${houseAchievement(me(), 64)}</div><h2 class="ctr" style="margin-top:4px">Your titles</h2>
+    <p class="ctr titlestyle">${esc(titleStyle(me()))}</p>
+    <p class="sub ctr">Whoever holds a house's seat bears its title. Every other county carries the title of the lord who held it in 987. Tap a title to go to the land.</p>
+    ${body}
+    <div class="row ctr" style="margin-top:10px"><button class="btn sm" onclick="openMedals('rank')"><span class="lbl">${ico('star')}Your rank and heraldry</span></button></div>`, '', { closable: true });
 }

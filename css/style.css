@@ -608,3 +608,12 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
   .relrow { grid-template-columns: auto 1fr 82px; grid-template-areas: "sh rn rm" "sh rs rs"; row-gap: 3px; }
   .relrow > .shield { grid-area: sh; } .relrow .rn { grid-area: rn; } .relrow .rm { grid-area: rm; } .relrow .rs { grid-area: rs; text-align: left; display: flex; gap: 6px; align-items: center; }
   .relrow .rn b { font-size: 15px; } }
+/* titles */
+.titlestyle { font-style: italic; font-size: 1.05em; line-height: 1.45; margin: 6px 8px 8px; }
+.tlist { display: flex; flex-direction: column; gap: 2px; }
+.trow { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+.trow:hover { background: rgba(120, 90, 40, .08); }
+.trow .tico { width: 28px; display: flex; justify-content: center; flex: none; }
+.trow .tico svg { width: 24px; height: 24px; }
+.trow .tn { display: flex; flex-direction: column; min-width: 0; }
+.trow .tn small { color: var(--ink2); font-style: italic; }

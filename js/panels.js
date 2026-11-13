@@ -51,7 +51,7 @@ function renderHeader() {
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
   if (F.captive) chips.push(`<span class="chip warn btn-like" onclick="G.sel=null;render();setSheet('full')" title="Your lord is a prisoner">${ico('chain')}</span>`);
   if (G.offers.length) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="Ransom offers">${ico('coin')}${G.offers.length}</span>`);
-  setHTML($('#hdr'), `<div class="hfac"><span class="hach" onclick="openMedals('rank')">${houseAchievement(me(), 50)}</span><div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))}<span class="hrv"> · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</span></div></div></div>
+  setHTML($('#hdr'), `<div class="hfac"><span class="hach" onclick="openTitles()" title="Your titles">${houseAchievement(me(), 50)}</span><div style="min-width:0"><div class="hname">${esc(f.name)}</div><div class="hdate">${esc(dateStr(G.turn))}<span class="hrv"> · ${alive().length - 1} rival${alive().length === 2 ? '' : 's'}</span></div></div></div>
     <div class="hchips">${chips.join('')}</div>
     <div class="hbtns">
       <button class="btn sm desk" onclick="openCourt()"><span class="lbl">${ico('fleur')}Court</span></button>
