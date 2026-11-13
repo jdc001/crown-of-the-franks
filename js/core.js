@@ -319,19 +319,26 @@ function uStr(u, withMil, withExtra = true) {
 
 // ================= MOVEMENT =================
 // armies march through their own and allied land
-function marchDist(fid, from) {
-  const d = { [from]: 0 }, q = [from];
-  while (q.length) { const c = q.shift(); if (d[c] >= MOVES) continue; for (const n of ADJ[c]) if (!(n in d) && passable(fid, n)) { d[n] = d[c] + 1; q.push(n); } }
+// an army may push one county further than its usual march, but a forced march leaves it too spent to strike that turn
+const FORCED = 1;
+function marchDist(fid, from, far) {
+  const d = { [from]: 0 }, q = [from], lim = MOVES + (far ? FORCED : 0);
+  while (q.length) { const c = q.shift(); if (d[c] >= lim) continue; for (const n of ADJ[c]) if (!(n in d) && passable(fid, n)) { d[n] = d[c] + 1; q.push(n); } }
   return d;
 }
-function canMarch(fid, a, id) {
+function canMarch(fid, a, id, forced) {
   if (!armyUsable(fid, a) || a.acted || !a.loc || !passable(fid, id) || id === a.loc) return false;
-  const d = marchDist(fid, a.loc)[id];
-  return d !== undefined && d <= a.mp;
+  const d = marchDist(fid, a.loc, forced)[id];
+  return d !== undefined && d <= a.mp + (forced ? FORCED : 0);
 }
-function marchArmy(fid, a, id) {
-  if (!canMarch(fid, a, id)) return false;
-  a.mp -= marchDist(fid, a.loc)[id]; a.siege = null; a.loc = id; a.idle = 0; onCampaign(a); return true;
+// is this march a forced one? (only beyond the army's remaining moves)
+const isForced = (fid, a, id) => !canMarch(fid, a, id) && canMarch(fid, a, id, true);
+function marchArmy(fid, a, id, forced) {
+  if (!canMarch(fid, a, id, forced)) return false;
+  const d = marchDist(fid, a.loc, forced)[id], hard = d > a.mp;
+  a.mp = Math.max(0, a.mp - d); a.siege = null; a.loc = id; a.idle = 0; onCampaign(a);
+  if (hard) { a.acted = true; a.forced = true; }
+  return true;
 }
 // the nearest county reachable this turn from which p can be struck, across a land border
 function strikeFrom(fid, a, p) {
@@ -460,7 +467,7 @@ function beginTurn(fid) {
   }
   for (const a of armiesOf(fid)) {
     if (!armyUsable(fid, a) && a.id !== 'a0') dissolveArmy(fid, a, ARMY_IDS.indexOf(a.id) >= armyMax(fid) ? `${armyLabel(fid, a)} is beyond what the realm can field` : `${armyLabel(fid, a)} has no general`);
-    a.acted = false; a.bombarded = false; a.stormed = false; a.mp = MOVES;
+    a.acted = false; a.forced = false; a.bombarded = false; a.stormed = false; a.mp = MOVES;
     if (a.siege) { const p = P(a.siege); if (holds(fid, p.id) || !armyUsable(fid, a)) a.siege = null; else siegeAttrition(fid, a, p); }
   }
   F.popeUsed = false; F.proposed = false; F.moved = [];

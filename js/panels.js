@@ -259,7 +259,7 @@ const haveBadge = (n, where) => `<span class="have${n ? '' : ' none'}" title="${
 function castleText(p) {
   if (!p.b.castle) return `<p class="sub">No castle. Only the levy defends, and no garrison can be kept here.</p>`;
   if (p.ruined) return `<div class="notebox bad">${ico('rebuild')} The castle lies in ruins. Its walls give no protection until it is rebuilt.</div>`;
-  return `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ' with a moat' : ''}${isCap(p) ? ', citadel' : ''} · walls ${p.walls}% <span class="sub">(defenders ${['fight in the open', 'protected', 'well protected', 'strongly protected', 'nearly unassailable'][Math.min(4, wallLvl(p))]})</span></p>${p.walls < 100 ? `<p class="sub">${besiegerOf(p) ? 'No repairs while the siege lasts.' : `Masons mend 10% a turn: whole in ${Math.ceil((100 - p.walls) / WALL_MEND)} turn${Math.ceil((100 - p.walls) / WALL_MEND) === 1 ? '' : 's'}.`} Below ${RUIN_AT}% the castle falls into ruin and must be paid for to rebuild.</p>` : ''}<div class="bar walls"><i style="width:${p.walls}%"></i></div>${hasOuter(p) ? `<p style="margin:6px 0 0">${ico('wall')} Outer wall · ${p.outer ?? 100}% <span class="sub">(must fall before the inner walls can be breached)</span></p><div class="bar walls"><i style="width:${p.outer ?? 100}%"></i></div>` : ''}${castleLv(p) === 1 ? '<p class="sub">A wooden palisade: quick to raise, but it barely slows an assault. Raise it to stone to hold the county.</p>' : ''}`;
+  return `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ' with a moat' : ''}${isCap(p) ? ', citadel' : ''} · walls ${p.walls}% <span class="sub">(defenders ${['fight in the open', 'protected', 'well protected', 'strongly protected', 'nearly unassailable'][Math.min(4, Math.ceil(wallLvl(p)))]})</span></p>${p.walls < 100 ? `<p class="sub">${besiegerOf(p) ? 'No repairs while the siege lasts.' : `Masons mend 10% a turn: whole in ${Math.ceil((100 - p.walls) / WALL_MEND)} turn${Math.ceil((100 - p.walls) / WALL_MEND) === 1 ? '' : 's'}.`} Below ${RUIN_AT}% the castle falls into ruin and must be paid for to rebuild.</p>` : ''}<div class="bar walls"><i style="width:${p.walls}%"></i></div>${hasOuter(p) ? `<p style="margin:6px 0 0">${ico('wall')} Outer wall · ${p.outer ?? 100}% <span class="sub">(must fall before the inner walls can be breached)</span></p><div class="bar walls"><i style="width:${p.outer ?? 100}%"></i></div>` : ''}${castleLv(p) === 1 ? '<p class="sub">A wooden palisade: quick to raise, but it barely slows an assault. Raise it to stone to hold the county.</p>' : ''}`;
 }
 // what a county is worth: to whoever holds it now, to you if you took it, and at the fair
 function wealthCard(p) {
@@ -322,9 +322,10 @@ function marchBtn(p, A) {
   const d = A.siege ? null : marchDist(me(), A.loc)[p.id];
   if (A.loc === p.id && !A.siege) return '';
   if (canMarch(me(), A, p.id)) return `<button class="btn gold" onclick="act('move')"><span class="lbl">${ico('flag')}${A.siege ? 'Lift siege and march here' : 'March here'}</span><small>${d} of ${A.mp} move${A.mp === 1 ? '' : 's'} · army ${ARMY_NUM(A)}</small></button>`;
+  if (!A.siege && isForced(me(), A, p.id)) return `<div class="notebox warnbox">${ico('flag')} <b>Forced march.</b> ${P(p.id).name} is one county beyond army ${ARMY_NUM(A)}'s march. It can get there, but the men arrive spent: <b>no attack, siege or bombardment this turn</b>, and no further marching.</div><button class="btn" onclick="openForced('${p.id}')"><span class="lbl">${ico('flag')}Forced march here</span><small>army ${ARMY_NUM(A)} · its turn ends on arrival</small></button>`;
   const others = usableArmies(me()).filter(b => b !== A && canMarch(me(), b, p.id));
   if (others.length) return `<button class="btn" onclick="pickArmy('${others[0].id}')"><span class="lbl">${ico('flag')}Army ${ARMY_NUM(others[0])} can march here</span><small>switch to it</small></button>`;
-  return `<p class="sub">${A.acted ? `Army ${ARMY_NUM(A)} has fought this turn.` : A.siege ? `Army ${ARMY_NUM(A)} is besieging ${P(A.siege).name}; march from there only to lift the siege.` : `Out of reach for army ${ARMY_NUM(A)} this turn (${MOVES} moves a turn through your own and allied land).`}</p>`;
+  return `<p class="sub">${A.acted ? `Army ${ARMY_NUM(A)} has ${A.forced ? 'made a forced march and rests' : 'fought'} this turn.` : A.siege ? `Army ${ARMY_NUM(A)} is besieging ${P(A.siege).name}; march from there only to lift the siege.` : `Out of reach for army ${ARMY_NUM(A)} this turn (${MOVES} moves a turn through your own and allied land, or ${MOVES + FORCED} by forced march with no attack).`}</p>`;
 }
 function ownPanel(p, F, A) {
   const here = A.loc === p.id && !A.siege && slotState(A) === 'active';
@@ -349,7 +350,7 @@ function ownPanel(p, F, A) {
       } else h += `<p class="sub">No castle here, so no garrison to draw on.</p>`;
       const sameHere = usableArmies(me()).filter(b => b !== A && b.loc === p.id && !b.siege && armySize(b) > 0);
       if (sameHere.length) h += `<p class="sub">Also here: ${sameHere.map(b => `army ${ARMY_NUM(b)} (${armySize(b)} men)`).join(', ')}. ${p.b.castle ? 'Move men between armies through the garrison.' : ''}</p>`;
-      if (!A.acted && armySize(A)) h += `<p class="sub">Red dashed borders on the map mark what the army can strike from here; green dots mark where it can march.</p>`;
+      if (!A.acted && armySize(A)) h += `<p class="sub">Red dashed borders on the map mark what the army can strike from here; green dots mark where it can march; faint gold dots, where it can reach only by a forced march.</p>`;
     } else {
       h += armyLine(A);
       cta += marchBtn(p, A);
@@ -382,6 +383,13 @@ function newArmyHtml(p, F) {
 }
 // tapping an empty army slot raises it in the county you are looking at, or at home
 function nogenClick() { const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null; const at = p && newArmyOptions(me(), p.id).slot ? p.id : homeOf(me()); const o = newArmyOptions(me(), at); if (o.slot && (o.here || o.pool.length)) openNewArmy(at); else openCourt(); }
+function openForced(pid) {
+  const A = myA(), p = P(pid);
+  showModal(`<div class="rep"><div class="sealmark">${ico('flag')}</div><h2>Forced march to ${esc(p.name)}?</h2>
+    <p class="ctr">Army ${ARMY_NUM(A)} can reach ${esc(p.name)} only by marching hard, one county further than its march allows (at most ${MOVES + FORCED} counties in a turn).</p>
+    <p class="ctr"><b>When it arrives it cannot attack, lay siege, bombard or march again until next turn.</b></p>
+    <div class="grid2"><button class="btn gold" onclick="closeModal();act('force')"><span class="lbl">${ico('flag')}March hard</span></button><button class="btn" onclick="closeModal()">Stay</button></div></div>`, '', { closable: true });
+}
 function openNewArmy(pid, gid) {
   const p = P(pid), F = G.fac[me()], o = newArmyOptions(me(), pid); if (!o.slot) return;
   const n = ARMY_IDS.indexOf(o.slot) + 1, stat = d => genSummary(d).split(' · ').map(s => `<span class="tag">${s}</span>`).join('');
@@ -538,7 +546,7 @@ function act(c, a) {
     case 'genStay': { const g = F.gens.find(x => x.at === 'a0'); const o = F.gens.find(x => x.at === p.id); if (g) g.at = p.id; if (o) o.at = 'a0'; break; }
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
-    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { sfx('march'); if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
+    case 'move': case 'force': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id, c === 'force')) { if (A.forced) note(`Army ${ARMY_NUM(A)} makes a forced march to ${p.name} and rests there.`); sfx('march'); if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
     case 'besiege': { const pre = { t: G.turn, loc: A.loc, mp: A.mp, campT: A.campT, excom: F.excom, gr: JSON.stringify(G.grudge || {}), fo: JSON.stringify(G.fought || {}) }; const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); hostility(me(), p.owner || p.ally); A.undo = pre; A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;

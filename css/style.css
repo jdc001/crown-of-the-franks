@@ -216,6 +216,8 @@ body.d .cta { padding-bottom: 14px; margin-bottom: -40px; }
 @keyframes march { to { stroke-dashoffset: -36; } }
 .selp { fill: #fff5; stroke: #e2b33c; }
 .mrch { fill: #3f6b3522; stroke: #3f6b35; stroke-dasharray: 2 5; stroke-linecap: round; }
+.mrch.far { fill: #c0902018; stroke: #b07d14; stroke-dasharray: 2 6; }
+.notebox.warnbox { border-color: #a87a1e; background: #f3e2b0; }
 .fire { transform-origin: center; }
 @keyframes flick { from { opacity: .75; transform: scale(.94); } to { opacity: 1; transform: scale(1.06); } }
 #mybanner, [id^=mb-] { transition: transform .7s cubic-bezier(.3,.7,.2,1); }

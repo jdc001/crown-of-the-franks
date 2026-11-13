@@ -229,6 +229,7 @@ function renderOverlay() {
   if (A && armyUsable(me(), A) && !A.acted) {
     const md = A.siege ? {} : marchDist(me(), A.loc);
     for (const id in md) if (md[id] > 0 && md[id] <= A.mp) o += `<path class="mrch" d="${CELLD[id]}" style="stroke-width:${3 * s}px"/>`;
+    if (!A.siege) { const fd = marchDist(me(), A.loc, true); for (const id in fd) if (fd[id] > A.mp && fd[id] <= A.mp + FORCED && !(id in md && md[id] <= A.mp)) o += `<path class="mrch far" d="${CELLD[id]}" style="stroke-width:${2.4 * s}px"/>`; }
     if (armySize(A) > 0) for (const p of provList()) { if (p.owner && truce()) continue; const bz = besieging(p); if (bz && bz.fid !== me()) continue; if (strikeFrom(me(), A, p)) o += `<path class="tgt" d="${CELLD[p.id]}" style="stroke-width:${3 * s}px"/>`; }
   }
   o += '</g>';

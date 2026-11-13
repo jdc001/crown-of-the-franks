@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.20';
+const APP_VERSION = '6.21';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -167,7 +167,7 @@ function openHelp() {
       <p><b>The fall of a house.</b> Take a house's seat (${ico('crown')}) and you win it and every county of theirs beside it. If the house still holds four connected counties, an heir rallies there once. Fragments go to independent castellans.</p>
       <p><b>Ranks and trophies.</b> Every game you finish earns points, and ${TROPHIES.length} trophies earn more. Points raise you from Seigneur through Baron, Viscount, Count, Marquis, Duke and King to Emperor; each rank unlocks something for your coat of arms (a crown, supporters, laurels, a mantle), shown on the title screen and around your house's shield in a game. Design your arms under Medals and arms on the title screen. The Chronicler's Challenge on the title screen gives everyone the same start for a while, so you can compare results.</p>
       <p><b>The Peace of God.</b> For the first ${TRUCE} turns the Church forbids war between the great houses. Break it and you are excommunicated.</p>
-      <p><b>A turn.</b> Build and raise troops, march your armies (${MOVES} counties each through your own and allied land), strike with each army once, petition the Pope once, court one lady. Then end the turn and the other houses move.</p>`,
+      <p><b>A turn.</b> Build and raise troops, march your armies (${MOVES} counties each through your own and allied land, or ${MOVES + FORCED} by a forced march that leaves the army unable to attack that turn), strike with each army once, petition the Pope once, court one lady. Then end the turn and the other houses move.</p>`,
     powers: `<p><b>Beyond the kingdom.</b> The hatched lands at the edge of the map are not for conquest. Their rulers act on France from outside.</p>
       <p><b>Almanzor.</b> The hajib of Córdoba sends summer raids over the Pyrenees, against Barcelona and the far south. Pay him parias to go away, or meet him in the field.</p>
       <p><b>Pamplona and Arles.</b> The Basques raid Gascony and Toulouse. In Provence, the Kingdom of Arles watches any outsider who takes more than a foothold.</p>
