@@ -30,7 +30,9 @@ function resolveAssault(fid, A, p, res, cfg) {
   const prev = p.owner, prevAlly = p.ally, s0 = armySize(A);
   setArmy(A, res.A); applyDefLoss(p, cfg.D, res.D);
   A.acted = true; A.stormed = true; A.idle = 0;
-  if (res.won) capture(p, fid);
+  // across the sea the victors land and hold what they took; left on the far shore, they would watch it retaken by any passing band
+  const crossed = A.loc && A.loc !== p.id && seaRoute(A.loc, p.id);
+  if (res.won) { capture(p, fid); if (crossed && armySize(A) > 0) { A.siege = null; A.loc = p.id; } }
   else if (armySize(A) === 0) loseArmy(fid, A, prev);
   else maybeTakeLord(fid, A, prev, s0);
   return { prev, prevAlly };
