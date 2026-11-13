@@ -671,3 +671,15 @@ body.nomotion #title .tbg, body.nomotion #title .hcrown .glint, body.nomotion #t
 #title p.lead { text-shadow: 0 1px 2px #000, 0 0 14px #1b120a; }
 #title .hero::before { content: ''; position: absolute; inset: 40px -10% -20px; background: radial-gradient(ellipse at 50% 55%, #1b120acc, #1b120a00 70%); z-index: -1; pointer-events: none; }
 #mapwrap::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background-image: var(--vellum, none); background-size: 320px 320px; opacity: .8; }
+
+/* free to start */
+.fcard { position: relative; }
+.fcard.locked { filter: saturate(.55); }
+.fcard.locked:hover { filter: none; }
+.fcard .lockb { position: absolute; top: 6px; right: 8px; display: inline-flex; align-items: center; gap: 3px; font: 600 10.5px var(--head); letter-spacing: .08em; text-transform: uppercase; background: #2a1d12; color: var(--gold3); padding: 2px 7px 2px 5px; border-radius: 9px; }
+.fcard .lockb .ic { width: 12px; height: 12px; }
+.fcard .lockb.free { background: #3f7f3a; color: #f3e8cc; padding: 2px 8px; }
+.unlock .ulgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 10px 0; text-align: left; }
+.unlock .ulgrid > div { background: #fff5; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; }
+.unlock .ulgrid .ic { grid-row: span 2; width: 22px; height: 22px; color: var(--gold); }
+.unlock .ulgrid small { color: var(--ink2); font-style: italic; }

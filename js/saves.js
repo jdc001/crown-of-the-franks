@@ -7,6 +7,7 @@ function readSlot(n) { try { const s = localStorage.getItem(SLOT_KEY(n)); return
 function slotLabel(s) { const d = s.fdefs.find(x => x.id === s.player); return `${d ? d.name : '?'} · ${dateStr(s.turn)}`; }
 function saveToSlot(n) {
   if (!G || G.over) return;
+  if (slotLocked(n)) return openUnlock('slot');
   try {
     localStorage.setItem(SLOT_KEY(n), JSON.stringify({ when: Date.now(), game: G }));
     sfx('coin'); toast(`Saved to slot ${n}`, 'scroll');
@@ -15,6 +16,7 @@ function saveToSlot(n) {
 }
 // save into the first empty slot, or over the oldest one
 function quickSave() {
+  if (!fullGame()) return saveToSlot(1);
   let n = 0, oldest = Infinity;
   for (let i = 1; i <= SLOTS; i++) { const s = readSlot(i); if (!s) { n = i; break; } if (s.when < oldest) { oldest = s.when; n = i; } }
   saveToSlot(n);

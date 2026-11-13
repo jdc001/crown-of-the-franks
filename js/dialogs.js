@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.29';
+const APP_VERSION = '6.30';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -125,6 +125,7 @@ function openSettings() {
     ${SET.music ? vol('musicVol') : ''}
     <div class="setrow"><div class="l">Sound effects<small>Stones, fire, rats, bells, horns, the march and the hammer</small></div>${sw('sfxOn')}</div>
     ${SET.sfxOn ? vol('sfxVol') : ''}
+    ${STORE.on ? `<div class="setrow"><div class="l">The full game<small>${fullGame() ? 'Unlocked. Thank you.' : 'Free to start: three houses on the gentle setting'}</small></div>${fullGame() ? `<button class="btn sm" onclick="restorePurchases()">Restore</button>` : `<button class="btn sm gold" onclick="openUnlock()">Unlock</button>`}</div>` : ''}
     <div class="setrow"><div class="l">Tips for new players<small>Short hints on your first turns</small></div>${sw('hints')}</div>
     <div class="setrow"><div class="l">End-of-turn reminder<small>Warn when the army is idle or gold lies unspent</small></div>${sw('confirmEnd')}</div>
     <div class="setrow"><div class="l">Animations<small>Map movement and turn transitions</small></div>${sw('motion')}</div>
@@ -235,13 +236,14 @@ function oldCampaign() { try { const o = localStorage.getItem('crownOfTheFranks9
 function showTitle() {
   const s = loadSave();
   const t = $('#title'); t.style.display = 'block'; setMusic('title');
-  const card = f => `<div class="fcard" style="--c:${f.color}" onclick="openFaction('${f.id}')">${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
+  const card = f => `<div class="fcard${houseLocked(f.id) ? ' locked' : ''}" style="--c:${f.color}" onclick="openFaction('${f.id}')">${houseLocked(f.id) ? `<span class="lockb">${ico('lock')}Full game</span>` : STORE.on && !fullGame() ? '<span class="lockb free">Free</span>' : ''}${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
   t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="hero">${titlePennant('l')}${titlePennant('r')}${titleCrown()}<div class="ad">ANNO DOMINI CMLXXXVII</div><h1 class="gild">Crown of the Franks</h1><div class="orn">❦</div></div>
     <div id="titlerank">${rankBox()}</div>
     <p class="lead">King Louis V is dead without an heir. At Senlis the princes have chosen Hugh Capet, but a crown is not a kingdom. Charles of Lorraine, the last Carolingian, wants it back, and from Flanders to Barcelona the great princes rule as they please. Who will be king in fact?</p>
     ${oldCampaign() ? `<div class="notebox" style="color:var(--ink,#2a1d12)">${ico('scroll')} A campaign from the old map of Europe is saved on this device. It plays on in <a href="https://jdc001.github.io/Emperor-1000/" style="color:inherit;font-weight:700">Emperor: 1000 AD</a>, which picks it up by itself.</div>` : ''}
     ${s && !s.over && s.v === 8 ? `<div class="contbox"><button class="btn gold big" onclick="continueGame()"><span class="lbl">${shield(s.player, 20)} Continue as ${s.fdefs.find(d => d.id === s.player).name}</span><small>${dateStr(s.turn)} · ${s.fdefs.filter(d => s.fac[d.id].alive).length - 1} rivals left</small></button></div>` : ''}
     ${anySlot() ? `<div class="row ctr" style="margin:6px 0 10px"><button class="btn" onclick="openSaves()"><span class="lbl">${ico('chest')}Load a saved game</span></button></div>` : ''}
+    ${!fullGame() ? `<div class="row ctr" style="margin:6px 0 4px"><button class="btn gold" onclick="openUnlock()"><span class="lbl">${ico('crown')}Unlock the full game</span><small>all fifteen houses, every difficulty, the challenges</small></button></div>` : ''}
     ${challengeBox()}
     <h2>The north</h2><div class="facs">${FACTIONS.filter(f => TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <h2>The south</h2><div class="facs">${FACTIONS.filter(f => !TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
@@ -251,9 +253,11 @@ function showTitle() {
 }
 function diffSeg() {
   const cur = SET.diff || 'gentle';
-  return `<div class="seg" style="display:flex">${Object.keys(DIFF).map(k => `<button class="${cur === k ? 'on' : ''}" style="flex:1" onclick="SET.diff='${k}';saveSettings();if(G){G.diff='${k}';noteDiff();}document.getElementById('diffd').textContent=DIFF['${k}'].d;this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${DIFF[k].n}</button>`).join('')}</div><p class="sub" id="diffd" style="min-height:40px">${DIFF[cur].d}</p>`;
+  return `<div class="seg" style="display:flex">${Object.keys(DIFF).map(k => diffLocked(k) ? `<button style="flex:1;opacity:.6" onclick="openUnlock('diff')">${ico('lock')}${DIFF[k].n}</button>` : `<button class="${cur === k ? 'on' : ''}" style="flex:1" onclick="SET.diff='${k}';saveSettings();if(G){G.diff='${k}';noteDiff();}document.getElementById('diffd').textContent=DIFF['${k}'].d;this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${DIFF[k].n}</button>`).join('')}</div><p class="sub" id="diffd" style="min-height:40px">${DIFF[cur].d}</p>`;
 }
 function openFaction(fid) {
+  if (houseLocked(fid)) return openUnlock(fid);
+  if (diffLocked(SET.diff || 'gentle')) SET.diff = 'gentle';
   const f = FACMAP[fid], home = PROV.find(r => r[0] === f.home);
   const lands = PROV.filter(r => r[7] === fid).map(r => r[1]);
   sfx('click');

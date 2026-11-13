@@ -206,6 +206,7 @@ const chalWeek = () => Math.floor((Date.now() / 864e5 + 3) / 7);
 function currentChallenge() { const w = chalWeek(); return { ...CHALLENGES[w % CHALLENGES.length], seed: w }; }
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function startChallenge() {
+  if (!fullGame()) return openUnlock('chal');
   const C = currentChallenge();
   sndUnlock();
   const rnd0 = Math.random; Math.random = mulberry(C.seed * 7919 + 13);
