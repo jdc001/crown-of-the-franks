@@ -40,3 +40,21 @@ non-consumable purchases, and it is already there.
 
 Say "Free to start" in the subtitle or first line, and list what the unlock adds. Players who feel
 surprised by a paywall leave one-star reviews; players who were told up front mostly don't.
+
+## Expansion maps
+
+Each extra map (the first is *The Islands, 1066*) is its own **non-consumable** product, for example
+`com.yourname.crownofthefranks.britain` at Tier 4 ($3.99). In the store build a map that has not been bought
+shows an "Expansion" badge on the title screen, and tapping it opens its unlock screen. The game calls
+`window.COTF_BUY('britain')` for it; when the store reports the product as owned, call `cotfMapUnlocked('britain')`.
+Register it next to the full-game product in the script above:
+
+```js
+const MAPS_IAP = { 'com.yourname.crownofthefranks.britain': 'britain' };
+store.register(Object.keys(MAPS_IAP).map(id => ({ id, type: ProductType.NON_CONSUMABLE, platform: Platform.APPLE_APPSTORE })));
+store.when().productUpdated(p => { if (MAPS_IAP[p.id] && p.owned) cotfMapUnlocked(MAPS_IAP[p.id]); });
+window.COTF_BUY = what => { const id = what === 'full' ? ID : Object.keys(MAPS_IAP).find(k => MAPS_IAP[k] === what); const o = id && store.get(id)?.getOffer(); if (o) o.order(); };
+```
+
+A bundle ("Complete Edition") can be added later as a third product that unlocks both: call `cotfUnlocked()`
+and `cotfMapUnlocked('britain')` when it is owned.

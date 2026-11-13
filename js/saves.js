@@ -4,7 +4,7 @@
 // device, and export/import so a campaign can be backed up as a file or a code, or moved to another device.
 const SLOTS = 5, SLOT_KEY = n => 'cotf-slot-' + n;
 function readSlot(n) { try { const s = localStorage.getItem(SLOT_KEY(n)); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
-function slotLabel(s) { const d = s.fdefs.find(x => x.id === s.player); return `${d ? d.name : '?'} · ${dateStr(s.turn)}`; }
+function slotLabel(s) { const d = s.fdefs.find(x => x.id === s.player), m = s.map || 'france'; return `${d ? d.name : '?'} · ${dateIn(m, s.turn)}${m !== MAP_ID && MAPS[m] ? ` · ${MAPS[m].name}` : ''}`; }
 function saveToSlot(n) {
   if (!G || G.over) return;
   if (slotLocked(n)) return openUnlock('slot');
@@ -31,6 +31,8 @@ function loadGameObj(obj) {
   if (obj && obj._career) { const got = careerMerge(obj._career); delete obj._career; if (got) toast('Your trophies and past games were restored', 'star'); }
   if (!obj || obj.v !== 8 || !obj.fdefs || !obj.provs || !obj.fac) return toast('That save is not from this version of the game');
   if (obj.over) return toast('That campaign is already over');
+  // a campaign on another map: switch maps, then load it there
+  if ((obj.map || 'france') !== MAP_ID) { if (!MAPS[obj.map || 'france']) return toast('That save is from a map this version does not have'); if (mapLocked(obj.map || 'france')) return openUnlock('map:' + obj.map); try { sessionStorage.setItem('cotf-load', JSON.stringify(obj)); } catch (e) { return toast('That save is too large to carry across maps'); } return switchMap(obj.map || 'france'); }
   G = obj; rebuildFmap(); ensureProvs();
   if (!G.army) G.army = 'a0';
   G.sel = null; G.reports = G.reports || []; PANEL.tab = null;

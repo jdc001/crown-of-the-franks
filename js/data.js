@@ -4,7 +4,9 @@ const rnd = n => Math.floor(Math.random() * n);
 const pick = a => a[rnd(a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
-const dateStr = t => SEASONS[(t + SC.date.s0) % 4] + ' ' + (SC.date.y0 + Math.floor((t + SC.date.yOff) / 4));
+// the date of a turn, on this map or another (for saves made on another map)
+const dateIn = (id, t) => { const D = ((typeof MAPS !== 'undefined' && MAPS[id || 'france']) || SC).date; return SEASONS[(t + D.s0) % 4] + ' ' + (D.y0 + Math.floor((t + D.yOff) / 4)); };
+const dateStr = t => dateIn(MAP_ID, t);
 
 // the chosen map's houses, counties, coasts and captains (see js/map-*.js)
 const SC = MAPS[MAP_ID] || MAPS.france;
@@ -127,6 +129,7 @@ for (let i = 0; i < PROV.length; i++) for (let j = i + 1; j < PROV.length; j++) 
   if (inside >= 2) { ADJ[PROV[i][0]].push(PROV[j][0]); ADJ[PROV[j][0]].push(PROV[i][0]); }
 }
 for (const [a, b] of SEA_ROUTES) { ADJ[a].push(b); ADJ[b].push(a); }
+for (const k in ADJ) ADJ[k] = [...new Set(ADJ[k])];
 const seaRoute = (a, b) => SEA_ROUTES.some(r => (r[0] === a && r[1] === b) || (r[0] === b && r[1] === a));
 // the kingdom whose crown is fought for: its counties, and the one crown (internally always 'franks')
 const FRANCE = PROV.filter(r => SC.kingdom.regions.includes(r[10])).map(r => r[0]);

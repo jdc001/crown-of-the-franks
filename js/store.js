@@ -12,11 +12,24 @@ const STORE = {
   get unlocked() { try { return localStorage.getItem('cotf-unlocked') === '1'; } catch (e) { return false; } },
 };
 const fullGame = () => !STORE.on || STORE.unlocked;
-const houseLocked = fid => !fullGame() && !STORE.FREE.includes(fid);
-const diffLocked = k => !fullGame() && k !== 'gentle';
+// the free houses and difficulties are a France thing; other maps are expansions, bought whole
+const houseLocked = fid => MAP_ID === 'france' && !fullGame() && !SC.free.includes(fid);
+const diffLocked = k => MAP_ID === 'france' && !fullGame() && k !== 'gentle';
+const MAP_PRICE = '$3.99';
+const mapLocked = id => { if (!STORE.on || id === 'france') return false; try { return localStorage.getItem('cotf-unlocked-' + id) !== '1'; } catch (e) { return true; } };
 const slotLocked = n => !fullGame() && n > 1;
 
+function openMapUnlock(id) {
+  const M = MAPS[id];
+  showModal(`<div class="rep unlock"><div class="sealmark">${ico('map')}</div><h2>${esc(M.name)}</h2><p class="ctr">${esc(M.sub)}. A second campaign: ${M.FACTIONS.length} new houses, a new map, new captains and new events.</p>
+    <div class="facs" style="margin:10px 0">${M.FACTIONS.slice(0, 6).map(f => `<span class="tag">${armsSvg(f.arms, 16)} ${esc(f.name)}</span>`).join(' ')} <span class="sub">and more</span></div>
+    <div class="row ctr"><button class="btn gold big" onclick="buyMap('${id}')"><span class="lbl">${ico('map')}Unlock the map · ${MAP_PRICE}</span></button></div>
+    <div class="row ctr"><button class="btn sm ghost" onclick="restorePurchases()">Restore a purchase</button><button class="btn sm ghost" onclick="closeModal()">Not now</button></div></div>`, '', { closable: true });
+}
+function buyMap(id) { if (typeof window.COTF_BUY === 'function') { try { window.COTF_BUY(id); } catch (e) { toast('The store could not be reached. Try again in a moment.'); } return; } toast('Purchases are made in the App Store version of the game'); }
+function cotfMapUnlocked(id) { try { localStorage.setItem('cotf-unlocked-' + id, '1'); } catch (e) { } sfx('bell'); closeModal(); showTitle(); toast(`${MAPS[id] ? MAPS[id].name : 'The map'} is yours`, 'map'); }
 function openUnlock(why) {
+  if (why && String(why).startsWith('map:')) return openMapUnlock(String(why).slice(4));
   const reason = why && FACMAP[why] ? `${esc(FACMAP[why].name)} is one of the twelve houses the full game adds.`
     : why === 'diff' ? 'Tougher rivals come with the full game.' : why === 'chal' ? 'The Chronicler\'s challenges come with the full game.' : why === 'slot' ? 'More save slots come with the full game.' : '';
   const free = STORE.FREE.map(f => `<span class="tag">${shield(f, 16)} ${esc(FACMAP[f].name)}</span>`).join(' ');

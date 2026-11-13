@@ -122,6 +122,8 @@ function titleCrown() {
 }
 // a long swallow-tailed banner: azure with gold fleurs on the left, the oriflamme of Saint-Denis on the right
 function titlePennant(side) {
+  const P = (SC.art.pennants || {})[side];
+  if (P) return `<svg class="pennant ${side}" viewBox="0 0 54 150" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="54" height="5" rx="2" fill="#b8892c" stroke="#5a3a0a"/><path d="M4,5 H50 V140 L27,118 L4,140Z" fill="${P.bg}" stroke="#1a1214" stroke-width="1.5"/>${P.motif}<path d="M10,5 V128" stroke="#fff" stroke-width="3" opacity=".08"/></svg>`;
   const az = side === 'l';
   const fleur = (x, y) => `<path transform="translate(${x},${y}) scale(.5)" d="M0,-12 C-4,-6 -4,0 0,4 C4,0 4,-6 0,-12Z M-2,4 C-12,-2 -14,8 -4,8 M2,4 C12,-2 14,8 4,8 M-7,8 h14" fill="#e2b33c" stroke="#7a5a10" stroke-width="1"/>`;
   return `<svg class="pennant ${side}" viewBox="0 0 54 150" xmlns="http://www.w3.org/2000/svg">

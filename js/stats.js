@@ -122,11 +122,14 @@ const rankNow = () => RANKS[rankOf(profile().points)];
 // ---------- trophies ----------
 // test(S, P) gets the game summary and the profile; points are worth more the stranger the feat
 const HOUSE_TROPHY = { capet: ['The Capetian line', 25], charles: ['Last of the Carolingians', 30], normandy: ['Duke of the Northmen', 25], flanders: ['The Lion of Flanders', 25], champagne: ['Count of the Fairs', 25], blois: ['Between the Lions', 30], anjou: ['The Black Count', 25], brittany: ['Breton Kingship', 40], aquitaine: ['Lord of the South-West', 30], burgundy: ['The Burgundian Crown', 25], toulouse: ['The Raymondine Throne', 30], barcelona: ['Count of the March', 25], gascony: ['Basque Crown', 40], provence: ['From Beyond the Rhône', 40], roussillon: ['Lord of the Coast Road', 40] };
+const HOUSE_TROPHY_1066 = { wessex: ['The Last Saxon King', 25], eastanglia: ['Earl of the Fens', 35], mercia: ['The Mercian Revival', 30], northumbria: ['King in the North', 30], normandy: ['The Conqueror', 25], boulogne: ['Across the Narrow Sea', 35],
+  norway: ['The Last Viking', 30], orkney: ['Jarl of England', 40], isles: ['Sea-King of England', 40], scotland: ['Canmore Triumphant', 35], gwynedd: ['The Red Dragon', 40], leinster: ['From Ferns to Westminster', 40], munster: ['Brian Boru Avenged', 40], connacht: ['The Gapped Spear', 45], ulaid: ['The Hound of Ulster', 45] };
 const TROPHIES = [
-  ...Object.keys(HOUSE_TROPHY).map(h => ({ id: 'win_' + h, n: HOUSE_TROPHY[h][0], d: `Win as ${FACMAP[h] ? FACMAP[h].name : h}.`, pts: HOUSE_TROPHY[h][1], kind: 'house', test: S => S.won && S.house === h })),
+  ...Object.keys(HOUSE_TROPHY).map(h => ({ id: 'win_' + h, n: HOUSE_TROPHY[h][0], d: `Win as ${MAPS.france.FACTIONS.find(f => f.id === h).name}.`, pts: HOUSE_TROPHY[h][1], kind: 'house', test: S => S.won && S.house === h && (S.map || 'france') === 'france' })),
+  ...Object.keys(HOUSE_TROPHY_1066).map(h => ({ id: 'win66_' + h, n: HOUSE_TROPHY_1066[h][0], d: `Win as ${MAPS.britain.FACTIONS.find(f => f.id === h).name}, in 1066.`, pts: HOUSE_TROPHY_1066[h][1], kind: 'house', test: S => S.won && S.house === h && S.map === 'britain' })),
   { id: 'first', n: 'Anointed', d: 'Win your first game.', pts: 20, test: S => S.won },
   { id: 'conquest', n: 'Hammer of the Franks', d: 'Win by breaking every rival house.', pts: 60, test: S => S.won && S.how === 'conquest' },
-  { id: 'swift', n: 'Swift Succession', d: 'Win before the year 1005.', pts: 50, test: S => S.won && S.year < 1005 },
+  { id: 'swift', n: 'Swift Succession', d: 'Win within eighteen years of the start.', pts: 50, test: S => S.won && S.year - (MAPS[S.map || 'france'] || MAPS.france).date.y0 < 18 },
   { id: 'hard', n: 'Against the Odds', d: 'Win against Hard rivals.', pts: 60, test: S => S.won && S.diff === 'hard' },
   { id: 'two', n: 'Two Hosts Suffice', d: 'Win without ever fielding a third army.', pts: 40, test: S => S.won && !S.m.used3 },
   { id: 'untaken', n: 'Never Taken', d: 'Win without your lord ever being captured.', pts: 25, test: S => S.won && !S.m.captured },
@@ -159,7 +162,7 @@ function noteDiff() { if (!G) return; const cur = DIFF_ORDER.indexOf(G.diff || '
 function gameSummary() {
   const me_ = G.player, won = G.winner === me_, m = G.stats ? G.stats.me : {};
   return { when: Date.now(), house: me_, name: FAC(me_).name, won, how: !won ? (G.winner ? 'beaten' : 'fallen') : alive().length === 1 ? 'conquest' : 'crown',
-    winner: G.winner || null, turns: G.turn, year: yearOf(G.turn), diff: (noteDiff(), DIFF_ORDER[G.diffLow]), counties: owned(me_).length, excom: G.fac[me_].excom > 0,
+    map: MAP_ID, winner: G.winner || null, turns: G.turn, year: yearOf(G.turn), diff: (noteDiff(), DIFF_ORDER[G.diffLow]), counties: owned(me_).length, excom: G.fac[me_].excom > 0,
     alliedAtEnd: alive().some(f => f !== me_ && allied(me_, f)), challenge: G.challenge ? G.challenge.id : null, m: { ...m } };
 }
 // called once when a game ends: history, trophies, points; returns what changed for the ending screens

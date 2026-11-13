@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.30';
+const APP_VERSION = '6.31';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -225,6 +225,12 @@ function gameOver() {
 }
 
 // ================= TITLE =================
+// the maps, side by side on the title screen
+function mapPicker() {
+  const ms = Object.values(MAPS); if (ms.length < 2) return '';
+  return `<div class="mappick">${ms.map(m => `<button class="mp${m.id === MAP_ID ? ' on' : ''}" onclick="pickMap('${m.id}')">${m.FACTIONS.slice(0, 3).map(f => armsSvg(f.arms, 22)).join('')}<span class="t"><b>${esc(m.name)}</b><small>${esc(m.sub)}</small></span>${mapLocked(m.id) ? `<span class="lockb">${ico('lock')}Expansion</span>` : m.id === MAP_ID ? '<span class="lockb free">Playing</span>' : ''}</button>`).join('')}</div>`;
+}
+function pickMap(id) { if (id === MAP_ID) return; if (mapLocked(id)) return openMapUnlock(id); sfx('click'); switchMap(id); }
 function oldCampaign() { try { const o = localStorage.getItem('crownOfTheFranks987v7'); if (o && !JSON.parse(o).over) return true; for (let n = 1; n <= SLOTS; n++) { const s = readSlot(n); if (s && s.game && s.game.v === 7) return true; } } catch (e) { } return false; }
 function showTitle() {
   const s = loadSave();
@@ -232,6 +238,7 @@ function showTitle() {
   const card = f => `<div class="fcard${houseLocked(f.id) ? ' locked' : ''}" style="--c:${f.color}" onclick="openFaction('${f.id}')">${houseLocked(f.id) ? `<span class="lockb">${ico('lock')}Full game</span>` : STORE.on && !fullGame() ? '<span class="lockb free">Free</span>' : ''}${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
   t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="hero">${titlePennant('l')}${titlePennant('r')}${titleCrown()}<div class="ad">ANNO DOMINI ${SC.date.roman}</div><h1 class="gild">${SC.game}</h1><div class="orn">❦</div></div>
     <div id="titlerank">${rankBox()}</div>
+    ${mapPicker()}
     <p class="lead">${SC.intro.lead}</p>
     ${oldCampaign() ? `<div class="notebox" style="color:var(--ink,#2a1d12)">${ico('scroll')} A campaign from the old map of Europe is saved on this device. It plays on in <a href="https://jdc001.github.io/Emperor-1000/" style="color:inherit;font-weight:700">Emperor: 1000 AD</a>, which picks it up by itself.</div>` : ''}
     ${s && !s.over && s.v === 8 ? `<div class="contbox"><button class="btn gold big" onclick="continueGame()"><span class="lbl">${shield(s.player, 20)} Continue as ${s.fdefs.find(d => d.id === s.player).name}</span><small>${dateStr(s.turn)} · ${s.fdefs.filter(d => s.fac[d.id].alive).length - 1} rivals left</small></button></div>` : ''}

@@ -28,6 +28,8 @@ document.addEventListener('keydown', e => {
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && !G.over) save(); });
 window.addEventListener('orientationchange', () => setTimeout(() => { applyLayout(); if (G) applyView(); }, 250));
 showTitle();
+// a campaign carried over from another map, loaded once this map is up
+try { const pend = sessionStorage.getItem('cotf-load'); if (pend) { sessionStorage.removeItem('cotf-load'); loadGameObj(JSON.parse(pend)); } } catch (e) { }
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('service-worker.js').catch(() => {});
 

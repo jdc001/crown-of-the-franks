@@ -124,7 +124,7 @@ function bldYield(fid, t) {
 }
 function bonus(fid) {
   if (!fid) return { atk: 0, hp: 0, cav: 0 };
-  return { atk: (owned(fid).some(p => p.b.armory) ? 0.15 : 0) + ((FAC(fid).kingOf || []).length ? 0.1 : 0),
+  return { atk: (owned(fid).some(p => p.b.armory) ? 0.15 : 0) + ((FAC(fid).kingOf || []).length ? 0.1 : 0) + (TR(fid).atk || 0),
     hp: owned(fid).some(p => p.b.forge) ? 0.15 : 0, cav: owned(fid).some(p => p.b.stables) ? 0.25 : 0 };
 }
 const truce = () => G.turn < TRUCE;
@@ -134,7 +134,7 @@ function unitCost(fid, t) {
 }
 // Greek fire: sealed jars of Byzantine naphtha. Venetian traders sell them dear; Theophylact the Greek can make them.
 const GF_MAX = 3;
-const gfCost = (fid, a) => armyGen(fid, a) && armyGen(fid, a).siege ? 25 : 60;
+const gfCost = (fid, a) => armyGen(fid, a) && armyGen(fid, a).siege ? 25 : TR(fid).gf || 60;
 const catShots = (fid, a) => 3 + (a && armyGen(fid, a) && armyGen(fid, a).siege ? 1 : 0);
 function mods(fid) { if (!fid) return 0; const F = G.fac[fid]; return (F.bless > 0 ? 1 : 0) - (F.excom > 0 ? 1 : 0); }
 // Rome is beyond the map: its cardinals answer to no prince
