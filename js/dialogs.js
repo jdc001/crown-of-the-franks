@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.28';
+const APP_VERSION = '6.29';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -236,7 +236,7 @@ function showTitle() {
   const s = loadSave();
   const t = $('#title'); t.style.display = 'block'; setMusic('title');
   const card = f => `<div class="fcard" style="--c:${f.color}" onclick="openFaction('${f.id}')">${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
-  t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="ad">ANNO DOMINI CMLXXXVII</div><h1>Crown of the Franks</h1><div class="orn">❦</div>
+  t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="hero">${titlePennant('l')}${titlePennant('r')}${titleCrown()}<div class="ad">ANNO DOMINI CMLXXXVII</div><h1 class="gild">Crown of the Franks</h1><div class="orn">❦</div></div>
     <div id="titlerank">${rankBox()}</div>
     <p class="lead">King Louis V is dead without an heir. At Senlis the princes have chosen Hugh Capet, but a crown is not a kingdom. Charles of Lorraine, the last Carolingian, wants it back, and from Flanders to Barcelona the great princes rule as they please. Who will be king in fact?</p>
     ${oldCampaign() ? `<div class="notebox" style="color:var(--ink,#2a1d12)">${ico('scroll')} A campaign from the old map of Europe is saved on this device. It plays on in <a href="https://jdc001.github.io/Emperor-1000/" style="color:inherit;font-weight:700">Emperor: 1000 AD</a>, which picks it up by itself.</div>` : ''}
@@ -286,24 +286,6 @@ function figurePerson(x, y, robe, mantle, s = 1, kneel) {
     ? `<path d="M-22,0 Q-24,-34 -8,-48 L10,-48 Q20,-30 30,-6 L34,0Z" fill="${robe}" stroke="#2a1d12" stroke-width="1.5"/><path d="M-26,0 Q-30,-40 -6,-52 L4,-50 Q-14,-30 -8,0Z" fill="${mantle}" stroke="#2a1d12" stroke-width="1.2"/><circle cx="12" cy="-56" r="9" fill="#e7c9a3" stroke="#2a1d12" stroke-width="1.2"/><path d="M18,-40 L30,-34" stroke="#e7c9a3" stroke-width="5" stroke-linecap="round"/>`
     : `<path d="M-18,0 L-12,-70 Q0,-80 12,-70 L18,0Z" fill="${robe}" stroke="#2a1d12" stroke-width="1.5"/><path d="M-20,0 L-14,-64 Q-4,-60 0,-40 L4,0Z" fill="${mantle}" stroke="#2a1d12" stroke-width="1.2"/><circle cx="0" cy="-80" r="9" fill="#e7c9a3" stroke="#2a1d12" stroke-width="1.2"/>`}</g>`;
 }
-function coronationScene(fid, kid) {
-  const col = FAC(fid).color, latin = LATIN[kid] || 'REX';
-  const name = FAC(fid).pname.split(' ')[0].toUpperCase();
-  const arches = [90, 220, 380, 510].map(cx => `<path d="M${cx - 60},330 V150 A60,60 0 0 1 ${cx + 60},150 V330" fill="none" stroke="#6b5636" stroke-width="10"/><rect x="${cx - 66}" y="140" width="12" height="190" fill="#8b7350"/><rect x="${cx + 54}" y="140" width="12" height="190" fill="#8b7350"/>`).join('');
-  const candles = [60, 150, 450, 540].map(cx => `<rect x="${cx - 3}" y="260" width="6" height="40" fill="#f3e8cc"/><path d="M${cx},248 q5,7 0,12 q-5,-5 0,-12" fill="#ffb347"/>`).join('');
-  const bishops = [[120, 330], [480, 330]].map(([bx, by]) => figurePerson(bx, by, '#f3e8cc', '#6e2f63', 0.9) + `<path d="M${bx - 6},${by - 82} L${bx},${by - 98} L${bx + 6},${by - 82}Z" fill="#f3e8cc" stroke="#e2b33c"/>`).join('');
-  const pope = `${figurePerson(395, 332, '#f7f1e0', '#a3222c', 1.25)}
-    <path d="M384,212 Q395,180 406,212 Z" fill="#f7f1e0" stroke="#e2b33c" stroke-width="2"/><path d="M385,206 H405 M387,198 H403 M390,190 H400" stroke="#e2b33c" stroke-width="2"/>
-    <line x1="425" y1="330" x2="425" y2="200" stroke="#e2b33c" stroke-width="4"/><path d="M425,200 q14,-4 12,-16 q-2,-10 -12,-6" fill="none" stroke="#e2b33c" stroke-width="4"/>
-    <path d="M378,250 Q350,236 318,236" stroke="#f7f1e0" stroke-width="9" stroke-linecap="round" fill="none"/>`;
-  const crownG = `<g transform="translate(300,222)"><path d="M-16,10 L-16,-6 L-8,2 L0,-12 L8,2 L16,-6 L16,10Z" fill="#e2b33c" stroke="#7a5a10" stroke-width="1.5"/><circle cx="0" cy="-12" r="3" fill="#a3222c"/><circle cx="-16" cy="-6" r="2.5" fill="#2d5ea8"/><circle cx="16" cy="-6" r="2.5" fill="#2d5ea8"/></g>`;
-  const king = figurePerson(290, 334, col, '#7a1d1d', 1.3, true) + `<path d="M255,334 h120" stroke="#a3222c" stroke-width="10"/>`;
-  return frame(`<rect width="600" height="400" fill="url(#diap)"/><rect x="18" y="300" width="564" height="82" fill="#7a6648"/>
-    <path d="M18,300 H582" stroke="#5a4a32" stroke-width="3"/>${arches}${candles}
-    <line x1="200" y1="334" x2="200" y2="150" stroke="#2a1d12" stroke-width="4"/>${embedShield(fid, 202, 152, 44, true)}
-    ${bishops}${king}${pope}${crownG}
-    <g><path d="M90,38 H510 L496,58 L510,78 H90 L104,58Z" fill="#f3e8cc" stroke="#8e1f1b" stroke-width="2.5"/><text x="300" y="66" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="700" font-size="24" fill="#8e1f1b" letter-spacing="3" textLength="${Math.min(380, (name.length + latin.length + 1) * 19)}" lengthAdjust="spacingAndGlyphs">${name} ${latin}</text></g>`);
-}
 function introScene(fid) {
   const col = FAC(fid).color;
   const riders = Array.from({ length: 9 }, (_, i) => { const x = 120 + i * 34 + (i % 2) * 8, y = 318 + (i % 3) * 6; return `<g transform="translate(${x},${y})"><ellipse cx="0" cy="0" rx="13" ry="6" fill="#3a2a1a"/><path d="M8,-3 l8,-6 l2,4z" fill="#3a2a1a"/><rect x="-3" y="-16" width="6" height="12" fill="${col}"/><circle cx="0" cy="-19" r="3.5" fill="#d9c09a"/><line x1="-2" y1="-12" x2="18" y2="-40" stroke="#2a1d12" stroke-width="1.6"/>${i % 3 === 0 ? `<path d="M18,-40 l10,3 l-10,4z" fill="${col}"/>` : ''}<path d="M-8,5 l-2,9 M8,5 l2,9" stroke="#3a2a1a" stroke-width="2"/></g>`; }).join('');
@@ -326,7 +308,7 @@ function showCoronation(fid, kid, onDone) {
   const title = 'King of the Franks';
   const body = G.over && alive().length === 1
     ? `In ${dateStr(G.turn)}, the last rival house has fallen. At Reims the archbishop anoints ${FAC(fid).pname}, and there is no prince left to stand against him.`
-    : `At Reims, before the bishops of the realm, the archbishop anoints ${FAC(fid).pname} King of the Franks. His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. With  counties he may field a third army.`;
+    : `At Reims, before the bishops of the realm, the archbishop anoints ${FAC(fid).pname} King of the Franks. His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. With ${KING_ARMY3} counties he may field a third army.`;
   window._coronDone = onDone || null;
   showModal(`<div class="splash">${coronationScene(fid, kid)}<div class="splashtxt"><h2>${title}</h2><p>${body}</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();(window._coronDone||(()=>{render();showReports();}))()">Long live the King</button></div></div></div>`, 'splashcard');

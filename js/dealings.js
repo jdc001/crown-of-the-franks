@@ -270,7 +270,7 @@ function drawFair() {
   const stall = FR.stock.reduce((s, x) => s + FR.left[x.id] * fairPrice(x), 0);
   const rows = FR.stock.map(x => {
     const n = FR.left[x.id], p = FR.pct[x.id], [w, c] = pctWord(p), t = FR.tip[x.id];
-    return `<div class="fcard${n ? '' : ' sold'}"><div class="fc1"><span class="fdot" style="background:${x.col}"></span><b>${x.n}</b><small>${n ? `${n} lot${n > 1 ? 's' : ''} left` : 'all sold'}</small></div>
+    return `<div class="fwcard${n ? '' : ' sold'}"><div class="fc1"><span class="fdot" style="background:${x.col}"></span><b>${x.n}</b><small>${n ? `${n} lot${n > 1 ? 's' : ''} left` : 'all sold'}</small></div>
       <div class="fc2"><span class="num" style="font-size:20px">${fairPrice(x)} d</span><small class="${c}">${w} (${Math.round(p * 100)}%)</small>${t ? `<small><i>Tomorrow: ${t.said === 'up' ? 'more buyers are coming, they say' : 'buyers are leaving, they say'}</i></small>` : ''}</div>
       <div class="fc3"><button class="btn sm gold" onclick="fairSell('${x.id}',1)" ${n ? '' : 'disabled'}>Sell all</button><button class="btn sm" onclick="fairSell('${x.id}',0.5)" ${n > 1 ? '' : 'disabled'}>Sell half</button></div></div>`;
   }).join('');

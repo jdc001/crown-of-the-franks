@@ -75,29 +75,32 @@ function buildMap() {
     ${HILL_PAT('hills')}
     <pattern id="edgehatch" width="11" height="11" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="11" fill="#cdc1a1"/><rect width="3" height="11" fill="#bcb091"/></pattern>
     ${allyPats}
+    ${vellumDefs()}
   </defs>
   <rect x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#d9ca9f"/>
   <rect x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="url(#terra)"/>
   ${SEA_POLYS.map(L => `<path d="${pathOf(L)}" fill="url(#seag)"/>`).join('')}
   ${SEA_POLYS.map(L => `<path d="${pathOf(L)}" fill="url(#waves)"/>`).join('')}
-  <g clip-path="url(#seaclip)">${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#c9d6c9" stroke-width="26" stroke-opacity=".22"/><path d="${pathOf(L)}" fill="none" stroke="#c9d6c9" stroke-width="12" stroke-opacity=".3"/>`).join('')}</g>
+  ${coastLayer()}
   ${ISLES.map(L => `<path d="${pathOf(L)}" fill="#d9ca9f" stroke="#7b6a48" stroke-width="1.4"/>`).join('')}
   <g clip-path="url(#landclip)">${EDGES.map((e, i) => `<path class="edgecell" d="${EDGE_CELLD[i]}" fill="url(#edgehatch)"/>`).join('')}</g>
   <g clip-path="url(#landclip)">${PROV.map(r => `<path class="cell" id="c-${r[0]}" data-id="${r[0]}" d="${CELLD[r[0]]}"/>`).join('')}</g>
-  <g clip-path="url(#landclip)" pointer-events="none">${PROV.filter(r => r[5]).map(r => `<path d="${CELLD[r[0]]}" fill="url(#hills)"/>`).join('')}</g>
+  ${riversLayer()}
+  ${terrainLayer()}
   <g clip-path="url(#landclip)" pointer-events="none" id="ownerlines"></g>
   ${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#3a2b1b" stroke-width="2.4"/>`).join('')}
   <g clip-path="url(#seaclip)" pointer-events="none">${SEA_ROUTES.map(([a, b]) => { const A = SEEDS[PROV.findIndex(r => r[0] === a)], B = SEEDS[PROV.findIndex(r => r[0] === b)], mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), bow = Math.min(60, L * 0.18), sgn = a === 'barcelona' ? 1 : 0; return `<path class="searoute" d="M${A[0].toFixed(1)},${A[1].toFixed(1)} Q${(mx + dy / L * bow * sgn).toFixed(1)},${(my - dx / L * bow * sgn).toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)}"/>`; }).join('')}</g>
   ${EDGES.map(e => `<text class="geo edge" x="${px(e[2])}" y="${py(e[3])}">${e[1]}</text>`).join('')}
   ${[['Corsica', 9.1, 42.2]].map(([n, lo, la]) => `<text class="geo" x="${px(lo)}" y="${py(la)}">${n}</text>`).join('')}
   ${SEA_LABELS.map(s => `<text class="seal" x="${px(s[1])}" y="${py(s[2])}">${s[0]}</text>`).join('')}
-  <g transform="translate(${px(-4.4)},${py(44.6)})" class="rose"><circle r="36" fill="#efe3c4aa" stroke="#3a2b1b" stroke-width="1.2"/><circle r="30" fill="none" stroke="#b8892c" stroke-width="1"/><path d="M0,-46 L7,0 L0,46 L-7,0Z M-46,0 L0,-7 L46,0 L0,7Z" fill="#8e1f1b" stroke="#2a1d12" stroke-width="1"/><path d="M0,-46 L7,0 L0,0Z M46,0 L0,7 L0,0Z M0,46 L-7,0 L0,0Z M-46,0 L0,-7 L0,0Z" fill="#e2b33c"/><text y="-52" text-anchor="middle" class="rosel">N</text></g>
-  <g transform="translate(${px(5.6)},${py(42.4)})"><rect width="250" height="66" rx="4" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/><rect x="5" y="5" width="240" height="56" fill="none" stroke="#b8892c" stroke-width="1.2"/><text x="125" y="31" class="cart">Regnum Francorum</text><text x="125" y="50" class="cart2">Anno Domini 987</text></g>
+  ${marginArt()}
   <rect id="tint" x="-400" y="-400" width="${MW + 800}" height="${MH + 800}" fill="#000" fill-opacity="0" pointer-events="none"/>
   <g id="ovsel" pointer-events="none"></g>
   <g id="ov"></g>
   <g id="ovmoves" pointer-events="none"></g>`;
   mapEl.innerHTML = h;
+  // the vellum's grain lies over the map as a screen layer: a pattern inside the map is slow to repaint on a phone
+  const vt = vellumTile(); if (vt) $('#mapwrap').style.setProperty('--vellum', `url(${vt})`);
   initMapInput();
 }
 function allyPat(fid, color) { return `<pattern id="al-${fid}" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><rect width="12" height="12" fill="#ece0bf"/><rect width="5" height="12" fill="${mix(color, '#ece0bf', 0.3)}"/></pattern>`; }
@@ -295,11 +298,13 @@ function titleMap() {
   return `<svg viewBox="0 0 ${MW} ${MH}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="${MW}" height="${MH}" fill="#d9ca9f"/>
     ${SEA_POLYS.map(L => `<path d="${pathOf(L)}" fill="#8fa8a3"/>`).join('')}
     <g clip-path="url(#landclip)">${PROV.map(r => `<path d="${CELLD[r[0]]}" fill="${owned[r[0]] ? mix(owned[r[0]], '#efe3c4', 0.4) : '#e8dcb9'}" stroke="#4b3825" stroke-width="1.2"/>`).join('')}</g>
+    ${coastLayer()}${riversLayer()}${terrainLayer()}
     ${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#3a2b1b" stroke-width="2.4"/>`).join('')}
+    ${vellumLayer()}${marginArt()}
     ${FACTIONS.map(f => { const r = PROV.find(x => x[0] === f.home); return mapIco('crown', px(r[2]), py(r[3]) - 14, 30); }).join('')}</svg>`;
 }
 const SEASON_TINT = [['#9ad07a', 0.05], ['#ffd27a', 0.06], ['#d08a3a', 0.11], ['#cfe0ff', 0.16]];
-function seasonTint() { const k = (G.turn + 1) % 4, el = document.getElementById('tint'); if (el && el.dataset.season !== String(k)) { el.dataset.season = k; el.setAttribute('fill', SEASON_TINT[k][0]); el.setAttribute('fill-opacity', SEASON_TINT[k][1]); } }
+function seasonTint() { const k = (G.turn + 1) % 4, el = document.getElementById('tint'); if (mapEl && mapEl.dataset.season !== String(k)) { mapEl.dataset.season = k; mapEl.setAttribute('class', 'season-' + k); } if (el && el.dataset.season !== String(k)) { el.dataset.season = k; el.setAttribute('fill', SEASON_TINT[k][0]); el.setAttribute('fill-opacity', SEASON_TINT[k][1]); } }
 // the player's banners live in their own elements so they glide when an army marches
 function renderMyBanners(s, at) {
   const col = FAC(me()).color;

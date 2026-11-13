@@ -473,10 +473,10 @@ body.m .card.splashcard { padding-bottom: var(--sab); }
 body.m .bord { min-height: 84px; }
 @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translate(3px, -2px); } 40% { transform: translate(-3px, 2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(-2px, -1px); } }
 #title { overflow-x: hidden; }
-.tbg { position: fixed; inset: -10%; z-index: 0; opacity: .22; filter: sepia(.3) saturate(.8); animation: drift 90s ease-in-out infinite alternate; pointer-events: none; }
+.tbg { position: fixed; inset: -10%; z-index: 0; opacity: .62; animation: drift 80s ease-in-out infinite alternate; pointer-events: none; will-change: transform; }
 .tbg svg { width: 100%; height: 100%; }
 @keyframes drift { from { transform: translate(0, 0) scale(1.05); } to { transform: translate(-4%, -3%) scale(1.18); } }
-.tbg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 25%, #1b120a00, #1b120a 80%); }
+.tbg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 68% 8%, #ffcf7a66, #ff9a4a22 28%, #1b120a00 50%), linear-gradient(180deg, #2a1a3acc 0%, #1b120a55 30%, #1b120a99 60%, #1b120af2 100%), radial-gradient(circle at 50% 30%, #1b120a00 30%, #1b120a 85%); }
 #title .inner { position: relative; z-index: 1; }
 
 /* ---------- army bar ---------- */
@@ -588,13 +588,13 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .searoute { fill: none; stroke: #2a1d12; stroke-width: 3.2; stroke-dasharray: 3 9; stroke-linecap: round; opacity: .7; }
 
 .fcards { display: grid; gap: 8px; margin: 8px 0; }
-.fcard { display: grid; grid-template-columns: 1.1fr 1.2fr auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line2, #c9b48a); border-radius: 10px; background: #fff6; }
-.fcard.sold { opacity: .5; }
-.fcard small { display: block; font-size: 12px; }
-.fcard .fc1 b { font: 700 15px var(--head); }
-.fcard .fc3 { display: flex; flex-direction: column; gap: 4px; }
-.fcard .fdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
-@media (max-width: 480px) { .fcard { grid-template-columns: 1fr 1fr; } .fcard .fc3 { grid-column: 1 / -1; flex-direction: row; } .fcard .fc3 .btn { flex: 1; } }
+.fwcard { display: grid; grid-template-columns: 1.1fr 1.2fr auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line2, #c9b48a); border-radius: 10px; background: #fff6; }
+.fwcard.sold { opacity: .5; }
+.fwcard small { display: block; font-size: 12px; }
+.fwcard .fc1 b { font: 700 15px var(--head); }
+.fwcard .fc3 { display: flex; flex-direction: column; gap: 4px; }
+.fwcard .fdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+@media (max-width: 480px) { .fwcard { grid-template-columns: 1fr 1fr; } .fwcard .fc3 { grid-column: 1 / -1; flex-direction: row; } .fwcard .fc3 .btn { flex: 1; } }
 
 .relb { margin: 2px 0 8px; }
 .relb .rlab { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink3); }
@@ -631,3 +631,43 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .trow .tico svg { width: 24px; height: 24px; }
 .trow .tn { display: flex; flex-direction: column; min-width: 0; }
 .trow .tn small { color: var(--ink2); font-style: italic; }
+/* the illuminated map: woods by season, snow on the hills in winter */
+.terrain .trees { fill: #6f8a4a; fill-opacity: .62; }
+#map.season-0 .terrain .trees { fill: #7fa356; }
+#map.season-2 .terrain .trees { fill: #b8732e; fill-opacity: .7; }
+#map.season-3 .terrain .trees { fill: #56664a; fill-opacity: .55; }
+.terrain .snow { opacity: 0; }
+#map.season-3 .terrain .snow { opacity: .95; }
+#mapwrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 60px 6px #3a2508aa, inset 0 0 160px 30px #5a3c1233; z-index: 1; }
+/* the coronation: flickering candles, shimmering light, falling petals, drifting dust */
+.coron .cfl { transform-box: fill-box; transform-origin: 50% 100%; animation: cflick .5s ease-in-out infinite alternate; }
+.coron .cglow { animation: cglow 1.1s ease-in-out infinite alternate; }
+.coron .cray { animation: cray 5s ease-in-out infinite alternate; }
+.coron .cpet { animation-name: cpetal; animation-timing-function: linear; animation-iteration-count: infinite; }
+.coron .cmote { animation: cmote 4s ease-in-out infinite alternate; }
+.coron .cban { transform-box: fill-box; transform-origin: 50% 0; animation: cban 4s ease-in-out infinite alternate; }
+.coron .ccrown { animation: ccrown 2.4s ease-in-out infinite alternate; }
+@keyframes cflick { from { transform: scale(.85, .9); opacity: .85; } to { transform: scale(1.1, 1.15); opacity: 1; } }
+@keyframes cglow { from { opacity: .6; } to { opacity: 1; } }
+@keyframes cray { from { opacity: .55; } to { opacity: 1; } }
+@keyframes cpetal { from { transform: translate(0, 0); } 50% { transform: translate(14px, 210px); } to { transform: translate(-6px, 420px); } }
+@keyframes cmote { from { opacity: .15; transform: translate(0, 0); } to { opacity: .8; transform: translate(4px, -8px); } }
+@keyframes cban { from { transform: skewX(-1.5deg); } to { transform: skewX(1.5deg); } }
+@keyframes ccrown { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+body.nomotion .coron * { animation: none !important; }
+
+/* the title: a gilded name that catches the light, a crown above it, banners stirring either side */
+#title .hero { position: relative; padding: 8px 0 4px; }
+#title .hcrown { width: 92px; height: 70px; display: block; margin: 0 auto -4px; filter: drop-shadow(0 4px 10px #000a) drop-shadow(0 0 18px #e2b33c55); }
+#title .hcrown .glint { animation: glint 5s ease-in-out infinite; }
+@keyframes glint { 0%, 62% { transform: translateX(-90px); } 80%, 100% { transform: translateX(110px); } }
+#title h1.gild { background: linear-gradient(100deg, #8a5a14 0%, #e2b33c 18%, #fff3c4 30%, #e2b33c 42%, #b07a1e 58%, #f6d47a 74%, #8a5a14 100%); background-size: 240% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 2px 0 #5a1410) drop-shadow(0 6px 14px #000c); animation: gildshine 7s ease-in-out infinite; }
+@keyframes gildshine { 0%, 40% { background-position: 100% 0; } 70%, 100% { background-position: 0% 0; } }
+#title .pennant { position: absolute; top: 18px; width: 54px; height: 150px; transform-origin: 50% 0; animation: pennant 3.6s ease-in-out infinite alternate; filter: drop-shadow(0 4px 8px #0009); }
+#title .pennant.l { left: max(2%, calc(50% - 400px)); } #title .pennant.r { right: max(2%, calc(50% - 400px)); animation-delay: -1.8s; }
+@keyframes pennant { from { transform: skewX(-3deg) rotate(-1deg); } to { transform: skewX(3deg) rotate(1deg); } }
+@media (max-width: 560px) { #title .pennant { width: 30px; height: 80px; top: 2px; } }
+body.nomotion #title .tbg, body.nomotion #title .hcrown .glint, body.nomotion #title h1.gild, body.nomotion #title .pennant { animation: none; }
+#title p.lead { text-shadow: 0 1px 2px #000, 0 0 14px #1b120a; }
+#title .hero::before { content: ''; position: absolute; inset: 40px -10% -20px; background: radial-gradient(ellipse at 50% 55%, #1b120acc, #1b120a00 70%); z-index: -1; pointer-events: none; }
+#mapwrap::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background-image: var(--vellum, none); background-size: 320px 320px; opacity: .8; }

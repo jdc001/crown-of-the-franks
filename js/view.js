@@ -100,7 +100,7 @@ function makeLayer(w, h, dpr, fn) { const c = document.createElement('canvas'); 
 // is used up, new canvases are drawn without the GPU and crawl. So a scene's canvases are emptied the moment it ends.
 function releaseScene(S) {
   if (!S) return;
-  for (const k of ['ground', 'vig', 'corpC', 'sky', 'land']) if (S[k]) { S[k].width = S[k].height = 0; S[k] = null; }
+  for (const k of ['ground', 'vig', 'corpC', 'sky', 'land', 'dusk', 'glowS']) if (S[k]) { S[k].width = S[k].height = 0; S[k] = null; }
   if (S.ctx && S.ctx.canvas) { S.ctx.canvas.width = S.ctx.canvas.height = 0; }
   S.ctx = S.corpX = null;
 }

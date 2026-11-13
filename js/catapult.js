@@ -37,14 +37,40 @@ function openCatapult(p) {
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
   // sky and land do not change during a bombardment, so they are painted once
-  CT.sky = makeLayer(CW, CH, dpr, x => { const sky = x.createLinearGradient(0, 0, 0, GY); sky.addColorStop(0, '#8fb0c4'); sky.addColorStop(.6, '#d9d2b8'); sky.addColorStop(1, '#efe2c2'); x.fillStyle = sky; x.fillRect(0, 0, CW, CH); });
-  CT.land = makeLayer(CW, CH, dpr, x => {
-    x.fillStyle = '#9fae9a'; x.beginPath(); x.moveTo(0, 300); x.quadraticCurveTo(120, 250, 260, 290); x.quadraticCurveTo(400, 240, 560, 285); x.quadraticCurveTo(700, 262, 800, 290); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
-    x.fillStyle = '#b4b79a'; x.beginPath(); x.moveTo(0, 330); x.quadraticCurveTo(200, 270, 420, 320); x.quadraticCurveTo(620, 280, 800, 310); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
-    const gg = x.createLinearGradient(0, GY, 0, CH); gg.addColorStop(0, '#86944f'); gg.addColorStop(1, '#6a7a3c');
-    x.fillStyle = gg; x.fillRect(0, GY, CW, CH - GY); x.fillStyle = '#6c7740'; x.fillRect(0, GY, CW, 5);
-    x.strokeStyle = 'rgba(60,80,30,.5)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < 60; i++) { const tx = (i * 53) % CW; x.moveTo(tx, GY + 8 + (i % 3) * 9); x.lineTo(tx + 2, GY + 2 + (i % 3) * 9); } x.stroke();
+  // dusk: a sky going from night blue to ember gold, a low sun behind layered hills, a far town against the light
+  CT.sky = makeLayer(CW, CH, dpr, x => {
+    const sky = x.createLinearGradient(0, 0, 0, GY); sky.addColorStop(0, '#1c2546'); sky.addColorStop(.28, '#3d3f6b'); sky.addColorStop(.55, '#a4566a'); sky.addColorStop(.78, '#e98f55'); sky.addColorStop(1, '#fbd38a');
+    x.fillStyle = sky; x.fillRect(0, 0, CW, CH);
+    const R = seeded('stars' + CT.p.id); for (let i = 0; i < 70; i++) { const sy = R() * 150; x.fillStyle = `rgba(255,248,230,${(1 - sy / 150) * (0.35 + R() * 0.5)})`; x.fillRect(R() * CW, sy, R() < .15 ? 2 : 1, 1); }
+    const sx = 455, sy = GY - 150;
+    let g = x.createRadialGradient(sx, sy, 0, sx, sy, 260); g.addColorStop(0, 'rgba(255,214,140,.75)'); g.addColorStop(.25, 'rgba(255,170,90,.35)'); g.addColorStop(1, 'rgba(255,140,80,0)'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+    g = x.createRadialGradient(sx, sy, 0, sx, sy, 30); g.addColorStop(0, '#fff8e0'); g.addColorStop(.7, '#ffe2a0'); g.addColorStop(1, 'rgba(255,200,120,0)'); x.fillStyle = g; x.beginPath(); x.arc(sx, sy, 30, 0, 7); x.fill();
   });
+  CT.land = makeLayer(CW, CH, dpr, x => {
+    const ridge = (y0, amp, seedS, col, haze) => { const R = seeded(seedS); x.fillStyle = col; x.beginPath(); x.moveTo(0, CH); let y = y0; for (let px = 0; px <= CW + 20; px += 20) { y = y0 + Math.sin(px / 90 + R() * 0.6) * amp * 0.6 + (R() - 0.5) * amp; x.lineTo(px, y); } x.lineTo(CW, CH); x.fill(); if (haze) { const g = x.createLinearGradient(0, y0 - amp, 0, GY); g.addColorStop(0, haze); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fill(); } };
+    ridge(GY - 120, 26, 'far', '#6b5878', 'rgba(255,170,120,.25)');
+    ridge(GY - 92, 18, 'mid', '#5c4a5e', 'rgba(255,150,100,.18)');
+    // a far town on the ridge, black against the glow: a church spire, towers, roofs
+    x.fillStyle = '#3c3040';
+    for (const [tx, w, h, spire] of [[330, 16, 34, 1], [348, 22, 20, 0], [372, 12, 26, 0], [386, 26, 16, 0], [414, 14, 40, 1], [430, 20, 18, 0], [452, 10, 24, 0], [462, 24, 14, 0]]) { const by = GY - 82; x.fillRect(tx, by - h, w, h + 30); if (spire) { x.beginPath(); x.moveTo(tx - 2, by - h); x.lineTo(tx + w / 2, by - h - 22); x.lineTo(tx + w + 2, by - h); x.fill(); } else { x.beginPath(); x.moveTo(tx - 2, by - h); x.lineTo(tx + w / 2, by - h - 7); x.lineTo(tx + w + 2, by - h); x.fill(); } }
+    x.fillStyle = 'rgba(255,200,110,.85)'; for (const [wx, wy] of [[336, -40], [419, -46], [355, -26], [392, -22], [436, -24], [466, -18]]) x.fillRect(wx, GY - 82 + wy + 16, 2, 3);
+    ridge(GY - 62, 14, 'near', '#4a4a3a', 'rgba(255,160,90,.14)');
+    // the near field: dark olive with a rim of sunset along its crest
+    x.fillStyle = '#3f4a28'; x.beginPath(); x.moveTo(0, GY - 22); x.quadraticCurveTo(200, GY - 46, 420, GY - 18); x.quadraticCurveTo(620, GY - 36, 800, GY - 16); x.lineTo(800, GY); x.lineTo(0, GY); x.fill();
+    x.strokeStyle = 'rgba(240,160,80,.55)'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, GY - 22); x.quadraticCurveTo(200, GY - 46, 420, GY - 18); x.quadraticCurveTo(620, GY - 36, 800, GY - 16); x.stroke();
+    // a dark wood on the near ridge
+    x.fillStyle = '#2f3820'; const RT = seeded('wood'); for (let i = 0; i < 26; i++) { const tx = 520 + i * 11 + RT() * 6, th = 14 + RT() * 14, base = GY - 26 + Math.sin(tx / 70) * 4; x.beginPath(); x.moveTo(tx - 5, base); x.lineTo(tx, base - th); x.lineTo(tx + 5, base); x.fill(); }
+    const gg = x.createLinearGradient(0, GY, 0, CH); gg.addColorStop(0, '#5a6a2e'); gg.addColorStop(1, '#2f3a1c');
+    x.fillStyle = gg; x.fillRect(0, GY, CW, CH - GY); x.fillStyle = 'rgba(240,170,90,.5)'; x.fillRect(0, GY, CW, 2); x.fillStyle = '#3d4a22'; x.fillRect(0, GY + 2, CW, 4);
+    x.strokeStyle = 'rgba(25,35,12,.55)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < 60; i++) { const tx = (i * 53) % CW; x.moveTo(tx, GY + 8 + (i % 3) * 9); x.lineTo(tx + 2, GY + 2 + (i % 3) * 9); } x.stroke();
+  });
+  CT.dusk = makeLayer(CW, CH, dpr, x => {
+    const m = x.createLinearGradient(0, 0, 0, CH); m.addColorStop(0, 'rgba(40,20,50,0)'); m.addColorStop((GY - 200) / CH, 'rgba(40,20,50,0)'); m.addColorStop(GY / CH, 'rgba(50,25,55,.28)'); m.addColorStop(1, 'rgba(30,15,35,.45)'); x.fillStyle = m; x.fillRect(0, 0, CW, CH);
+    const v = x.createRadialGradient(CW / 2, CH * 0.55, CH * 0.35, CW / 2, CH * 0.55, CW * 0.7); v.addColorStop(0, 'rgba(20,10,20,0)'); v.addColorStop(1, 'rgba(20,10,20,.45)'); x.fillStyle = v; x.fillRect(0, 0, CW, CH);
+  });
+  CT.glowS = makeLayer(64, 64, 1, x => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,170,70,1)'); g.addColorStop(1, 'rgba(255,170,70,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
+  // the warm wash of the low sun, baked into the sky and the land
+  for (const L of [CT.sky, CT.land]) { const x = L.getContext('2d'); x.globalCompositeOperation = L === CT.sky ? 'soft-light' : 'source-atop'; const k = L === CT.sky ? 1 : 0.3, g = x.createLinearGradient(0, 0, CW, 0); g.addColorStop(0, `rgba(120,70,160,${.35 * k})`); g.addColorStop(.55, `rgba(255,150,70,${.45 * k})`); g.addColorStop(1, `rgba(120,60,120,${.35 * k})`); x.fillStyle = g; x.fillRect(0, 0, CW, CH); x.globalCompositeOperation = 'source-over'; }
   const fit = { pt: e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * CW / r.width, y: (e.clientY - r.top) * CH / r.height }; } };
   $$('[data-am]').forEach(b => b.onclick = () => { CT.ammo = b.dataset.am; $$('[data-am]').forEach(x => x.classList.toggle('on', x === b)); sfx('click'); buzz(6); });
   const pt = fit.pt;
@@ -245,11 +271,48 @@ function ctUpdate(dt) {
   }
   CT.arrows.forEach(a => a.t += dt * 0.8); CT.arrows = CT.arrows.filter(a => a.t < 1);
 }
+// clouds lit from below by the setting sun
+const cloudCol = () => 'rgba(250,196,160,.62)';
+// torches on the battlements and the keep, lit windows, and the besiegers' campfire
+function duskLights(x) {
+  const fl = k => 0.75 + 0.25 * Math.sin(CT.t * 11 + k * 2.3) * Math.sin(CT.t * 7.3 + k);
+  const glow = (gx, gy, r, a) => { x.globalAlpha = Math.min(1, a); x.drawImage(CT.glowS, gx - r, gy - r, r * 2, r * 2); x.globalAlpha = 1; };
+  const flame = (fx, fy, s, k) => { const f = fl(k); x.fillStyle = '#ff8c1a'; x.beginPath(); x.moveTo(fx - 3 * s, fy); x.quadraticCurveTo(fx - 2 * s, fy - 7 * s * f, fx, fy - 11 * s * f); x.quadraticCurveTo(fx + 2 * s, fy - 7 * s * f, fx + 3 * s, fy); x.fill(); x.fillStyle = '#ffe08a'; x.beginPath(); x.moveTo(fx - 1.4 * s, fy); x.quadraticCurveTo(fx, fy - 7 * s * f, fx + 1.4 * s, fy); x.fill(); };
+  x.globalCompositeOperation = 'lighter';
+  // the keep's windows
+  for (const [wx, wy, ww, wh] of [[724, GY - 90, 10, 16], [714, GY - 60, 6, 10], [740, GY - 60, 6, 10]]) glow(wx + ww / 2, wy + wh / 2, 22, 0.35 * fl(wx));
+  x.globalCompositeOperation = 'source-over';
+  x.fillStyle = '#ffcf6b'; for (const [wx, wy, ww, wh] of [[725, GY - 89, 8, 14], [715, GY - 59, 4, 8], [741, GY - 59, 4, 8]]) x.fillRect(wx, wy, ww, wh);
+  // torches on every other standing column of the wall, and on the keep
+  const torches = [[707, GY - 134], [751, GY - 134]];
+  for (let c = 0; c < CT.cols; c += 2) if (CT.h[c] > 1) torches.push([CT.wx + c * CBW + CBW / 2, GY - CT.h[c] * CBH - 8]);
+  x.globalCompositeOperation = 'lighter'; torches.forEach(([tx, ty], k) => glow(tx, ty - 6, 34, 0.42 * fl(k))); x.globalCompositeOperation = 'source-over';
+  torches.forEach(([tx, ty], k) => { x.fillStyle = '#2a1d12'; x.fillRect(tx - 1, ty - 2, 2, 8); flame(tx, ty - 2, 0.8, k); });
+  // the campfire behind the catapult
+  const cx = 214, cy = GY - 4;
+  x.globalCompositeOperation = 'lighter'; glow(cx, cy - 8, 70, 0.45 * fl(9)); x.globalCompositeOperation = 'source-over';
+  x.strokeStyle = '#3a2817'; x.lineWidth = 3; x.beginPath(); x.moveTo(cx - 10, cy + 2); x.lineTo(cx + 10, cy - 4); x.moveTo(cx + 10, cy + 2); x.lineTo(cx - 10, cy - 4); x.stroke();
+  flame(cx - 4, cy - 2, 1.3, 3); flame(cx + 4, cy - 1, 1.1, 5); flame(cx, cy - 3, 1.6, 7);
+  if (Math.random() < 0.25) CT.parts.push({ x: cx + (Math.random() - .5) * 6, y: cy - 16, vx: (CT.wind || 0) * 0.3, vy: -30 - Math.random() * 20, life: 1.6, max: 1.6, color: '#3a3430', s: 3, grow: 8, round: 1, smoke: 1, g: -0.02 });
+  if (Math.random() < 0.3) CT.parts.push({ x: cx + (Math.random() - .5) * 8, y: cy - 10, vx: (Math.random() - .5) * 20, vy: -60 - Math.random() * 40, life: 0.9, color: '#ffb347', s: 1.2, round: 1, glow: 1, g: 0.05, flick: 1 });
+}
+// the last of the light: warm the scene and darken its corners
+function duskGrade(x) {
+  // stone in shadow: the walls and keep face away from the sun (small rects, cheap)
+  x.globalCompositeOperation = 'multiply'; x.fillStyle = '#a68fa0';
+  for (let c = 0; c < CT.cols; c++) if (CT.h[c]) x.fillRect(CT.wx + c * CBW, GY - CT.h[c] * CBH - 8, CBW, CT.h[c] * CBH + 8);
+  for (let c = 0; c < (CT.ocols || 0); c++) if (CT.oh[c]) x.fillRect(CT.ox + c * CBW, GY - CT.oh[c] * CBH - 8, CBW, CT.oh[c] * CBH + 8);
+  x.fillRect(703, GY - 134, 54, 134);
+  x.globalCompositeOperation = 'source-over'; x.fillStyle = 'rgba(255,170,90,.35)'; for (let c = 0; c < CT.cols; c++) if (CT.h[c] && (c === 0 || CT.h[c - 1] < CT.h[c])) x.fillRect(CT.wx + c * CBW, GY - CT.h[c] * CBH - 8, 2, CT.h[c] * CBH + 8); x.fillRect(703, GY - 134, 2, 134);
+  // the dusk over everything in the foreground and the dark corners, painted once and laid over each frame
+  x.drawImage(CT.dusk, 0, 0, CW, CH);
+}
 function ctDraw() {
   const x = CT.ctx, p = CT.p, wood = CT.lv === 1;
   x.save(); if (CT.shake && !document.body.classList.contains('nomotion')) { const k = 10 * CT.shake; x.translate((Math.random() - .5) * k, (Math.random() - .5) * k); }
   x.drawImage(CT.sky, 0, 0, CW, CH);
-  x.fillStyle = 'rgba(255,255,255,.75)';
+  for (const [cx, cy, w, h] of CT.clouds) { x.fillStyle = 'rgba(90,50,80,.35)'; x.beginPath(); x.ellipse(cx + 4, cy + h * 0.45, w * 1.05, h * 0.7, 0, 0, 7); x.fill(); }
+  x.fillStyle = cloudCol(CT.clouds);
   for (const [cx, cy, w, h] of CT.clouds) { x.beginPath(); x.ellipse(cx, cy, w, h, 0, 0, 7); x.ellipse(cx + w * 0.5, cy - h * 0.4, w * 0.6, h * 0.9, 0, 0, 7); x.ellipse(cx - w * 0.5, cy - h * 0.2, w * 0.5, h * 0.8, 0, 0, 7); x.fill(); }
   x.drawImage(CT.land, 0, 0, CW, CH);
   if (p.b.moat) { x.fillStyle = '#4f7f8a'; x.fillRect(CT.wx - 46, GY, 38, 24); x.fillStyle = '#8fb5bb'; for (let i = 0; i < 3; i++) x.fillRect(CT.wx - 42 + i * 12 + Math.sin(CT.t * 2 + i) * 2, GY + 6 + i * 5, 8, 2); }
@@ -322,6 +385,7 @@ function ctDraw() {
     if (q.type === 'oil') { x.fillStyle = '#ffd36b'; x.beginPath(); x.arc(q.x - 3, q.y - 3, 3, 0, 7); x.fill(); }
   }
   for (const r of CT.rats) drawRat(x, r.x, GY - (r.big ? 9 : 4), r.big ? 1.2 : 0.5, Math.sign(r.v), r.ph, false);
+  duskGrade(x); duskLights(x);
   // smoke first, then the fireball and its ring, then everything glowing on top
   for (const t of CT.parts) if (t.smoke) {
     const al = Math.max(0, Math.min(0.6, t.life / (t.max || 3) * 0.75)), young = Math.max(0, 1 - ((t.max || 3) - t.life) / 0.9);
