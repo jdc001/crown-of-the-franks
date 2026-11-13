@@ -24,14 +24,14 @@ function openCatapult(p) {
   for (let i = 0; i < nFoot; i++) crowd.push({ x: 660 + Math.random() * 120, v: (Math.random() < .5 ? -1 : 1) * (8 + Math.random() * 14), ph: Math.random() * 6, t: i < p.gar.cav ? 'cav' : i % 4 === 0 ? 'militia' : 'foot' });
   const clouds = Array.from({ length: 5 }, (_, i) => [i * 170 + Math.random() * 80, 30 + Math.random() * 80, 30 + Math.random() * 40, 6 + Math.random() * 6]);
   CT = { p, h, cols, rows, lv, wx, oh, ocols, orows, ox, o0: p.outer ?? 100, ground0, wall0, shots: A.cat * catShots(me(), A), ammo: 'stone', wind: Math.round((Math.random() * 2 - 1) * 70), projs: [], drag: null, parts: [], fires: [], arrows: [], crowd, clouds, t: 0,
-    msg: 'Drag anywhere on the field and release to fire. Pull further for more power.', killed: 0, plague: 0, rats: [], pots: A.cat, cages: Math.max(1, Math.floor(A.cat / 2)), w0: p.walls, last: 0, dead: false, color: p.owner ? FAC(p.owner).color : '#d8cba5' };
+    msg: 'Drag anywhere on the field and release to fire. Pull further for more power.', killed: 0, plague: 0, rats: [], cages: A.cat + 1, w0: p.walls, last: 0, dead: false, color: p.owner ? FAC(p.owner).color : '#d8cba5' };
   setMusic('battle');
   showModal(`<div class="cthud"><div class="ct"><div class="v" id="ct-shots"></div><div class="k">Shots</div></div><div class="ct"><div class="v" id="ct-walls"></div><div class="k">${ocols ? 'Outer · inner' : 'Walls'}</div></div><div class="ct"><div class="v" id="ct-def"></div><div class="k">Defenders</div></div><div class="ct"><div class="v" id="ct-wind"></div><div class="k">Wind</div></div></div>
     <canvas id="ctc"></canvas>
     <div class="ctbar"><div id="ctmsg"></div>
       <div class="ammo">${AMMO.map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small><small class="amn" id="am-${id}"></small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
-    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. One heavy stone smashes a deep section of any wall. 3 light stones scatter wider and tear through wood, but only chip stone and mostly bounce off great walls. Fire pots and cages of rats are scarce: one pot for each catapult and one cage for every two, so spend them where they count. An army sheltering in the castle suffers from fire and rats along with the garrison. Flaming oil burns defenders inside at once and sets wooden walls alight; 3 flaming oil spread it wider. Plague rats fly over in a swarm and keep biting the garrison while you shoot, and may start a plague; a giant plague rat does the work of three and always brings the sickness. ${ocols ? ' A seat has two rings of walls: the outer wall in front must fall before the inner walls can be breached; aim over it to strike the inner walls.' : ''} If the walls fall completely, the castle is ruined and must be rebuilt.</p>`, 'wide ctcard');
+    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. One heavy stone smashes a deep section of any wall. 3 light stones scatter wider and tear through wood, but only chip stone and mostly bounce off great walls. Flaming oil works the same way: one big pot burns more men where it lands, 3 small pots spread the fire wider. Rats are scarcer: you have one cage for each catapult, and one more; a cage holds a swarm or a single giant rat. An army sheltering in the castle suffers from fire and rats along with the garrison.</p>`, 'wide ctcard');
   const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); CT.ctx = ctx;
@@ -53,7 +53,7 @@ function openCatapult(p) {
     if (!CT || !CT.drag) return;
     const d = CT.drag; CT.drag = null;
     const v = launchVec(d); if (!v) return;
-    const pool = CT.ammo.startsWith('oil') ? 'pots' : CT.ammo === 'rats' || CT.ammo === 'giant' ? 'cages' : null;
+    const pool = CT.ammo === 'rats' || CT.ammo === 'giant' ? 'cages' : null;
     if (pool) { if (CT[pool] <= 0) { CT.msg = pool === 'pots' ? 'No fire pots left. Stones are all you have.' : 'No cages of rats left. Stones are all you have.'; CT.ammo = 'stone'; $$('[data-am]').forEach(x => x.classList.toggle('on', x.dataset.am === 'stone')); sfx('miss'); return; } CT[pool]--; }
     const vt = VOLLEY[CT.ammo];
     const mk = (vx, vy, r) => ({ x: 112, y: 300, vx, vy, r, type: vt || CT.ammo, small: !!vt && vt !== 'triple', trail: [] });
@@ -261,7 +261,7 @@ function ctDraw() {
   const integ = Math.round(CT.h.reduce((s, v) => s + v, 0) / (CT.cols * CT.rows) * 100);
   const set = (id, v) => { const el = document.getElementById(id); if (el && el.innerHTML !== v) el.innerHTML = v; };
   set('ct-shots', String(CT.shots)); set('ct-walls', CT.ocols ? `${Math.round(CT.oh.reduce((s, v) => s + v, 0) / (CT.ocols * CT.orows) * 100)}% · ${integ}%` : integ + '%'); set('ct-def', `${ctAlive()}${CT.killed ? ` <small style="color:#ff9c8c">−${CT.killed}</small>` : ''}${CT.plague ? ' ' + ico('skull') : ''}${CT.rats.length ? ' ' + ico('rat') : ''}`);
-  set('am-oil', CT.pots + ' left'); set('am-oil3', CT.pots + ' left'); set('am-rats', CT.cages + ' left'); set('am-giant', CT.cages + ' left');
+  set('am-rats', CT.cages + ' left'); set('am-giant', CT.cages + ' left');
   set('ct-wind', `${CT.wind < 0 ? '◂' : CT.wind > 0 ? '▸' : '·'} ${Math.abs(CT.wind)}`);
   const m = document.getElementById('ctmsg'); if (m && m.textContent !== CT.msg) m.textContent = CT.msg;
 }
