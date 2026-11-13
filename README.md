@@ -1,4 +1,4 @@
-# Crown of the Franks: 987, v6.13
+# Crown of the Franks: 987, v6.14
 
 Play it at https://jdc001.github.io/crown-of-the-franks/ (open in Safari, then Share → Add to Home Screen).
 
