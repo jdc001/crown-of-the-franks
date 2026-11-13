@@ -144,13 +144,13 @@ async function shareCard(draw, name) {
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
   const g = x.createLinearGradient(0, 0, 0, 1350); g.addColorStop(0, '#f6ecd2'); g.addColorStop(1, '#e6d4a8'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
   x.strokeStyle = '#8e1f1b'; x.lineWidth = 14; x.strokeRect(24, 24, 1032, 1302); x.strokeStyle = '#e2b33c'; x.lineWidth = 4; x.strokeRect(46, 46, 988, 1258);
-  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText(SC.game, 540, 130);
+  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText('Anointed', 540, 130); x.font = 'italic 30px Georgia, serif'; x.fillStyle = '#5c4630'; x.fillText(SC.game, 540, 172);
   x.fillStyle = '#5c4630'; x.font = 'italic 34px Georgia, serif'; x.fillText(`Anno Domini ${SC.date.y0}`, 540, 180);
   await draw(x);
   x.fillStyle = '#5c4630'; x.font = 'italic 28px Georgia, serif'; x.fillText('jdc001.github.io/crown-of-the-franks', 540, 1290);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], name, { type: 'image/png' });
-  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Crown of the Franks' }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Anointed' }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   const url = URL.createObjectURL(blob);
   showModal(`<h2>${ico('star')} Your card</h2><p class="sub">Press and hold the picture to save or share it.</p><img src="${url}" style="width:100%;border-radius:8px">`, '', { closable: true });
 }
@@ -176,7 +176,7 @@ function shareGame() {
       L.ids.forEach((id, k) => { const ch = s[k]; x.fillStyle = ch === '.' ? '#efe4c6' : cols[ch.charCodeAt(0) - 48] || '#999'; const pth = new Path2D(CELLD[id]); x.fill(pth); x.strokeStyle = '#5c4630'; x.lineWidth = 2; x.stroke(pth); });
       x.restore();
     }
-  }, 'crown-of-the-franks.png');
+  }, 'anointed.png');
 }
 function shareRank() {
   const P = profile(), r = rankOf(P.points), got = Object.keys(P.trophies).length;

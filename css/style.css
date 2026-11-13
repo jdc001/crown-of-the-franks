@@ -694,3 +694,4 @@ body.nomotion #title .tbg, body.nomotion #title .hcrown .glint, body.nomotion #t
 .mappick .mp .lockb { position: absolute; top: -9px; right: 10px; display: inline-flex; align-items: center; gap: 3px; font: 600 10.5px var(--head); letter-spacing: .08em; text-transform: uppercase; background: #2a1d12; color: var(--gold3); padding: 2px 8px; border-radius: 9px; border: 1px solid #b8892c; }
 .mappick .mp .lockb .ic { width: 12px; height: 12px; }
 .mappick .mp .lockb.free { background: #3f7f3a; color: #f3e8cc; }
+#title .gsub { font-family: var(--head); font-size: clamp(14px, 2.6vw, 20px); letter-spacing: .18em; text-transform: uppercase; color: #e9d9a8; margin-top: 2px; text-shadow: 0 2px 6px #000c; }

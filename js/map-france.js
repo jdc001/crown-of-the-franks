@@ -233,7 +233,7 @@ Object.assign(FACTIONS.find(f => f.id === 'capet'), { lose: 'Duke', domain: 'the
 const NORTH = ['capet', 'charles', 'normandy', 'flanders', 'champagne', 'blois', 'anjou', 'brittany', 'burgundy'];
 return {
   id: 'france', FACTIONS, PROV, REGION_NAME, SEA_ROUTES, EDGES, SEA_LABELS, GENERALS, LADIES,
-  name: 'France, 987', sub: 'The kingdom of the West Franks', game: 'Crown of the Franks',
+  name: 'France, 987', sub: 'The kingdom of the West Franks', game: 'The Crown of the Franks',
   realm: 'France', foreignTxt: 'French lords resent foreign rule', foreignAsk: 'French lords ask double of foreigners',
   kingdom: { regions: ['fr', 'ca'], core: 'fr', n: 'the Franks', short: 'France', keys: ['reims'], at: 'Reims' },
   date: { y0: 987, s0: 1, yOff: 1, roman: 'CMLXXXVII' },

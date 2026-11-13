@@ -66,7 +66,7 @@ async function exportFile() {
   const json = JSON.stringify({ ...G, _career: careerPack() }), name = saveFileName();
   try {
     const file = new File([json], name, { type: 'application/json' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Crown of the Franks save' }); return; }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Anointed save' }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('Save file downloaded', 'scroll'); }
   catch (e) { toast('This browser cannot save files. Use Copy save code instead.'); }

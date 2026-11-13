@@ -1,6 +1,6 @@
 {
   "appId": "com.example.crownofthefranks",
-  "appName": "Crown of the Franks",
+  "appName": "Anointed",
   "webDir": "www",
   "ios": { "contentInset": "never", "backgroundColor": "#1a120b" }
 }

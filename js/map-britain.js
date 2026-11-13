@@ -65,6 +65,8 @@ const TRAITS = {
 };
 FACTIONS.forEach(f => { f.tr = TRAITS[f.id] || {}; });
 Object.assign(FACTIONS[0], { lose: 'Earl', seat: () => ['Earl', 'Wessex'] });
+// Malcolm is king of a people, not of a land: King of Scots
+Object.assign(FACTIONS.find(f => f.id === 'scotland'), { seat: () => ['King', 'Scots'] });
 
 // ================= COUNTIES =================
 // id, name, lon, lat, coast, hills, base, owner, castle, lord, region
@@ -236,7 +238,7 @@ const SEA = [[-20, 40], [20, 40], [20, 70], [-20, 70]];
 
 return {
   id: 'britain', FACTIONS, PROV, REGION_NAME, SEA_ROUTES, EDGES, SEA_LABELS, GENERALS, LADIES,
-  name: 'Great Britain & Ireland, 1066', sub: 'England, Scotland, Wales, Ireland and the North', game: 'Crown of the English',
+  name: 'Great Britain & Ireland, 1066', sub: 'England, Scotland, Wales, Ireland and the North', game: 'The Crown of the English',
   geo: { LON0: -11.0, LAT1: 61.4, SX: 57, SY: 98, MW: 1220, MH: 1310, lands: [CONTI, GB, IRE, NOR, ORK, SHE, LEW, UIST, SKYE, MULL, ISLAY, MAN, WIGHT], seas: [SEA], isles: [] },
   realm: 'England', foreignTxt: 'English thegns resent foreign rule', foreignAsk: 'English thegns ask double of foreigners',
   kingdom: { regions: ['en'], core: 'en', n: 'the English', short: 'England', keys: ['london'], at: 'Westminster' },
@@ -277,6 +279,8 @@ return {
       <p><b>Sweyn of Denmark.</b> King Sweyn, Cnut's nephew, has a claim of his own. From the second year his fleets raid the east coast of England. Pay the Danegeld to send them away, or fight.</p>
       <p><b>Events.</b> Some things happened in 1066: the hairy star in spring, Tostig's raids on the coast, the papal banner sent to William, Hardrada's fleet, and the fyrd sent home for the harvest. The game follows them loosely.</p>`,
   },
+  // an English or Scots county is an earldom; on the Frankish coast it stays a county
+  countAs: p => p.r === 'nm' ? 'Count' : 'Earl',
   fair: { at: 'Winchester', name: 'the fair of St Giles at Winchester', title: 'The fair at Winchester', who: 'Merchants from Flanders, Rouen and Dublin crowd the hill of St Giles above Winchester for the summer fair.', lord: 'a wool earl', open: 'The summer fair at Winchester is open' },
   free: [],
   challenges: [

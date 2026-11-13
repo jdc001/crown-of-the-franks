@@ -1,7 +1,7 @@
 {
-  "name": "Crown of the Franks: 987",
-  "short_name": "Crown 987",
-  "description": "A turn-based strategy game of the broken empire of Charlemagne.",
+  "name": "Anointed",
+  "short_name": "Anointed",
+  "description": "A turn-based strategy game of crowns and succession, from France in 987 to England in 1066.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

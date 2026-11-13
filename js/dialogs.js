@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.36';
+const APP_VERSION = '6.37';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -134,7 +134,7 @@ function openSettings() {
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
     <p class="sub ctr" style="margin-top:12px">Add this page to your home screen for a full-screen game that also plays offline.</p>
-    <p class="sub ctr" style="font-size:13px">Crown of the Franks · ${SC.name} · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. <a href="privacy.html" target="_blank" style="color:inherit">Privacy and support</a>. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
+    <p class="sub ctr" style="font-size:13px">Anointed · ${SC.name} · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. <a href="privacy.html" target="_blank" style="color:inherit">Privacy and support</a>. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
   if (k === 'speed') v = Number(v);
@@ -236,7 +236,7 @@ function showTitle() {
   const s = loadSave();
   const t = $('#title'); t.style.display = 'block'; setMusic('title');
   const card = f => `<div class="fcard${houseLocked(f.id) ? ' locked' : ''}" style="--c:${f.color}" onclick="openFaction('${f.id}')">${houseLocked(f.id) ? `<span class="lockb">${ico('lock')}Full game</span>` : STORE.on && !fullGame() ? '<span class="lockb free">Free</span>' : ''}${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
-  t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="hero">${titlePennant('l')}${titlePennant('r')}${titleCrown()}<div class="ad">ANNO DOMINI ${SC.date.roman}</div><h1 class="gild">${SC.game}</h1><div class="orn">❦</div></div>
+  t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="hero">${titlePennant('l')}${titlePennant('r')}${titleCrown()}<div class="ad">ANNO DOMINI ${SC.date.roman}</div><h1 class="gild">Anointed</h1><div class="gsub">${SC.game}</div><div class="orn">❦</div></div>
     <div id="titlerank">${rankBox()}</div>
     ${mapPicker()}
     <p class="lead">${SC.intro.lead}</p>
@@ -320,8 +320,12 @@ function showCoronation(fid, kid, onDone) {
 // Every land you hold carries a title. A house's seat carries the house's title (Duke of Normandy, Count of Flanders);
 // every other county carries its own, from the lord who held it in 987: count, viscount, lord, or, for a bishop's
 // lands, advocate, the lay protector of the see. Lesser lords sworn to you make you their overlord.
-const TITLE_RANK = { King: 0, Duke: 1, Marquis: 2, Count: 3, Viscount: 4, Advocate: 5, Lord: 6, Overlord: 7 };
+const TITLE_RANK = { King: 0, Duke: 1, Marquis: 2, Earl: 3, Count: 3, Viscount: 4, Advocate: 5, Lord: 6, Overlord: 7 };
 function landTitle(p) {
+  const t = landTitle0(p);
+  return t === 'Count' && SC.countAs ? SC.countAs(p) : t;
+}
+function landTitle0(p) {
   const r = PROV.find(x => x[0] === p.id) || [], lord = r[9] || '';
   if (!lord) return 'Count';
   if (/viscount/i.test(lord)) return 'Viscount';
@@ -352,7 +356,7 @@ function titleStyle(fid) {
   return `${f.pname}, by the grace of God ${list}${rest ? `, and of ${rest} more title${rest === 1 ? '' : 's'} besides` : ''}`;
 }
 function openTitles() {
-  const T = titlesOf(me()), groups = [['King', 'The crown'], ['Duke', 'Duchies'], ['Marquis', 'Marches'], ['Count', 'Counties'], ['Viscount', 'Viscounties'], ['Advocate', 'Church lands under your protection'], ['Lord', 'Lordships'], ['Overlord', 'Lords sworn to you']];
+  const T = titlesOf(me()), groups = [['King', 'The crown'], ['Duke', 'Duchies'], ['Marquis', 'Marches'], ['Earl', 'Earldoms'], ['Count', 'Counties'], ['Viscount', 'Viscounties'], ['Advocate', 'Church lands under your protection'], ['Lord', 'Lordships'], ['Overlord', 'Lords sworn to you']];
   const row = t => `<div class="trow"${t.pid ? ` onclick="closeModal();goProv('${t.pid}')"` : ''}><span class="tico">${t.crown ? ico('crown') : t.house ? shield(t.house, 26) : ico(t.rank === 'Advocate' ? 'church' : t.rank === 'Overlord' ? 'handshake' : t.rank === 'Lord' ? 'castle' : 'fleur')}</span><span class="tn"><b>${esc(t.n)}</b><small>${esc(t.sub)}</small></span></div>`;
   const body = groups.map(([r, h]) => { const g = T.filter(t => t.rank === r); return g.length ? `<h3>${h} <span class="sub" style="text-transform:none;letter-spacing:0">${g.length}</span></h3><div class="tlist">${g.map(row).join('')}</div>` : ''; }).join('');
   showModal(`<div class="ctr">${houseAchievement(me(), 64)}</div><h2 class="ctr" style="margin-top:4px">Your titles</h2>
