@@ -81,12 +81,30 @@ function signWar() {
   DP.county = null; DP.target = null; save(); closeModal(); render(); showReports();
 }
 
+// a small map of the kingdom in the houses' colours: tap a county to treat with whoever holds it
+function diploMap(sel) {
+  const ps = provList(), xs = ps.map(p => p.x), ys = ps.map(p => p.y), pad = 30;
+  const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad, w = Math.max(...xs) + pad - x0, h = Math.max(...ys) + pad - y0;
+  const houses = new Set(alive());
+  const fill = p => p.owner ? mix(FAC(p.owner).color, '#efe3c4', p.owner === sel || (sel === 'me' && p.owner === me()) ? 0 : sel === 'me' ? 0.15 : 0.4) : p.ally ? mix(FAC(p.ally).color, '#efe3c4', 0.75) : '#e8dcb9';
+  const cells = ps.map(p => `<path d="${CELLD[p.id]}" data-f="${p.owner && houses.has(p.owner) ? p.owner : p.ally && houses.has(p.ally) ? p.ally : ''}" fill="${fill(p)}" stroke="#4b3825" stroke-width="1"${p.owner === sel ? ' class="dsel"' : ''}/>`).join('');
+  const fs = Math.max(24, w / 24), placed = [];
+  const short = f => f === me() ? 'You' : ({ capet: 'Royal Domain', charles: 'Lorraine' })[f] || FAC(f).name.replace(/^The /, '');
+  const lbl = [...houses].map(f => { const own = owned(f); if (!own.length) return null; return { f, nm: short(f), x: own.reduce((s, p) => s + p.x, 0) / own.length, y: own.reduce((s, p) => s + p.y, 0) / own.length + 6 }; }).filter(Boolean).sort((a, b) => a.y - b.y)
+    .map(L => { const hw = L.nm.length * fs * 0.28; let n = 0; while (n++ < 6 && placed.some(q => Math.abs(q.x - L.x) < hw + q.hw && Math.abs(q.y - L.y) < fs * 0.95)) L.y += fs * 0.95; placed.push({ ...L, hw }); return `<text class="lbl dlbl${L.f === sel ? ' on' : ''}" text-anchor="middle" x="${L.x.toFixed(0)}" y="${L.y.toFixed(0)}" style="font-size:${fs.toFixed(0)}px;stroke-width:${Math.max(5, w / 140).toFixed(0)}px">${esc(L.nm)}</text>`; }).join('');
+  return `<div class="dmap"><svg viewBox="${x0.toFixed(0)} ${y0.toFixed(0)} ${w.toFixed(0)} ${h.toFixed(0)}" onclick="diploMapTap(event)" xmlns="http://www.w3.org/2000/svg"><rect x="${x0 - w}" y="${y0 - h}" width="${w * 3}" height="${h * 3}" fill="#8fa8a3"/><g clip-path="url(#landclip)">${cells}</g>${LANDS.map(L => `<path d="${pathOf(L)}" fill="none" stroke="#3a2b1b" stroke-width="2" pointer-events="none"/>`).join('')}<g pointer-events="none">${lbl}</g></svg><div class="sub ctr">Tap a house's lands to treat with it</div></div>`;
+}
+function diploMapTap(e) {
+  const f = e.target && e.target.dataset ? e.target.dataset.f : '';
+  if (!f) return;
+  sfx('click'); DP.f = f === me() ? 'me' : f; DP.county = null; DP.target = null; openDiplo();
+}
 function openDiplo(fid) {
   const F = G.fac[me()], houses = alive().filter(f => f !== me());
   if (fid && fid !== DP.f) { DP.f = fid; DP.county = null; DP.target = null; }
   if (DP.f !== 'me' && !houses.includes(DP.f)) DP.f = 'me';
   const t = DP.f;
-  const picker = `<div class="dpick"><button class="${DP.f === 'me' ? 'on' : ''} meb" onclick="DP.f='me';openDiplo()" title="All your relations">${shield(me(), 22)}<span>You: all relations</span></button>${houses.map(f => `<button class="${f === t ? 'on' : ''}" onclick="DP.f='${f}';DP.county=null;DP.target=null;openDiplo()" title="${esc(FAC(f).name)}">${shield(f, 22)}<span>${esc(FAC(f).name.replace(/^The /, ''))}</span>${allied(me(), f) ? '<i>✦</i>' : atPeace(me(), f) ? '<i>✓</i>' : ''}</button>`).join('')}</div>`;
+  const picker = diploMap(t) + `<div class="dpick"><button class="${DP.f === 'me' ? 'on' : ''} meb" onclick="DP.f='me';openDiplo()" title="All your relations">${shield(me(), 22)}<span>You: all relations</span></button>${houses.map(f => `<button class="${f === t ? 'on' : ''}" onclick="DP.f='${f}';DP.county=null;DP.target=null;openDiplo()" title="${esc(FAC(f).name)}">${shield(f, 22)}<span>${esc(FAC(f).name.replace(/^The /, ''))}</span>${allied(me(), f) ? '<i>✦</i>' : atPeace(me(), f) ? '<i>✓</i>' : ''}</button>`).join('')}</div>`;
   if (!houses.length) return showModal(`<h2>${ico('handshake')} Diplomacy</h2><p>No other house stands.</p>`, '', { closable: true });
   if (t === 'me') return showModal(`<h2>${ico('handshake')} Diplomacy</h2><p class="sub">Choose a house to treat with it, or see all your relations below.</p>${picker}${relationsTable()}`, '', { closable: true });
   const T = G.fac[t], d = FAC(t);

@@ -496,6 +496,13 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 
 .garb text { font: 700 14px var(--body, Georgia, serif); fill: #2a1d12; }
 
+.dmap { margin: 6px 0 2px; }
+.dmap svg { width: 100%; height: 300px; max-height: 42vh; display: block; border-radius: 10px; border: 1px solid #5e4515; background: #8fa8a3; cursor: pointer; }
+.dmap path[data-f]:not([data-f=""]):hover { filter: brightness(1.08); }
+.dmap path.dsel { stroke: #2a1d12; stroke-width: 2; }
+.dmap .dlbl { opacity: .9; }
+.dmap .dlbl.on { opacity: 1; fill: #000; }
+.dmap .sub { margin-top: 2px; font-size: 12.5px; }
 .dpick { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
 .dpick button { position: relative; display: inline-flex; align-items: center; gap: 4px; background: #fff3; border: 2px solid var(--line2, #c9b48a); border-radius: 10px; padding: 3px 8px 3px 4px; cursor: pointer; font: 600 13px var(--body); color: var(--ink); }
 .dpick button.on { border-color: var(--gold2); background: #fff6; }
