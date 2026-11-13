@@ -31,7 +31,7 @@ function openCatapult(p) {
     <div class="ctbar"><div id="ctmsg"></div>
       <div class="ammo"${A.gf > 0 ? ' style="grid-template-columns:repeat(4,1fr)"' : ''}>${AMMO.filter(([id]) => id !== 'greek' || A.gf > 0).map(([id, n, i], k) => `<button class="btn sm${k === 0 ? ' on' : ''}" data-am="${id}"><span class="lbl">${ico(i)}</span><small>${n}</small><small class="amn" id="am-${id}"></small></button>`).join('')}</div>
       <button class="btn gold" style="flex:1" onclick="finishCatapult()"><span class="lbl">${ico('check')}Finish bombardment</span></button></div>
-    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. One heavy stone smashes a deep section of any wall. 3 light stones scatter wider and tear through wood, but only chip stone and mostly bounce off great walls. Flaming oil works the same way: one big pot burns more men where it lands, 3 small pots spread the fire wider. Standing walls shelter the defenders from fire, and each pot does less than the last, so break the walls first. ${A.gf > 0 ? 'Greek fire breaks a wall like three heavy stones and burns twice as many men as a big pot, walls or no walls, but each throw has a one-in-three chance of setting the catapult alight. ' : ''}Rats are scarcer: you have one cage for each catapult, and one more; a cage holds a swarm or a single giant rat. An army sheltering in the castle suffers from fire and rats along with the garrison.</p>`, 'wide ctcard');
+    <p class="sub">${CASTLE_N[lv]}${p.b.moat ? ' behind a moat' : ''}. One heavy stone smashes a deep section of any wall. 3 light stones scatter wider and tear through wood, but only chip stone and mostly bounce off great walls. Flaming oil works the same way: one big pot burns more men where it lands, 3 small pots spread the fire wider. Standing walls shelter the defenders from fire, and each pot does less than the last, so break the walls first. ${A.gf > 0 ? 'Greek fire brings down a whole stretch of wall, or, thrown over it, burns about a third of the garrison, but each throw has a one-in-three chance of setting the catapult alight. ' : ''}Rats are scarcer: you have one cage for each catapult, and one more; a cage holds a swarm or a single giant rat. An army sheltering in the castle suffers from fire and rats along with the garrison.</p>`, 'wide ctcard');
   shrinkToFit($('#ctc'), CW, CH, '.ctbar .btn');
   const cv = $('#ctc'), dpr = clamp((cv.getBoundingClientRect().width || CW) * (window.devicePixelRatio || 1) / CW, 1, 2);
   cv.width = CW * dpr; cv.height = CH * dpr;
@@ -88,15 +88,40 @@ function ctBoom(x, y, big = 1) {
   const P = CT.parts, R = Math.random;
   for (let i = 0; i < 46 * big; i++) { const a = R() * Math.PI * 2, v = 120 + R() * 380; P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 140, life: 0.7 + R() * 0.9, color: pick(['#fff3b0', '#ffd23f', '#ff8c1a', '#ff5a1a']), s: 3 + R() * 5, round: 1, glow: 1, g: 0.8 }); }
   for (let i = 0; i < 22 * big; i++) { const a = -Math.PI * R(), v = 180 + R() * 320; P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.2 + R() * 0.8, color: pick(['#6d6658', '#8a816e', '#4e483e']), s: 3 + R() * 6, g: 1 }); }
-  for (let i = 0; i < 34 * big; i++) P.push({ x: x + (R() - .5) * 30, y: y - R() * 20, vx: (R() - .5) * 50 + (CT.wind || 0) * 0.4, vy: -40 - R() * 90, life: 2 + R() * 2.2, max: 4.2, color: R() < .5 ? '#2b2620' : '#46403a', s: 8 + R() * 10, grow: 14 + R() * 14, round: 1, smoke: 1, g: -0.04 });
+  for (let i = 0; i < 14 * big; i++) P.push({ x: x + (R() - .5) * 30, y: y - R() * 20, vx: (R() - .5) * 50 + (CT.wind || 0) * 0.4, vy: -40 - R() * 90, life: 2 + R() * 2.2, max: 4.2, color: R() < .5 ? '#2b2620' : '#46403a', s: 8 + R() * 10, grow: 14 + R() * 14, round: 1, smoke: 1, g: -0.04 });
   for (let i = 0; i < 40 * big; i++) P.push({ x: x + (R() - .5) * 40, y: y - R() * 50, vx: (R() - .5) * 140, vy: -60 - R() * 200, life: 2 + R() * 2.5, color: pick(['#ffb347', '#ff7a1a', '#ffe08a']), s: 1.5 + R() * 2, round: 1, glow: 1, g: 0.12, flick: 1 });
   for (let i = 0; i < 4 * big; i++) CT.fires.push({ x: x + (R() - .5) * 70, y: Math.min(GY - 4, y + R() * 30), t: 5 + R() * 4 });
+}
+// the cloud: a column of fire-lit smoke climbs to the top of the sky, spreads into a cap, and drifts apart;
+// the ground beneath glows and smoulders for a few seconds
+function ctMushroom(x, y) {
+  CT.mush = CT.mush || []; CT.mush.push({ x, gy: Math.min(GY - 2, y), t: 0, seed: Math.random() * 6 });
+  CT.smoulder = CT.smoulder || []; CT.smoulder.push({ x, t: 3.5 });
+}
+function drawMushroom(x, m) {
+  const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
+  const RISE = 2.2, END = 5;
+  const rise = ease(m.t / RISE), fade = m.t < RISE ? 1 : Math.max(0, 1 - (m.t - RISE) / (END - RISE));
+  const drift = (CT.wind || 0) * 0.25 * Math.max(0, m.t - 0.8);
+  const top = 74, cy = m.gy - (m.gy - top) * rise, rc = (16 + 46 * rise) * (1 + 0.5 * Math.max(0, m.t - RISE) / (END - RISE)), cx = m.x + drift;
+  const hot = Math.max(0, 1 - m.t / 1.6);
+  const puff = (px, py, r, a, lit) => { const g = x.createRadialGradient(px, py - r * 0.2, 0, px, py, r); const c0 = lit > 0 ? `${Math.round(60 + 190 * lit)},${Math.round(50 + 80 * lit)},${Math.round(40 + 10 * lit)}` : '58,52,46'; g.addColorStop(0, `rgba(${c0},${a})`); g.addColorStop(0.65, `rgba(${c0},${a * 0.75})`); g.addColorStop(1, `rgba(40,36,32,0)`); x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); };
+  // the stem, thinning as the cloud lifts away from it
+  const segs = 26, sw = (10 + 14 * rise) * (m.t < RISE ? 1 : fade);
+  for (let i = 0; i <= segs; i++) { const u = i / segs, py = m.gy + (cy - m.gy) * u, px = m.x + (cx - m.x) * u + Math.sin(u * 6 + m.seed + m.t * 2) * 3; puff(px, py, sw * (1.15 - 0.4 * u) + 4, 0.55 * fade, hot * (1 - u)); }
+  // a pale condensation ring around the stem as it climbs
+  if (m.t > 0.5 && m.t < 2.2) { const u = (m.t - 0.5) / 1.7, ry = m.gy + (cy - m.gy) * 0.55; x.strokeStyle = `rgba(240,232,215,${0.35 * Math.sin(u * Math.PI)})`; x.lineWidth = 3; x.beginPath(); x.ellipse(m.x + (cx - m.x) * 0.55, ry, 18 + 40 * u, 5 + 7 * u, 0, 0, 7); x.stroke(); }
+  // the cap: a rolling ring of smoke with a dome on top, lit from below while it burns
+  const n = 11;
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + m.t * 0.6, px = cx + Math.cos(a) * rc * 1.15, py = cy + Math.sin(a) * rc * 0.42; puff(px, py, rc * 0.55, 0.62 * fade, hot * (Math.sin(a) > 0 ? 1 : 0.4)); }
+  for (let i = 0; i < 4; i++) puff(cx + (i - 1.5) * rc * 0.35, cy - rc * 0.35 - (i % 2) * rc * 0.12, rc * 0.6, 0.6 * fade, hot * 0.5);
+  if (hot > 0) { x.globalCompositeOperation = 'lighter'; const g = x.createRadialGradient(cx, cy + rc * 0.2, 0, cx, cy + rc * 0.2, rc * 1.3); g.addColorStop(0, `rgba(255,150,40,${0.55 * hot})`); g.addColorStop(1, 'rgba(255,80,0,0)'); x.fillStyle = g; x.beginPath(); x.arc(cx, cy + rc * 0.2, rc * 1.3, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; }
 }
 function ctBurst(x, y, color, n) { for (let i = 0; i < n; i++) CT.parts.push({ x, y, vx: (Math.random() - .5) * 260, vy: -Math.random() * 260, life: .6 + Math.random() * .6, color, s: 2 + Math.random() * 4 }); }
 const ctHit = (c, n) => { CT.h[c] = Math.max(0, CT.h[c] - n); };
 function ctHitOuter(c, q) {
   const hit = (k, n) => { if (k >= 0 && k < CT.ocols) CT.oh[k] = Math.max(0, CT.oh[k] - n); };
-  if (q.type === 'greek') { hit(c, 9); hit(c - 1, 3); hit(c + 1, 3); ctBoom(q.x, q.y); CT.msg = 'Greek fire bursts on the outer wall and brings a stretch of it down.'; sfx('greek'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
+  if (q.type === 'greek') { hit(c, 99); hit(c - 1, 4); hit(c + 1, 4); ctBoom(q.x, q.y); ctMushroom(q.x, q.y); CT.msg = 'Greek fire bursts on the outer wall and tears a great gap in it.'; sfx('greek'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
   if (q.type === 'stone') { hit(c, 3); if (Math.random() < .7) hit(c - 1, 1); if (Math.random() < .7) hit(c + 1, 1); CT.msg = 'Direct hit on the outer wall! A section comes down.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple') { if (Math.random() < 0.5) { hit(c, 1); CT.msg = 'Stones chip the outer wall.'; sfx('wall'); } else { CT.msg = 'A small stone glances off the outer wall.'; sfx('miss'); } }
   else if (q.type === 'oil') { if (Math.random() < 0.3) hit(c, 1); CT.msg = 'The fire splashes on the outer wall. Aim over both walls to burn the defenders.'; sfx('fire'); }
@@ -106,7 +131,7 @@ function ctHitOuter(c, q) {
 }
 function ctHitWall(c, q) {
   const wood = CT.lv === 1;
-  if (q.type === 'greek') { ctHit(c, wood ? 12 : 9); if (c > 0) ctHit(c - 1, 3); if (c < CT.cols - 1) ctHit(c + 1, 3); CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBoom(q.x, q.y); CT.msg = 'Greek fire bursts against the wall! The stones crack in the heat and a whole stretch comes down.'; sfx('greek'); sfx('fire'); buzz(60); return; }
+  if (q.type === 'greek') { ctHit(c, 99); for (const [k, n] of [[c - 1, wood ? 99 : 6], [c + 1, wood ? 99 : 6], [c - 2, wood ? 6 : 3], [c + 2, wood ? 6 : 3]]) if (k >= 0 && k < CT.cols) ctHit(k, n); const kw = killDefenders(CT.p, 2 + rnd(3)); CT.killed += kw; CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBoom(q.x, q.y); ctMushroom(q.x, q.y); CT.msg = `Greek fire bursts against the wall! The stones split in the heat and a whole stretch comes down${kw ? `, with ${kw} of the men on it` : ''}.`; sfx('greek'); sfx('fire'); buzz(60); return; }
   if (q.type === 'stone') { ctHit(c, wood ? 4 : 3); if (c > 0 && Math.random() < .7) ctHit(c - 1, 1); if (c < CT.cols - 1 && Math.random() < .7) ctHit(c + 1, 1); ctBurst(q.x, q.y, wood ? '#7a5530' : '#8a816e', 26); CT.msg = 'Direct hit! A section of wall collapses.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple' && Math.random() > (CT.lv === 1 ? 1 : CT.lv === 2 ? 0.5 : 0.2)) { ctBurst(q.x, q.y, '#8a816e', 6); CT.msg = CT.lv === 3 ? 'The small stones rattle off the great walls. It takes a heavy stone to break these.' : 'A small stone glances off the masonry.'; sfx('miss'); }
   else if (q.type === 'triple') { ctHit(c, 1); if (CT.lv === 1 && Math.random() < .35) { const n = c + (Math.random() < .5 ? -1 : 1); if (n >= 0 && n < CT.cols) ctHit(n, 1); } ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = 'Stones hammer the wall.'; sfx('wall'); buzz(20); }
@@ -132,7 +157,10 @@ function ctHitInside(q) {
   const p = CT.p; let k = 0;
   const empty = ctAlive() === 0;
   if (q.type === 'stone' || q.type === 'triple') { k = Math.random() < (q.type === 'stone' ? .5 : .25) ? killDefenders(p, 1) : 0; ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = empty ? 'The stone lands in an empty bailey.' : k ? 'The stone crashes into the bailey and crushes a defender.' : 'The stone lands in the bailey. The defenders scatter.'; sfx('wall'); }
-  else if (q.type === 'greek') { const tired = Math.max(0.3, 1 - 0.1 * (CT.fireN || 0)); CT.fireN = (CT.fireN || 0) + 1; const e = 4.4 * tired; k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBoom(q.x, q.y, 1.15); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('greek'); buzz(50); }
+  else if (q.type === 'greek') {
+    // water only spreads it: a third of the garrison, less a little for whatever walls still stand between them and the blast
+    const cover = CT.h.reduce((s, v) => s + v, 0) / (CT.cols * CT.rows), n = CT.gfIn = (CT.gfIn || 0) + 1;
+    const e = (3 + 0.32 * ctAlive()) * (1 - 0.25 * cover) * (n === 1 ? 1 : n === 2 ? 0.85 : 0.7); k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBoom(q.x, q.y, 1.15); ctMushroom(q.x, GY - 4); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('greek'); buzz(50); }
   else if (q.type === 'oil') { k = killDefenders(p, fireKills(q.small)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
   else if (q.type === 'rat') {
     ratNest(q.x, false); if (Math.random() < 0.12) ratPlague();
@@ -203,6 +231,8 @@ function ctUpdate(dt) {
   CT.parts.forEach(t => { t.vy += 600 * (t.g ?? 1) * dt; if (t.smoke) { t.vx *= 1 - dt * 0.8; t.vy *= 1 - dt * 0.6; t.vx += (CT.wind || 0) * 0.15 * dt; } if (t.grow) t.s += t.grow * dt; t.x += t.vx * dt; t.y += t.vy * dt; t.life -= dt; });
   CT.parts = CT.parts.filter(t => t.life > 0 && (t.y < GY + 4 || t.smoke));
   if (CT.booms) { CT.booms.forEach(b => b.t += dt); CT.booms = CT.booms.filter(b => b.t < 1.2); }
+  if (CT.mush) { CT.mush.forEach(m => m.t += dt); CT.mush = CT.mush.filter(m => m.t < 5); }
+  if (CT.smoulder) { for (const s of CT.smoulder) { s.t -= dt; if (Math.random() < dt * 10 * Math.min(1, s.t)) CT.parts.push({ x: s.x + (Math.random() - .5) * 70, y: GY - 2, vx: (CT.wind || 0) * 0.2, vy: -25 - Math.random() * 30, life: 1.4 + Math.random(), max: 2.4, color: '#46403a', s: 4 + Math.random() * 4, grow: 10, round: 1, smoke: 1, g: -0.03 }); } CT.smoulder = CT.smoulder.filter(s => s.t > 0); }
   if (CT.shake) CT.shake = Math.max(0, CT.shake - dt); if (CT.flash) CT.flash = Math.max(0, CT.flash - dt * 3.2);
   CT.fires.forEach(f => f.t -= dt); CT.fires = CT.fires.filter(f => f.t > 0);
   ratsTick(dt);
@@ -299,6 +329,8 @@ function ctDraw() {
     g.addColorStop(0, `rgba(${c},${al})`); g.addColorStop(0.6, `rgba(${c},${al * 0.6})`); g.addColorStop(1, `rgba(${c},0)`); x.fillStyle = g; x.beginPath(); x.arc(t.x, t.y, t.s, 0, 7); x.fill();
   }
   x.globalAlpha = 1;
+  for (const s of CT.smoulder || []) { const a = Math.min(1, s.t / 1.5); x.globalCompositeOperation = 'lighter'; const g = x.createRadialGradient(s.x, GY, 0, s.x, GY, 60); g.addColorStop(0, `rgba(255,${110 + rnd(40)},30,${0.55 * a * (0.8 + 0.2 * Math.random())})`); g.addColorStop(1, 'rgba(200,40,0,0)'); x.fillStyle = g; x.beginPath(); x.ellipse(s.x, GY, 60, 12, 0, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; for (let i = 0; i < 6; i++) { x.fillStyle = `rgba(255,${120 + rnd(100)},40,${0.7 * a})`; x.fillRect(s.x + (Math.random() - .5) * 90, GY - 2 - Math.random() * 3, 2, 2); } }
+  for (const m of CT.mush || []) drawMushroom(x, m);
   for (const b of CT.booms || []) {
     const k = b.t, r = (24 + 120 * Math.min(1, k / 0.3) + 18 * Math.sin(Math.min(k, 0.6) * 18) * (1 - k)) * b.big, a = Math.max(0, 1 - k / 0.95);
     if (a > 0) { const g = x.createRadialGradient(b.x, b.y, 0, b.x, b.y, r); g.addColorStop(0, `rgba(255,255,230,${a})`); g.addColorStop(0.25, `rgba(255,220,90,${a})`); g.addColorStop(0.55, `rgba(255,120,20,${a * 0.85})`); g.addColorStop(1, 'rgba(160,30,0,0)'); x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, r, 0, 7); x.fill(); x.globalCompositeOperation = 'source-over'; }
