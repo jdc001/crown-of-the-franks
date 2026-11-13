@@ -733,7 +733,7 @@ const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
 const GOALS = {
-  king: { n: SC.crown.title, s: 'The main game', d: `Be ${SC.crown.anointed} and hold the crown, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter. Or break every rival.` },
+  king: { n: SC.crown.title, s: 'The main game', d: `Wear the crown or hold ${SC.PROV.find(r => r[0] === SC.kingdom.keys[0])[1]}, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter. Or break every rival.` },
   conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
 const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
@@ -747,11 +747,18 @@ const RIVAL_SHARE = 0.25;
 const rivalCap = () => Math.floor(FRANCE.length * RIVAL_SHARE);
 const greatRival = fid => alive().filter(f => f !== fid).sort((a, b) => domainHeld(b) - domainHeld(a))[0] || null;
 const undisputed = fid => alive().every(f => f === fid || domainHeld(f) <= rivalCap());
-function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && domainHeld(fid) >= domainNeed() && undisputed(fid); }
+// the crown, or the places a king is made in: whoever holds them with half the kingdom, undisputed, is crowned as he wins
+const holdsCrownSeat = fid => crownNeeds(fid).every(id => P(id).owner === fid);
+function goalMet(fid) { return goalId() === 'king' && (wears(fid) || holdsCrownSeat(fid)) && alive().length > 1 && domainHeld(fid) >= domainNeed() && undisputed(fid); }
 function victor() { const al = alive(); if (al.length === 1) return al[0]; return al.find(goalMet) || null; }
 function checkVictory() {
   const w = victor();
-  if (w) { G.over = true; G.winner = w; return; }
+  if (w) {
+    G.over = true; G.winner = w;
+    // a victor who never paid for the rite is anointed now, as part of the victory: one ceremony, not two
+    if (!wears(w)) { const old = king(); if (old && old !== w) { const od = FAC(old); od.kingOf = []; od.title = lostTitle(old); } G.crowns.franks = w; G.coronated.franks = w; const d = FAC(w); d.kingOf = ['franks']; d.title = 'King'; }
+    return;
+  }
   if (!G.fac[G.player].alive) G.over = true;
 }
 

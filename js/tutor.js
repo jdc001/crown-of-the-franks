@@ -13,7 +13,7 @@ const TUT = [
   { id: 'peace', t: SC.peace.Name, b: () => `No war between the great houses until ${dateStr(TRUCE)}. Keep building and raising men, and end turns until then. Lesser lords may be attacked at any time.`, done: () => G.turn >= TRUCE },
   { id: 'pact', t: 'Guard your back', b: () => 'Open Envoys, choose a neighbour you do not mean to fight, and sign a pact of peace. Neither of you can break it. An alliance also lets your armies cross their land.', done: d => d.pact || G.turn >= TRUCE + 6 },
   { id: 'war', t: 'To war', b: () => 'Tap a county with a red dashed border and attack it. A wooden castle falls to a strong assault; against stone, lay siege first, bombard or mine the walls, then storm.', done: d => d.battle || d.besiege },
-  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see what you need: the crown, ${SC.crown.anointed}, half the kingdom in your own hands, and no rival holding more than a quarter.`, done: d => d.goal },
+  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see what you need: the crown or the places a king is made in, half the kingdom in your own hands, and no rival holding more than a quarter.`, done: d => d.goal },
 ];
 function tutorDid(k) { if (G && G.tut) { G.tut.did[k] = (G.tut.did[k] || 0) + 1; } }
 function tutorSkip() { if (!G.tut) return; G.tut.i++; sfx('click'); save(); renderTutor(); }

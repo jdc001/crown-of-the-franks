@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.35';
+const APP_VERSION = '6.36';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -158,7 +158,7 @@ function openHelp() {
   const rows = ['foot', 'bow', 'cav', 'cat'].map(t => `<tr><td>${ico(UNIT_ICON[t])} ${UNIT[t].n}</td><td>${UNIT[t].c} d</td><td>${UNIT[t].atk || '–'}</td><td>${UNIT[t].rng || '–'}</td><td>${UNIT[t].chg || '–'}</td><td>${UNIT[t].hp || '–'}</td></tr>`).join('');
   const T = {
     goal: `${SC.help.top}
-      <p><b>The goal.</b> You choose it when you raise your banner. <i>${SC.crown.title}</i>: be ${SC.crown.anointed} and hold the crown, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter of them. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
+      <p><b>The goal.</b> You choose it when you raise your banner. <i>${SC.crown.title}</i>: wear the crown, or hold the places a king is made in, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter of them. You are crowned as you win; you need not hold the coronation first. Paying for it earlier gives you the king's strength while you fight on. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
       <p><b>The crown.</b> ${SC.crown.rule()} The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes the places a king needs can take the crown from him.</p>
       <p><b>How the houses feel about you.</b> Each house's mood runs from hostile to friendly, shown on its Envoys tab with the reasons: attacks on it (a grudge that fades over a few years), how much of the kingdom you hold, your armies at its border, the crown, a pact or alliance, or an enemy you both fight. A hostile house attacks you more readily and asks more for a pact; a friendly one leaves you alone and signs cheaply. The second bar shows where things stand: at war (you have fought in the last two years), no pact, pact or allied.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>

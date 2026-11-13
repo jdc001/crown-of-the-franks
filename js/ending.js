@@ -14,7 +14,7 @@ gameOver = function () {
     const body = S.how === 'conquest'
       ? `In ${dateStr(G.turn)} the last rival house falls. ${SC.crown.endAll(FAC(me()).pname)}`
       : `In ${dateStr(G.turn)} ${SC.crown.endWon(FAC(me()).pname)} ${owned(me()).length} counties, half the realm of ${SC.crown.people}.`;
-    showModal(`<div class="splash">${coronationScene(me(), 'franks')}<div class="splashtxt"><h2>Rex Francorum</h2><p class="sub ctr" style="margin-top:-6px">${esc(FAC(me()).name)} · ${G.turn} turns</p><p>${body}</p>
+    showModal(`<div class="splash">${coronationScene(me(), 'franks')}<div class="splashtxt"><h2>${SC.crown.latin.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}</h2><p class="sub ctr" style="margin-top:-6px">${esc(FAC(me()).name)} · ${G.turn} turns</p><p>${body}</p>
       <div class="row ctr"><button class="btn gold big" onclick="closeModal();openStats(G.recorded,0)">Long live the King</button></div></div></div>`, 'splashcard');
   } else {
     setMusic('defeat'); sfx('defeat');
@@ -162,7 +162,7 @@ function shareGame() {
     const im = await svgImg(myAchievement(300)); if (im) x.drawImage(im, 120, 220, 300, 333);
     if (FACMAP[S.house]) { const hs = await svgImg(armsSvg(FACMAP[S.house].arms, 200)); if (hs) x.drawImage(hs, 680, 250, 200, 240); }
     x.fillStyle = '#2a1d12'; x.font = '700 50px Cinzel, Georgia, serif';
-    x.fillText(S.won ? 'Rex Francorum' : 'The crown escapes me', 540, 640);
+    x.fillText(S.won ? SC.crown.latin.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'The crown escapes me', 540, 640);
     x.font = '36px Georgia, serif'; x.fillStyle = '#5c4630';
     let y = wrapText(x, `${S.name}, ${S.won ? (S.how === 'conquest' ? 'every rival broken' : SC.crown.crowned) : 'beaten'}, in the year ${S.year}, after ${S.turns} turns.`, 540, 700, 880, 48);
     x.font = 'italic 32px Georgia, serif'; x.fillText(`${RANKS[r].n} · ${P.points} points${S.trophies && S.trophies.length ? ` · ${S.trophies.length} new troph${S.trophies.length === 1 ? 'y' : 'ies'}` : ''}`, 540, y + 6);
