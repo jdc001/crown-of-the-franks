@@ -242,11 +242,12 @@ function goalHtml(held) {
     return `<p>${GOALS.king.d}</p>
       <p>${ico('crown')} Crown: ${crowned ? '<span class="good">anointed</span>' : k ? `<span class="bad">worn by ${esc(FAC(k).pname)}</span>` : 'no one wears it'}</p>
       <p>${ico('map')} Your own counties in the kingdom: ${dh} of ${dn}</p><div class="bar"><i style="width:${pct(Math.min(dh, dn), dn)}%"></i></div>
-      <p class="sub">The first house to hold both wins.${k && k !== me() ? ` The king holds ${domainHeld(k)} of them.` : ''}</p>${size}`;
+      ${(() => { const r = greatRival(me()), rh = r ? domainHeld(r) : 0, ok = rh <= rivalCap(); return r ? `<p>${ico('swords')} Your greatest rival: ${esc(FAC(r).name)}, with ${rh} counties. ${ok ? '<span class="good">No rival holds more than ' + rivalCap() + '.</span>' : `<span class="bad">Bring every rival down to ${rivalCap()} or fewer.</span>`}</p>` : ''; })()}
+      <p class="sub">The first house to hold all three wins: the crown undisputed.${k && k !== me() ? ` The king holds ${domainHeld(k)} of the kingdom's counties.` : ''}</p>${size}`;
   }
   return `<p>${GOALS.conquest.d} <b>${rivals}</b> rival house${rivals === 1 ? '' : 's'} still stand${rivals === 1 ? 's' : ''}.</p>${fall}<p class="sub">You hold ${domainHeld(me())} of the kingdom's ${FRANCE.length} counties.</p><div class="bar"><i style="width:${pct(domainHeld(me()), FRANCE.length)}%"></i></div>${size}`;
 }
-function goalCount(held) { return goalId() === 'king' ? `${wears(me()) ? 'crowned · ' : ''}${domainHeld(me())}/${domainNeed()}` : `${alive().length - 1} left`; }
+function goalCount(held) { return goalId() === 'king' ? `${wears(me()) ? 'crowned · ' : ''}${domainHeld(me())}/${domainNeed()}${domainHeld(me()) >= domainNeed() && !undisputed(me()) ? ' · rival too strong' : ''}` : `${alive().length - 1} left`; }
 
 // ================= PROVINCE =================
 const PANEL = { tab: null };

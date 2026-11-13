@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.27';
+const APP_VERSION = '6.28';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -157,7 +157,7 @@ function openHelp() {
   const rows = ['foot', 'bow', 'cav', 'cat'].map(t => `<tr><td>${ico(UNIT_ICON[t])} ${UNIT[t].n}</td><td>${UNIT[t].c} d</td><td>${UNIT[t].atk || '–'}</td><td>${UNIT[t].rng || '–'}</td><td>${UNIT[t].chg || '–'}</td><td>${UNIT[t].hp || '–'}</td></tr>`).join('');
   const T = {
     goal: `<p><b>France in 987.</b> King Louis V is dead. Hugh Capet holds the crown, but the great princes rule their own lands, and Charles of Lorraine, the last Carolingian, wants it back. Fifteen houses, from Flanders to Barcelona.</p>
-      <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
+      <p><b>The goal.</b> You choose it when you raise your banner. <i>King of the Franks</i>: be anointed at Reims and hold the crown, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter of them. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
       <p><b>The crown.</b> A king is anointed at Reims and needs his royal seat: hold Reims and Paris (Charles: Reims and Laon) and at least ${CROWN_LANDS} counties of the kingdom, and pay ${CROWN_COST} d. A prince with ${CROWN_GREAT} counties of the kingdom needs only Reims. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes Reims and the royal seat can take the crown from him.</p>
       <p><b>How the houses feel about you.</b> Each house's mood runs from hostile to friendly, shown on its Envoys tab with the reasons: attacks on it (a grudge that fades over a few years), how much of the kingdom you hold, your armies at its border, the crown, a pact or alliance, or an enemy you both fight. A hostile house attacks you more readily and asks more for a pact; a friendly one leaves you alone and signs cheaply. The second bar shows where things stand: at war (you have fought in the last two years), no pact, pact or allied.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
@@ -222,7 +222,7 @@ function gameOver() {
   clearSave(); sfx(won ? 'victory' : 'defeat');
   const W = G.winner ? FAC(G.winner) : null;
   const wonTxt = lastStanding ? `In ${dateStr(G.turn)}, the last rival house falls. From Flanders to Barcelona, no prince stands against ${FAC(me()).pname}. He is king of the Franks in name and in fact.`
-    : `In ${dateStr(G.turn)}, ${FAC(me()).pname} wears the crown of the Franks and holds half the kingdom in his own hand. For the first time in a century, a king of the Franks rules as well as reigns.`;
+    : `In ${dateStr(G.turn)}, ${FAC(me()).pname} wears the crown of the Franks and holds half the kingdom in his own hand, and no prince is left who can stand against him. For the first time in a century, a king of the Franks rules as well as reigns.`;
   showModal(`<div class="rep${won ? '' : ' badrep'}"><div class="sealmark">${ico(won ? 'crown' : 'swords')}</div><h2>${won ? 'Rex Francorum' : W ? `${W.name} rules the Franks` : 'Your house has fallen'}</h2>
     <p>${won ? wonTxt : W ? `${W.pname} ${alive().length === 1 ? 'has broken every rival house' : 'wears the crown and holds half the kingdom'}.` : `${rulerOf(me())}'s line is broken. Another will take the kingdom.`}</p>
     <p class="sub ctr">${dateStr(G.turn)} · ${G.turn} turns</p>

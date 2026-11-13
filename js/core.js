@@ -738,7 +738,7 @@ const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
 const GOALS = {
-  king: { n: 'King of the Franks', s: 'The main game', d: 'Be anointed at Reims and hold the crown, with half of the kingdom\'s counties in your own hands. Or break every rival.' },
+  king: { n: 'King of the Franks', s: 'The main game', d: 'Be anointed at Reims and hold the crown, with half of the kingdom\'s counties in your own hands and no rival house holding more than a quarter. Or break every rival.' },
   conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
 const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
@@ -747,7 +747,12 @@ const homageNeed = () => Math.min(alive().length - 1, Math.max(3, Math.ceil((ali
 const domainNeed = () => Math.ceil(FRANCE.length * DOMAIN_SHARE);
 const DOMAIN_SHARE = 0.5;
 const domainHeld = fid => FRANCE.filter(id => P(id).owner === fid).length;
-function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && domainHeld(fid) >= domainNeed(); }
+// an undisputed crown: no rival house may still hold more than a quarter of the kingdom
+const RIVAL_SHARE = 0.25;
+const rivalCap = () => Math.floor(FRANCE.length * RIVAL_SHARE);
+const greatRival = fid => alive().filter(f => f !== fid).sort((a, b) => domainHeld(b) - domainHeld(a))[0] || null;
+const undisputed = fid => alive().every(f => f === fid || domainHeld(f) <= rivalCap());
+function goalMet(fid) { return goalId() === 'king' && wears(fid) && alive().length > 1 && domainHeld(fid) >= domainNeed() && undisputed(fid); }
 function victor() { const al = alive(); if (al.length === 1) return al[0]; return al.find(goalMet) || null; }
 function checkVictory() {
   const w = victor();
