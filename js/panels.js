@@ -15,7 +15,7 @@ function armyAt(id) {
 }
 function pickArmy(id) { G.army = id; sfx('click'); render(); const a = army(me(), id); if (a.loc && !G.sel) focusProv(a.loc, VIEW.w); }
 const ARMY_NUM = a => ARMY_IDS.indexOf(a.id) + 1;
-function armyPay(a) { let u = 0; for (const t of ['foot', 'bow', 'cav', 'cat']) u += a[t] * UPKEEP[t]; return Math.ceil(u); }
+function armyPay(a) { return atRest(me(), a) ? 0 : armyCost(a); }
 function slotState(a) {
   const F = G.fac[me()], i = ARMY_IDS.indexOf(a.id);
   if (a.id === 'a0') return F.captive ? 'captive' : 'active';
@@ -39,8 +39,11 @@ function renderArmyBar() {
 function renderHeader() {
   const f = FAC(me()), F = G.fac[me()];
   const gross = grossIncome(me()), up = upkeepOf(me());
-  const chips = [`<span class="chip" title="Treasury: income +${gross}, upkeep −${up}">${ico('coin')}<span class="num">${F.gold}</span><small>+${gross}${up ? ` <s>−${up}</s>` : ''}</small></span>`];
-  if (truce()) chips.push(`<span class="chip peace" title="No war between the great houses until ${dateStr(TRUCE)}">${ico('dove')}<small>Peace</small></span>`);
+  const net = gross - up;
+  const chips = [`<span class="chip btn-like" onclick="openTreasury()" title="Treasury ${F.gold} d · income +${gross} · upkeep −${up} · net ${net >= 0 ? '+' : ''}${net} a turn">${ico('coin')}<span class="num">${F.gold}</span><small class="${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : ''}${net}/turn</small></span>`];
+  { const wars = alive().filter(f => f !== me() && atWar(me(), f)), left = TRUCE - G.turn;
+    const tip = truce() ? `Peace of God: ${left} turn${left === 1 ? '' : 's'} left` : wars.length ? `At war with ${wars.map(f => FAC(f).name).join(', ')}` : 'At war with no one';
+    chips.push(truce() ? `<span class="chip peace btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('dove')}<small>Peace · ${left}</small></span>` : wars.length ? `<span class="chip warn btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('swords')}<small>War · ${wars.length}</small></span>` : `<span class="chip peace btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('dove')}<small>Peace</small></span>`); }
   if (F.unrest) chips.push(`<span class="chip warn btn-like" onclick="goProv('${F.unrest.seed}')" title="Unrest at ${P(F.unrest.seed).name}">${ico('fire')}<small>${Math.max(0, F.unrest.at - G.turn)}</small></span>`);
   if (fairOpen()) chips.push(`<span class="chip ok btn-like" onclick="openFair()" title="The summer fair at Troyes is open">${ico('market')}<small>Fair</small></span>`);
   if (G.diplo) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="An envoy waits">${ico('handshake')}</span>`);
@@ -66,7 +69,7 @@ function armyLine(a) {
   const g = armyGen(me(), a), st = slotState(a);
   if (st === 'captive') return `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${G.fac[me()].captive.by ? ' of ' + fname(G.fac[me()].captive.by) : ''}. His host cannot take the field until he is ransomed.</div>`;
   if (!a.loc) return '<p class="sub">Nowhere</p>';
-  return `<p>${a.siege ? `${ico('tent')} Besieging <b>${P(a.siege).name}</b>` : `At <b>${P(a.loc).name}</b>`}${g ? ` · ${a.id === 'a0' ? 'with' : 'led by'} <b>${g.n}</b>` : ''} · ${a.acted ? 'has fought' : `${a.mp} of ${MOVES} moves`}</p><p class="units">${uStr(a, false)} <span class="sub">· pay ${armyPay(a)} d a turn</span></p>`;
+  return `<p>${a.siege ? `${ico('tent')} Besieging <b>${P(a.siege).name}</b>` : `At <b>${P(a.loc).name}</b>`}${g ? ` · ${a.id === 'a0' ? 'with' : 'led by'} <b>${g.n}</b>` : ''} · ${a.acted ? 'has fought' : `${a.mp} of ${MOVES} moves`}</p><p class="units">${uStr(a, false)} <span class="sub">· ${atRest(me(), a) ? 'at rest in the castle: no pay' : `on campaign: ${armyCost(a)} d a turn`}</span></p>`;
 }
 function armiesHtml() {
   const F = G.fac[me()], A = myA();
@@ -106,6 +109,36 @@ function houseStatus(o) {
   if (T.excom > 0) rows.push(`${ico('interdict')} Excommunicated.`);
   if (T.captive) rows.push(`${ico('chain')} Its lord is a prisoner${T.captive.by ? ' of ' + esc(fname(T.captive.by)) : ''}.`);
   return `<div class="statcard">${relBars(o)}${rows.map(r => `<p style="margin:3px 0">${r}</p>`).join('')}</div>`;
+}
+// the treasury, line by line
+function openTreasury() {
+  const F = G.fac[me()], mine = owned(me()), al = allies(me());
+  const cty = mine.reduce((s, p) => s + provIncome(p), 0), ally = al.reduce((s, p) => s + provIncome(p), 0), raw = cty + ally, gross = grossIncome(me());
+  const adj = gross - raw, up = upkeepOf(me()), net = gross - up;
+  const top = mine.map(p => [p, provIncome(p)]).sort((a, b) => b[1] - a[1]);
+  const rowsI = [[`${mine.length} counties`, cty], ...(al.length ? [[`${al.length} sworn lords (half their income)`, ally]] : []), ...(adj ? [[adminMult(me()) < 1 && F.excom > 0 ? 'A large realm, and excommunication' : adminMult(me()) < 1 ? `A realm this large (${Math.round(adminMult(me()) * 100)}%)` : 'Excommunicated (−25%)', adj]] : [])];
+  const rowsE = armiesOf(me()).filter(a => armySize(a)).map(a => [`Army ${ARMY_NUM(a)}: ${armySize(a)} men${atRest(me(), a) ? ', at rest in a castle' : a.siege ? ', at a siege' : ', on campaign'}`, -armyPay(a)]);
+  const line = ([k, v], cls) => `<tr><td>${k}</td><td class="${cls || (v < 0 ? 'bad' : '')}">${v > 0 ? '+' : ''}${v} d</td></tr>`;
+  showModal(`<h2>${ico('coin')} The treasury</h2>
+    <div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile">${ico('coin')}<div class="v">${F.gold}</div><div class="k">In the treasury</div></div><div class="tile"><div class="v good">+${gross}</div><div class="k">Income a turn</div></div><div class="tile"><div class="v ${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : ''}${net}</div><div class="k">Net a turn</div></div></div>
+    <h3>Income</h3><table class="sttab">${rowsI.map(r => line(r)).join('')}<tr><td><b>Total</b></td><td class="good"><b>+${gross} d</b></td></tr></table>
+    <h3>Upkeep</h3><table class="sttab">${rowsE.length ? rowsE.map(r => line(r, r[1] ? 'bad' : 'good')).join('') : '<tr><td colspan="2" class="sub">No armies in the field.</td></tr>'}<tr><td><b>Total</b></td><td class="${up ? 'bad' : 'good'}"><b>${up ? '−' + up : 0} d</b></td></tr></table>
+    <p class="sub">Garrisons cost nothing. An army is paid while on campaign; once it has spent a full turn without marching or fighting in a castle of yours, it is lodged with the garrison at no cost.</p>
+    <h3>Richest counties</h3><table class="sttab">${top.slice(0, 6).map(([p, v]) => `<tr><td><span style="cursor:pointer;text-decoration:underline" onclick="closeModal();goProv('${p.id}')">${p.name}</span></td><td>${v} d</td></tr>`).join('')}</table>`, '', { closable: true });
+}
+// peace and war, at a glance
+function openRelations() {
+  const left = TRUCE - G.turn, others = alive().filter(f => f !== me());
+  const rowsFor = list => list.map(([f, extra]) => `<div class="rival" onclick="closeModal();openDiplo('${f}')">${shield(f, 22)}<div style="min-width:0"><b>${esc(FAC(f).name)}</b><div class="sub" style="font-size:13px">${extra}</div></div></div>`).join('');
+  const wars = others.filter(f => atWar(me(), f)).map(f => [f, `fought in the last two years · ${attWord(attitude(f, me())).toLowerCase()}`]);
+  const ally = others.filter(f => allied(me(), f)).map(f => [f, `allied until ${dateStr(peaceUntil(me(), f))}`]);
+  const pact = others.filter(f => atPeace(me(), f) && !allied(me(), f)).map(f => [f, `at peace until ${dateStr(peaceUntil(me(), f))}`]);
+  showModal(`<h2>${ico(truce() ? 'dove' : 'swords')} Peace and war</h2>
+    ${truce() ? `<div class="notebox good">${ico('dove')} <b>The Peace of God</b> forbids war between the great houses for ${left} more turn${left === 1 ? '' : 's'}, until ${dateStr(TRUCE)}. Lesser lords may be attacked.</div>` : ''}
+    <h3>At war with</h3>${wars.length ? `<div class="rivals">${rowsFor(wars)}</div>` : '<p class="sub">No one has fought you, or you them, in the last two years.</p>'}
+    ${ally.length ? `<h3>Allies</h3><div class="rivals">${rowsFor(ally)}</div>` : ''}
+    ${pact.length ? `<h3>Pacts of peace</h3><div class="rivals">${rowsFor(pact)}</div>` : ''}
+    <p class="sub">Every other house may attack you, and you them. Tap a house to send envoys.</p>`, '', { closable: true });
 }
 function crownsHtml() {
   const F = G.fac[me()], k = king(), others = alive().filter(f => f !== me());
@@ -181,7 +214,7 @@ function overviewPanel() {
     ${F.captive ? `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}` : ''}
     ${prisoners ? acc('prisoners', 'Your prisoners', 'chain', prisoners, G.offers.length ? G.offers.length + ' offer' + (G.offers.length > 1 ? 's' : '') : '') : ''}
     ${acc('garrisons', 'Your garrisons', 'castle', garrisonsHtml(), owned(me()).reduce((a, p) => a + garMen(p), 0) + ' men')}
-    ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing; armies in the field are paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d). Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
+    ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing. An army on campaign is paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d); after a full turn at rest in a castle of yours it is lodged free. Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
     ${acc('road', 'Your goal: ' + GOALS[goalId()].n, 'crown', goalHtml(held), goalCount(held))}
     ${acc('crowns', 'The crown', 'crown', crownsHtml(), isKing(me()) ? 'yours' : king() ? '' : 'vacant')}
     ${acc('marriage', 'Marriages', 'ring', marriageHtml(), F.sons + ' son' + (F.sons === 1 ? '' : 's'))}
@@ -393,7 +426,7 @@ function foreignPanel(p, F, A) {
       cta += `<div class="grid2" style="margin:0"><button class="btn" onclick="act('bombard')" ${A.cat && !A.bombarded && !p.ruined && p.b.castle ? '' : 'disabled'}><span class="lbl">${ico('cat')}Bombard</span><small>${A.cat ? A.cat * catShots(me(), A) + ' shots' : 'no catapults'}${A.bombarded ? ' · done' : ''}${p.ruined ? ' · walls already down' : ''}</small></button>
         <button class="btn red" onclick="openPreBattle('assault','${p.id}')" ${A.stormed ? 'disabled' : ''}><span class="lbl">${ico('swords')}Storm the walls</span><small>odds ${oddsTxt(estimateWin(assaultCfg(me(), A, p, 'balanced'), 30))}</small></button></div>
         <div class="grid2" style="margin:0"><button class="btn sm" onclick="openMine('${p.id}')" ${canMine(A, p) ? '' : 'disabled'}><span class="lbl">${ico('mine')}Dig a mine</span><small>${A.foot >= 4 ? 'instead of bombarding' : 'needs 4 footmen'}</small></button><button class="btn sm" onclick="act('autobomb')" ${A.cat && !A.bombarded && !p.ruined && p.b.castle ? '' : 'disabled'}><span class="lbl">${ico('skip')}Auto-bombard</span></button></div>
-        <button class="btn sm ghost" onclick="act('lift')">Lift the siege</button>`;
+        ${A.undo && A.undo.t === G.turn && !A.bombarded && !A.stormed ? `<button class="btn sm" onclick="act('unsiege')"><span class="lbl">${ico('back')}Call it off and choose again</span><small>nothing has been done yet</small></button>` : '<button class="btn sm ghost" onclick="act(\'lift\')">Lift the siege</button>'}`;
     } else if (bz && bz.fid === me()) { h += `<p class="sub">Army ${ARMY_NUM(bz.a)} is besieging ${p.name}.</p>`; cta += `<button class="btn gold" onclick="pickArmy('${bz.a.id}')"><span class="lbl">${ico('tent')}Command army ${ARMY_NUM(bz.a)}</span></button>`; }
     else if (bz) h += `<p class="sub">${FAC(bz.fid).name} is already besieging it.</p>`;
     else if (!s) {
@@ -456,6 +489,7 @@ function act(c, a) {
   tutorDid(c);
   switch (c) {
     case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a), turn: G.turn, cost: c0 }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('coin'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
+    case 'unsiege': { const u = A.undo; if (!u || u.t !== G.turn || A.bombarded || A.stormed || A.siege !== p.id) break; A.siege = null; A.loc = u.loc; A.mp = u.mp; A.campT = u.campT; A.acted = false; F.excom = u.excom; G.grudge = JSON.parse(u.gr); G.fought = JSON.parse(u.fo); A.undo = null; G.reports = G.reports.filter(r => r.title !== 'Excommunicated!'); note(`Army ${ARMY_NUM(A)} thinks better of the siege of ${p.name}.`); toast('Siege called off: choose again', 'back'); break; }
     case 'unbuild': if (p.build && p.build.turn === G.turn && p.build.cost != null) { F.gold += p.build.cost; note(`Work is called off in ${p.name}.`); p.build = null; sfx('click'); toast('Work cancelled, silver returned', 'coin'); } break;
     case 'raise': {
       const cost = unitCost(me(), a); if (F.gold < cost) return toast('Not enough deniers', 'coin'); F.gold -= cost;
@@ -471,7 +505,7 @@ function act(c, a) {
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
     case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
-    case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); hostility(me(), p.owner || p.ally); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
+    case 'besiege': { const pre = { t: G.turn, loc: A.loc, mp: A.mp, campT: A.campT, excom: F.excom, gr: JSON.stringify(G.grudge || {}), fo: JSON.stringify(G.fought || {}) }; const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); hostility(me(), p.owner || p.ally); A.undo = pre; A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;
     case 'lift': note(`You lift the siege of ${p.name}.`); A.siege = null; A.loc = nearestHeld(me(), p.id); break;

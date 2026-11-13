@@ -26,7 +26,7 @@ function maybeTakeLord(fid, A, captor, s0) {
   return true;
 }
 function resolveAssault(fid, A, p, res, cfg) {
-  hostility(fid, p.owner || p.ally);
+  hostility(fid, p.owner || p.ally); onCampaign(A);
   const prev = p.owner, prevAlly = p.ally, s0 = armySize(A);
   setArmy(A, res.A); applyDefLoss(p, cfg.D, res.D);
   A.acted = true; A.stormed = true; A.idle = 0;
@@ -41,7 +41,7 @@ function reliefCfg(fid, A, p, aSt) {
     aGen: armyGen(fid, A), dGen: armyGen(b.fid, Bz), aMod: mods(fid), dMod: mods(b.fid), aBon: bonus(fid), dBon: bonus(b.fid), besieger: b.fid, bArmy: Bz.id, dRes: armySize(Bz) >= 9 };
 }
 function resolveRelief(fid, A, p, res, cfg) {
-  hostility(fid, cfg.besieger);
+  hostility(fid, cfg.besieger); onCampaign(A);
   const b = cfg.besieger, Bz = army(b, cfg.bArmy), sA = armySize(A), sB = armySize(Bz);
   setArmy(A, res.A); setArmy(Bz, res.D); A.acted = true; A.siege = null; A.idle = 0;
   if (res.won) { A.loc = p.id; if (armySize(Bz) === 0) loseArmy(b, Bz, fid); else { Bz.siege = null; Bz.loc = nearestHeld(b, p.id); maybeTakeLord(b, Bz, fid, sB); } }
@@ -179,7 +179,8 @@ function aiRecruit(fid) {
   const reserve = G.turn < 14 ? 45 : 25;
   const arms = usableArmies(fid).filter(a => canRaiseInto(fid, a));
   const perArmy = Math.max(8, Math.round(cap / Math.max(1, usableArmies(fid).length)));
-  const payOk = t => upkeepOf(fid) + UPKEEP[t] <= inc * 0.8 - 4;
+  const full = armiesOf(fid).reduce((s, a) => s + armyCost(a), 0); // budget as if every army were on campaign
+  const payOk = t => full + UPKEEP[t] <= inc * 0.8 - 4;
   let guard = 0;
   while (F.gold > reserve && guard++ < 200) {
     const hg = fighters(home.gar);
@@ -384,7 +385,7 @@ function aiWar(fid, A) {
   hostility(fid, best.owner || best.ally);
   A.mp -= bestS.dist; A.siege = null; A.loc = bestS.stage;
   if (best.b.castle && ap <= defPow(best) * 1.6) {
-    A.siege = best.id; A.loc = best.id;
+    A.siege = best.id; A.loc = best.id; onCampaign(A);
     if (best.owner === G.player || best.ally === G.player) report('Siege!', `${FAC(fid).name} has laid siege to ${best.name}. The garrison will starve unless an army breaks the siege.`);
     else note(`${FAC(fid).name} besieges ${best.name}.`);
     if (A.cat > 0) aiBombard(fid, A, best);

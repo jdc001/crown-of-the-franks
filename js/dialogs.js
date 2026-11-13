@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.12';
+const APP_VERSION = '6.13';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -173,7 +173,7 @@ function openHelp() {
       <p><b>The Danes.</b> Normandy can open or close its ports to the Danes. Open, Normandy profits and Danish raiders range the coasts; closed, the Pope is pleased.</p>
       <p><b>Events.</b> Some things happened in these years: Robert crowned beside his father, Laon opened to Charles, an archbishop's death, a bishop's betrayal. The game follows them loosely.</p>`,
     war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} counties a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
-      <p><b>Pay.</b> Garrisons cost nothing. Armies in the field are paid every turn: footmen and bowmen ${UPKEEP.foot} d, cavalry ${UPKEEP.cav} d, catapults ${UPKEEP.cat} d. If the treasury runs dry, every army loses 15% of its men. Realms above 20 counties yield a little less for each county beyond.</p>
+      <p><b>Pay.</b> Garrisons cost nothing. An army that has spent a full turn without marching or fighting, in a castle of yours, is lodged with the garrison for free. Armies on campaign are paid every turn: footmen and bowmen ${UPKEEP.foot} d, cavalry ${UPKEEP.cav} d, catapults ${UPKEEP.cat} d. If the treasury runs dry, every army loses 15% of its men. Realms above 20 counties yield a little less for each county beyond.</p>
       <p><b>Troops.</b> Each company:</p>
       <table class="stat"><tr><th></th><th>Cost</th><th>Atk</th><th>Range</th><th>Charge</th><th>HP</th></tr>${rows}<tr><td>${ico('militia')} Levy</td><td>free</td><td>${LEVY.atk}</td><td>–</td><td>–</td><td>${LEVY.hp}</td></tr></table>
       <p><b>Battle.</b> Bowmen wear the enemy down as the lines close. The horse fight on the wings; the winners ride round and strike the enemy rear, which can break an army. Footmen in a <i>defensive</i> stance lock a shield wall that blunts arrows and cavalry; in an <i>aggressive</i> stance they advance as a deep line and hit harder. A <i>balanced</i> host outflanks a static shield wall.</p>
@@ -201,7 +201,7 @@ function openHelp() {
       <p><b>Controls.</b> Tap to select. Drag to pan, pinch or scroll to zoom, double-tap to zoom in. The army tabs over the map switch which army you command. On a phone, drag the sheet up for the full county page; the main action always sits at its foot.</p>
       <p><b>Rival moves.</b> After you end a turn, the marches, sieges and conquests of the houses near you are drawn on the map, one house at a time. Tap to skip, or change it in Settings (near me, all, or off).</p>
       <p><b>Saved games.</b> The game saves itself after every move. Settings, the realm panel and the title screen also have three save slots, and you can export a campaign as a file or a code to back it up or move it to another device.</p>
-      <p><b>Keyboard.</b> <span class="kbd">Enter</span> or <span class="kbd">E</span> end turn · <span class="kbd">H</span> my lands · <span class="kbd">L</span> chronicle · <span class="kbd">C</span> court · <span class="kbd">1</span>–<span class="kbd">3</span> choose an army · <span class="kbd">+</span>/<span class="kbd">−</span> zoom · <span class="kbd">Esc</span> back.</p>`,
+      <p><b>Keyboard.</b> <span class="kbd">Enter</span> or <span class="kbd">E</span> end turn. Tap the treasury at the top for income and upkeep line by line, and the peace or war badge for who you are at war with · <span class="kbd">H</span> my lands · <span class="kbd">L</span> chronicle · <span class="kbd">C</span> court · <span class="kbd">1</span>–<span class="kbd">3</span> choose an army · <span class="kbd">+</span>/<span class="kbd">−</span> zoom · <span class="kbd">Esc</span> back.</p>`,
   };
   const tabs = [['goal', 'The game', 'crown'], ['war', 'War', 'swords'], ['court', 'Court', 'church'], ['powers', 'Beyond', 'flag'], ['map', 'Map', 'map']];
   showModal(`<h2>${ico('info')} How to play</h2><div class="tabs">${tabs.map(([id, n, i]) => `<button class="${HELP.tab === id ? 'on' : ''}" onclick="HELP.tab='${id}';openHelp()">${ico(i)}${n}</button>`).join('')}</div>${T[HELP.tab]}

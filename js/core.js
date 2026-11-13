@@ -241,7 +241,12 @@ function grossIncome(fid) {
   return v;
 }
 const facIncome = grossIncome;
-function upkeepOf(fid) { let u = 0; for (const a of armiesOf(fid)) for (const t of ['foot', 'bow', 'cav', 'cat']) u += a[t] * UPKEEP[t]; return Math.ceil(u); }
+// An army on campaign is paid. One that has neither marched nor fought since last turn and stands in a castle of
+// its own house is lodged there with the garrison, at no cost.
+const atRest = (fid, a) => !!a.loc && !a.siege && (a.campT ?? -99) < G.turn - 1 && P(a.loc).owner === fid && !!P(a.loc).b.castle && !P(a.loc).ruined;
+const armyCost = a => { let u = 0; for (const t of ['foot', 'bow', 'cav', 'cat']) u += a[t] * UPKEEP[t]; return Math.ceil(u); };
+function upkeepOf(fid) { return armiesOf(fid).reduce((s, a) => s + (atRest(fid, a) ? 0 : armyCost(a)), 0); }
+const onCampaign = a => { a.campT = G.turn; };
 const netIncome = fid => grossIncome(fid) - upkeepOf(fid);
 
 // ================= DEFENCE =================
@@ -292,7 +297,7 @@ function canMarch(fid, a, id) {
 }
 function marchArmy(fid, a, id) {
   if (!canMarch(fid, a, id)) return false;
-  a.mp -= marchDist(fid, a.loc)[id]; a.siege = null; a.loc = id; a.idle = 0; return true;
+  a.mp -= marchDist(fid, a.loc)[id]; a.siege = null; a.loc = id; a.idle = 0; onCampaign(a); return true;
 }
 // the nearest county reachable this turn from which p can be struck, across a land border
 function strikeFrom(fid, a, p) {
@@ -304,7 +309,7 @@ function strikeFrom(fid, a, p) {
   for (const id of ADJ[p.id]) { const d = dist[id]; if (d === undefined || d > a.mp) continue; if (!best || d < best.dist) best = { stage: id, dist: d, sea: false }; }
   return best;
 }
-function stageFor(fid, a, p) { const s = strikeFrom(fid, a, p); if (!s) return null; a.mp -= s.dist; a.siege = null; a.loc = s.stage; return s; }
+function stageFor(fid, a, p) { const s = strikeFrom(fid, a, p); if (!s) return null; onCampaign(a); a.mp -= s.dist; a.siege = null; a.loc = s.stage; return s; }
 function nearestHeld(fid, from) {
   const seen = { [from]: true }, q = [from];
   while (q.length) { const c = q.shift(); if (holds(fid, c)) return c; for (const n of ADJ[c]) if (!seen[n]) { seen[n] = true; q.push(n); } }

@@ -590,3 +590,5 @@ body.m #armybar { top: 8px; gap: 4px; } body.m .ab { min-width: 56px; padding: 4
 .relb .rstate span { text-align: center; font: 700 11px var(--head); letter-spacing: .03em; padding: 4px 2px; border-radius: 5px; background: #8a745822; color: var(--ink3); }
 .relb .rstate span.on { background: var(--c); color: #fff; }
 .wealth { margin: 6px 0; }
+
+#hdr .chip small.good { color: #a8e08f; } #hdr .chip small.bad { color: #ff9c8c; }
