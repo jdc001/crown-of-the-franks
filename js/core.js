@@ -231,6 +231,33 @@ function raiseArmyHere(fid, pid, gid) {
   else { F.gold -= genCost(fid, d); G.genPool = G.genPool.filter(x => x !== gid); F.gens.push({ id: gid, at: o.slot }); }
   return a;
 }
+// two armies in one county trade men directly; men who fought this turn cannot join an army that has not
+function shiftMen(fid, from, to, t, n = 1) {
+  if (!from || !to || from === to || from.loc !== to.loc || from.siege || to.siege || !armyUsable(fid, from) || !armyUsable(fid, to)) return 0;
+  if (from.acted && !to.acted && t !== 'cat') return 0;
+  const k = Math.min(n, from[t] || 0); from[t] -= k; to[t] += k;
+  if (t === 'cat' && !from.cat && from.gf) { to.gf = Math.min(GF_MAX, (to.gf || 0) + from.gf); from.gf = 0; }
+  return k;
+}
+// stand an army down: its men go into the county's garrison if there is a castle, or to another of your armies here,
+// or else go home to their fields; its general takes the nearest castle of yours that has none, or leaves your service
+function disbandArmy(fid, a) {
+  if (!a || a.id === 'a0' || a.siege) return null;
+  const p = P(a.loc), F = G.fac[fid], out = { men: armySize(a) + (a.cat || 0), to: null, gen: null, genTo: null };
+  const mate = usableArmies(fid).find(b => b !== a && b.loc === a.loc && !b.siege);
+  if (p && p.owner === fid && p.b.castle && !p.ruined) { for (const t of ['foot', 'bow', 'cav', 'cat']) { p.gar[t] += a[t]; a[t] = 0; } out.to = 'garrison'; }
+  else if (mate) { for (const t of ['foot', 'bow', 'cav', 'cat']) { mate[t] += a[t]; a[t] = 0; } out.to = 'army ' + (ARMY_IDS.indexOf(mate.id) + 1); }
+  else { for (const t of ['foot', 'bow', 'cav', 'cat']) a[t] = 0; out.to = out.men ? 'home' : null; }
+  const g = F.gens.find(x => x.at === a.id);
+  if (g) {
+    out.gen = GENMAP[g.id].n;
+    const free = owned(fid).filter(q => q.b.castle && !q.ruined && !F.gens.some(x => x.at === q.id));
+    const near = free.sort((x, y) => Math.hypot(x.x - p.x, x.y - p.y) - Math.hypot(y.x - p.x, y.y - p.y))[0];
+    if (near) { g.at = near.id; out.genTo = near.name; } else { F.gens = F.gens.filter(x => x !== g); G.genPool.push(g.id); }
+  }
+  const i = armiesOf(fid).indexOf(a); armiesOf(fid)[i] = newArmy(a.id, homeOf(fid));
+  return out;
+}
 const genCost = (fid, g) => fid === 'provence' ? Math.round(g.c * 0.75) : g.c;
 // move a general between postings: a castle, an empty army slot, or the lord's host
 function postGeneral(fid, gid, at) {

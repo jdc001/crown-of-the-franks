@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.26';
+const APP_VERSION = '6.27';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -175,7 +175,7 @@ function openHelp() {
       <p><b>England.</b> King Æthelred holds the south coast through his ealdormen. Take a shire across the Channel and, sooner or later, an English army comes to take it back.</p>
       <p><b>The Danes.</b> Normandy can open or close its ports to the Danes. Open, Normandy profits and Danish raiders range the coasts; closed, the Pope is pleased.</p>
       <p><b>Events.</b> Some things happened in these years: Robert crowned beside his father, Laon opened to Charles, an archbishop's death, a bishop's betrayal. The game follows them loosely.</p>`,
-    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} counties a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies.</p>
+    war: `<p><b>Armies.</b> Your lord leads his own host. A second army needs a general and a realm of 9 counties; a third needs a general and either 25 counties, or the crown and 15 counties. Each army marches up to ${MOVES} counties a turn, then strikes a county bordering its position. If the lord's host is destroyed he is captured, and even if some of his men get away, a lord whose host is badly beaten may be taken in the rout. If a general's army is destroyed, the general dies. Two of your armies in the same county can trade men directly on the Army tab. From there you can also change an army's general, or disband an army: its men join the garrison if there is a castle, and its general goes to a castle of yours.</p>
       <p><b>Pay.</b> Garrisons cost nothing. An army that has spent a full turn without marching or fighting, in a castle of yours, is lodged with the garrison for free. Armies on campaign are paid every turn: footmen and bowmen ${UPKEEP.foot} d, cavalry ${UPKEEP.cav} d, catapults ${UPKEEP.cat} d. If the treasury runs dry, every army loses 15% of its men. Realms above 20 counties yield a little less for each county beyond.</p>
       <p><b>Troops.</b> Each company:</p>
       <table class="stat"><tr><th></th><th>Cost</th><th>Atk</th><th>Range</th><th>Charge</th><th>HP</th></tr>${rows}<tr><td>${ico('militia')} Levy</td><td>free</td><td>${LEVY.atk}</td><td>–</td><td>–</td><td>${LEVY.hp}</td></tr></table>

@@ -327,6 +327,55 @@ function marchBtn(p, A) {
   if (others.length) return `<button class="btn" onclick="pickArmy('${others[0].id}')"><span class="lbl">${ico('flag')}Army ${ARMY_NUM(others[0])} can march here</span><small>switch to it</small></button>`;
   return `<p class="sub">${A.acted ? `Army ${ARMY_NUM(A)} has ${A.forced ? 'made a forced march and rests' : 'fought'} this turn.` : A.siege ? `Army ${ARMY_NUM(A)} is besieging ${P(A.siege).name}; march from there only to lift the siege.` : `Out of reach for army ${ARMY_NUM(A)} this turn (${MOVES} moves a turn through your own and allied land, or ${MOVES + FORCED} by forced march with no attack).`}</p>`;
 }
+// trade men with another of your armies standing in the same county
+function armyMatesHtml(p, A) {
+  const mates = usableArmies(me()).filter(b => b !== A && b.loc === p.id && !b.siege);
+  return mates.map(B => {
+    const n = ARMY_NUM(B), blockIn = A.acted && !B.acted, blockOut = B.acted && !A.acted;
+    let h = `<h3>Army ${ARMY_NUM(A)} ⇄ army ${n}</h3><div class="xfer"><span></span><b>Unit</b><b>Army ${n}</b><b>Army ${ARMY_NUM(A)}</b>`;
+    for (const t of ['foot', 'bow', 'cav', 'cat']) h += `<span>${ico(UNIT_ICON[t])}</span><span>${UNIT[t].n}</span><button class="btn sm" onclick="act('xTo','${t}:${B.id}')" ${A[t] && (!blockIn || t === 'cat') ? '' : 'disabled'}>${ico('back')} ${B[t]}</button><button class="btn sm" onclick="act('xFrom','${t}:${B.id}')" ${B[t] && (!blockOut || t === 'cat') ? '' : 'disabled'}>${A[t]} ${ico('next')}</button>`;
+    h += `</div><div class="grid2"><button class="btn sm" onclick="act('xAllTo','${B.id}')" ${armySize(A) && !blockIn ? '' : 'disabled'}>All to army ${n}</button><button class="btn sm" onclick="act('xAllFrom','${B.id}')" ${armySize(B) && !blockOut ? '' : 'disabled'}>All to army ${ARMY_NUM(A)}</button></div>`;
+    if (blockIn || blockOut) h += `<p class="sub">Men who fought this turn cannot join an army that has not; they can only move the other way.</p>`;
+    return h;
+  }).join('');
+}
+// who leads this army, and how to change it or stand it down
+function commandHtml(A) {
+  const g = armyGen(me(), A), others = G.fac[me()].gens.filter(x => x.at !== A.id);
+  let h = '', btns = [];
+  if (others.length || (g && A.id === 'a0')) btns.push(`<button class="btn sm" onclick="openCommand('${A.id}')"><span class="lbl">${ico('fleur')}${g ? 'Change general' : 'Appoint a general'}</span></button>`);
+  if (A.id !== 'a0' && !A.siege) btns.push(`<button class="btn sm" onclick="openDisband('${A.id}')"><span class="lbl">${ico('close')}Disband army ${ARMY_NUM(A)}</span></button>`);
+  if (btns.length) h += `<div class="grid2" style="margin-top:8px">${btns.join('')}</div>`;
+  return h;
+}
+function openCommand(aid) {
+  const A = army(me(), aid), F = G.fac[me()], cur = armyGen(me(), A), n = ARMY_NUM(A);
+  const stat = d => genSummary(d).split(' · ').map(s => `<span class="tag">${s}</span>`).join('');
+  const row = x => { const d = GENMAP[x.id]; return `<div class="gen"><div class="gname">${ico('fleur')} ${esc(d.n)}</div><div class="sub">${esc(genPost(me(), x)[0].toUpperCase() + genPost(me(), x).slice(1))}</div><div class="gstats">${stat(d)}</div><button class="btn sm gold" onclick="doCommand('${aid}','${x.id}')">${aid === 'a0' ? 'Ride with the host' : 'Take command'}</button></div>`; };
+  const list = F.gens.filter(x => x.at !== aid).map(row).join('');
+  const p = P(A.loc), canStay = cur && p && p.owner === me() && p.b.castle && !p.ruined && !genAt(me(), p.id);
+  showModal(`<h2>${ico('fleur')} ${aid === 'a0' ? "The lord's host" : `Command of army ${n}`}</h2>
+    <p>${cur ? `${esc(cur.n)} ${aid === 'a0' ? 'rides with the host' : `leads army ${n}`}. ${aid === 'a0' ? '' : 'Whoever takes his place, he goes to that general\'s old posting.'}` : `Army ${n} has no general.`}</p>
+    ${list ? `<h3>Your generals</h3><div class="gens">${list}</div>` : '<p class="sub">You have no other general. Hire one at the court.</p>'}
+    ${aid === 'a0' && cur && canStay ? `<div class="row ctr"><button class="btn" onclick="closeModal();act('genStay')"><span class="lbl">${ico('castle')}Station ${esc(cur.n.split(' ')[0])} at ${esc(p.name)}</span></button></div>` : ''}
+    <div class="row ctr"><button class="btn sm ghost" onclick="closeModal();openCourt()">Open the court</button></div>`, '', { closable: true });
+}
+function doCommand(aid, gid) { if (postGeneral(me(), gid, aid)) { sfx('raise'); toast(`${GENMAP[gid].n.split(' ')[0]} ${aid === 'a0' ? 'rides with the host' : 'takes command of army ' + (ARMY_IDS.indexOf(aid) + 1)}`, 'fleur'); } closeModal(); save(); render(); }
+function openDisband(aid) {
+  const A = army(me(), aid), p = P(A.loc), F = G.fac[me()], g = armyGen(me(), A), n = ARMY_NUM(A), men = armySize(A) + (A.cat || 0);
+  const mate = usableArmies(me()).find(b => b !== A && b.loc === A.loc && !b.siege), castle = p.owner === me() && p.b.castle && !p.ruined;
+  const free = owned(me()).filter(q => q.b.castle && !q.ruined && !F.gens.some(x => x.at === q.id));
+  const menTxt = !men ? 'The army has no men.' : castle ? `Its ${men} men join the garrison of ${esc(p.name)}.` : mate ? `Its ${men} men join army ${ARMY_NUM(mate)}, which stands here.` : `<b>There is no castle here, so its ${men} men go home to their fields and are lost.</b>`;
+  const genTxt = !g ? '' : free.length ? `${esc(g.n)} goes to command the nearest castle of yours that has no general.` : `${esc(g.n)} has no castle to go to and leaves your service.`;
+  showModal(`<div class="rep"><div class="sealmark">${ico('flag')}</div><h2>Disband army ${n}?</h2><p class="ctr">${menTxt} ${genTxt}</p>
+    <p class="sub ctr">You can raise army ${n} again later under a general, from the Raise tab of any county of yours.${A.gf ? ' Its Greek fire goes with the catapults.' : ''}</p>
+    <div class="grid2"><button class="btn red" onclick="doDisband('${aid}')"><span class="lbl">${ico('close')}Disband</span></button><button class="btn" onclick="closeModal()">Keep the army</button></div></div>`, '', { closable: true });
+}
+function doDisband(aid) {
+  const A = army(me(), aid), n = ARMY_NUM(A), o = disbandArmy(me(), A); closeModal(); if (!o) return;
+  note(`Army ${n} is stood down${o.to === 'garrison' ? '; its men join the garrison' : o.to && o.to !== 'home' ? `; its men join ${o.to}` : o.to === 'home' ? '; its men go home' : ''}${o.gen ? `. ${o.gen} ${o.genTo ? 'goes to ' + o.genTo : 'leaves your service'}` : ''}.`);
+  sfx('click'); G.army = 'a0'; toast(`Army ${n} disbanded`, 'flag'); save(); render();
+}
 function ownPanel(p, F, A) {
   const here = A.loc === p.id && !A.siege && slotState(A) === 'active';
   const bz = besieging(p);
@@ -348,8 +397,8 @@ function ownPanel(p, F, A) {
         if (A.id === 'a0') { if (ga || gp) h += `<div class="grid2">${ga ? `<button class="btn sm" onclick="act('genStay')"><span class="lbl">${ico('fleur')}Station ${ga.n.split(' ')[0]} here</span></button>` : ''}${gp ? `<button class="btn sm" onclick="act('genJoin')"><span class="lbl">${ico('fleur')}${gp.n.split(' ')[0]} rides with the host</span></button>` : ''}</div>`; }
         else if (gp) h += `<button class="btn sm" onclick="act('genSwap')"><span class="lbl">${ico('fleur')}${gp.n.split(' ')[0]} takes command, ${ga.n.split(' ')[0]} stays</span></button>`;
       } else h += `<p class="sub">No castle here, so no garrison to draw on.</p>`;
-      const sameHere = usableArmies(me()).filter(b => b !== A && b.loc === p.id && !b.siege && armySize(b) > 0);
-      if (sameHere.length) h += `<p class="sub">Also here: ${sameHere.map(b => `army ${ARMY_NUM(b)} (${armySize(b)} men)`).join(', ')}. ${p.b.castle ? 'Move men between armies through the garrison.' : ''}</p>`;
+      h += armyMatesHtml(p, A);
+      h += commandHtml(A);
       if (!A.acted && armySize(A)) h += `<p class="sub">Red dashed borders on the map mark what the army can strike from here; green dots mark where it can march; faint gold dots, where it can reach only by a forced march.</p>`;
     } else {
       h += armyLine(A);
@@ -544,6 +593,8 @@ function act(c, a) {
       sfx(a === 'bishop' ? 'bell' : 'raise'); buzz(); break;
     }
     case 'raiseA': if (raise(me(), a, A)) { sfx('raise'); buzz(); toast(`${UNIT[a].n} join army ${ARMY_NUM(A)}`, UNIT_ICON[a]); } else toast('Not enough deniers', 'coin'); break;
+    case 'xTo': case 'xFrom': { const [t, bid] = a.split(':'), B = army(me(), bid); if (c === 'xTo') shiftMen(me(), A, B, t); else shiftMen(me(), B, A, t); sfx('click'); break; }
+    case 'xAllTo': case 'xAllFrom': { const B = army(me(), a); for (const t of ['foot', 'bow', 'cav', 'cat']) c === 'xAllTo' ? shiftMen(me(), A, B, t, 999) : shiftMen(me(), B, A, t, 999); sfx('raise'); break; }
     case 'toArmy': if (p.gar[a] > 0 && slotState(A) === 'active') { p.gar[a]--; A[a]++; } break;
     case 'toGar': if (A[a] > 0) { A[a]--; p.gar[a]++; } break;
     case 'allArmy': if (slotState(A) === 'active') for (const t of ['foot', 'bow', 'cav', 'cat']) { A[t] += p.gar[t]; p.gar[t] = 0; } break;
