@@ -144,6 +144,39 @@ const pairKey = (a, b) => [a, b].sort().join('|');
 function recentPeace(a, b) { const h = G.truceHist && G.truceHist[pairKey(a, b)]; return !!h && G.turn < h + TRUCE_COOL && !atPeace(a, b); }
 function addTruce(a, b, until, pact) { G.truces.push({ a, b, until, pact: !!pact }); (G.truceHist = G.truceHist || {})[pairKey(a, b)] = until; }
 
+// ================= ATTITUDES =================
+// Each house keeps a running grudge against those who attack it, remembers who has fought whom lately, and weighs
+// a prince by how much of a threat he is and whether their interests run together. attitude(t, fid) runs from
+// -1 (hostile) to +1 (friendly); the computer houses act on it, and the player sees it on the Envoys tab.
+const WAR_MEMORY = 8;
+function hostility(a, b, w = 0.25) {
+  if (!a || !b || a === b || !G.fac[a] || !G.fac[b]) return;
+  (G.fought = G.fought || {})[pairKey(a, b)] = G.turn;
+  const gr = G.grudge = G.grudge || {}; gr[b] = gr[b] || {}; gr[b][a] = Math.min(1.5, (gr[b][a] || 0) + w);
+}
+const atWar = (a, b) => !atPeace(a, b) && !!(G.fought && G.fought[pairKey(a, b)] >= G.turn - WAR_MEMORY);
+function grudgeTick() { const gr = G.grudge || {}; for (const t in gr) for (const a in gr[t]) { gr[t][a] *= 0.88; if (gr[t][a] < 0.02) delete gr[t][a]; } }
+function attitudeParts(t, fid) {
+  const parts = [], gr = (G.grudge && G.grudge[t] && G.grudge[t][fid]) || 0;
+  if (gr > 0.05) parts.push([-Math.min(0.8, gr), 'You have attacked them lately']);
+  if (allied(t, fid)) parts.push([0.5, 'Your alliance']); else if (atPeace(t, fid)) parts.push([0.3, 'Your pact of peace']);
+  const share = owned(fid).length / Math.max(1, FRANCE.length);
+  if (share > 0.15) parts.push([-Math.min(0.6, (share - 0.15) * 2), 'You hold too much of the kingdom']);
+  const border = owned(t).some(p => adjTo(p, fid));
+  const pw = (typeof armyPow === 'function' ? armyPow(fid) : totalArmyPower(fid)) + 5, pt = (typeof armyPow === 'function' ? armyPow(t) : totalArmyPower(t)) + 5;
+  if (border && pw > pt * 1.4) parts.push([-0.25, 'Your armies at their border']);
+  else if (border) parts.push([-0.1, 'You share a border']);
+  if (isKing(fid) && !isKing(t)) parts.push([-0.1, 'You wear the crown they want']);
+  const foe = alive().find(x => x !== t && x !== fid && atWar(t, x) && atWar(fid, x));
+  if (foe) parts.push([0.3, `You both fight ${FAC(foe).name}`]);
+  else if (typeof sharedFoe === 'function' && sharedFoe(fid, t)) parts.push([0.15, 'A dangerous neighbour threatens you both']);
+  if (G.fac[t].warOn && G.fac[t].warOn.target === fid) parts.push([-0.5, 'Sworn to make war on you']);
+  if (G.fac[fid].excom > 0) parts.push([-0.1, 'You are excommunicated']);
+  return parts;
+}
+function attitude(t, fid) { return clamp(attitudeParts(t, fid).reduce((s, x) => s + x[0], 0), -1, 1); }
+const attWord = a => a >= 0.45 ? 'Friendly' : a >= 0.15 ? 'Warm' : a > -0.15 ? 'Wary' : a > -0.45 ? 'Cold' : 'Hostile';
+
 // ================= GENERALS =================
 function loseGeneral(fid, at, why) {
   const F = G.fac[fid]; const g = F.gens.find(x => x.at === at);
@@ -185,8 +218,11 @@ function minorIncome(p) {
 function provIncome(p) {
   if (besiegerOf(p) || p.interdict > 0 || p.sacked > 0) return 0;
   if (!p.owner) return p.ally ? Math.floor(minorIncome(p) / 2) : 0;
-  const f = p.owner;
-  let v = p.base * (isCap(p) ? 2 : 1);
+  return incomeFor(p, p.owner);
+}
+// what a county pays (or would pay) house f in normal times
+function incomeFor(p, f) {
+  let v = p.base * (p.cap === f ? 2 : 1);
   for (const t of ['farm', 'market', 'port', 'mine']) v += (p.b[t] || 0) * bldYield(f, t);
   if (f === 'aquitaine') v += 2;
   if (inCrown(f, p)) v += 1;
@@ -467,6 +503,7 @@ function syncCrown() {
 }
 function fixSieges() {
   syncCrown();
+  if (G.lastGrudge !== G.turn) { G.lastGrudge = G.turn; grudgeTick(); }
   for (const o in G.armies) if (G.fac[o] && G.fac[o].alive) for (const a of G.armies[o]) if (a.loc && !a.siege && !passable(o, a.loc)) a.loc = nearestHeld(o, a.loc) || homeOf(o);
   for (const o in G.armies) for (const a of G.armies[o]) if (a.siege) { const q = P(a.siege); if (!q || holds(o, q.id) || (q.owner && atPeace(o, q.owner))) { a.siege = null; if (q && holds(o, q.id)) a.loc = q.id; } }
 }

@@ -24,7 +24,7 @@ function pactWill(fid, t, len, kind) {
   let w = 0.35 + clamp(0.35 * (1 - r), -0.4, 0.3) + (threatened(t, fid) ? 0.15 : 0) + (sharedFoe(fid, t) ? 0.15 : 0) - (len - 8) * 0.02;
   if (G.fac[fid].excom > 0) w -= 0.1;
   if (kind === 'ally' && !bordersHouse(fid, t)) w -= 0.05;
-  return w;
+  return w + 0.25 * attitude(t, fid);
 }
 function warWill(fid, t, target) {
   const together = (armyPow(fid) + armyPow(t) + 10) / (armyPow(target) + 5);
@@ -95,7 +95,7 @@ function openDiplo(fid) {
   let rel = allied(me(), t) ? `${ico('handshake')} Your ally until <b>${dateStr(pu)}</b>: your armies may march through each other's lands.` : atPeace(me(), t) ? `${ico('dove')} At peace with you until <b>${dateStr(pu)}</b>.` : `${ico('swords')} No pact binds you.`;
   if (T.warOn && T.warOn.target) rel += ` At war with ${FAC(T.warOn.target).name} until ${dateStr(T.warOn.until)}.`;
   const why = [threatened(t, me()) ? 'a stronger neighbour threatens them' : '', sharedFoe(me(), t) ? 'you share a dangerous enemy' : ''].filter(Boolean);
-  const head = `<div class="row" style="gap:10px;align-items:center;margin:6px 0">${shield(t, 46)}<div style="min-width:0"><h3 style="margin:0">${esc(d.name)}</h3><div class="sub">${esc(rulerOf(t))} · ${owned(t).length} counties · ${strength}${T.excom ? ' · <span class="bad">excommunicated</span>' : ''}</div></div></div><p>${rel}${why.length ? ` <span class="sub">(${why.join('; ')})</span>` : ''}</p><div class="row" style="margin:-4px 0 6px"><button class="btn sm ghost" onclick="closeModal();goProv('${homeOf(t)}')"><span class="lbl">${ico('eye')}See ${P(homeOf(t)).name}</span></button></div>`;
+  const head = `<div class="row" style="gap:10px;align-items:center;margin:6px 0">${shield(t, 46)}<div style="min-width:0"><h3 style="margin:0">${esc(d.name)}</h3><div class="sub">${esc(rulerOf(t))} · ${owned(t).length} counties · ${strength}${T.excom ? ' · <span class="bad">excommunicated</span>' : ''}</div></div></div><p>${rel}${why.length ? ` <span class="sub">(${why.join('; ')})</span>` : ''}</p>${relBars(t)}<div class="row" style="margin:-4px 0 6px"><button class="btn sm ghost" onclick="closeModal();goProv('${homeOf(t)}')"><span class="lbl">${ico('eye')}See ${P(homeOf(t)).name}</span></button></div>`;
   const cs = cedable(me(), t);
   if (DP.county && !cs.some(p => p.id === DP.county)) DP.county = null;
   const county = `<div class="sub" style="margin-top:4px">Give a county to lower their price <small>(one that borders them, ✦, is worth more)</small></div>${cs.length ? `<div class="seg" style="display:flex;flex-wrap:wrap"><button class="${!DP.county ? 'on' : ''}" onclick="DP.county=null;openDiplo()">none</button>${cs.map(p => `<button class="${DP.county === p.id ? 'on' : ''}" onclick="DP.county='${p.id}';openDiplo()">${p.name}${adjTo(p, t) ? ' ✦' : ''}</button>`).join('')}</div>` : '<p class="sub" style="margin:2px 0">You have no county to give but your seat.</p>'}`;

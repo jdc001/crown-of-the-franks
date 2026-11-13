@@ -26,6 +26,7 @@ function maybeTakeLord(fid, A, captor, s0) {
   return true;
 }
 function resolveAssault(fid, A, p, res, cfg) {
+  hostility(fid, p.owner || p.ally);
   const prev = p.owner, prevAlly = p.ally, s0 = armySize(A);
   setArmy(A, res.A); applyDefLoss(p, cfg.D, res.D);
   A.acted = true; A.stormed = true; A.idle = 0;
@@ -40,6 +41,7 @@ function reliefCfg(fid, A, p, aSt) {
     aGen: armyGen(fid, A), dGen: armyGen(b.fid, Bz), aMod: mods(fid), dMod: mods(b.fid), aBon: bonus(fid), dBon: bonus(b.fid), besieger: b.fid, bArmy: Bz.id, dRes: armySize(Bz) >= 9 };
 }
 function resolveRelief(fid, A, p, res, cfg) {
+  hostility(fid, cfg.besieger);
   const b = cfg.besieger, Bz = army(b, cfg.bArmy), sA = armySize(A), sB = armySize(Bz);
   setArmy(A, res.A); setArmy(Bz, res.D); A.acted = true; A.siege = null; A.idle = 0;
   if (res.won) { A.loc = p.id; if (armySize(Bz) === 0) loseArmy(b, Bz, fid); else { Bz.siege = null; Bz.loc = nearestHeld(b, p.id); maybeTakeLord(b, Bz, fid, sB); } }
@@ -357,7 +359,8 @@ function aiWar(fid, A) {
     const cap = isCap(p);
     const kin = p.owner && !foreign(p.owner) && !foreign(fid);
     let base = p.owner ? (cap ? 2.0 : 1.7) + (kin && G.turn < 30 ? 0.6 : 0) - (p.owner === leader ? 0.3 : 0) + (vsPlayer ? D.pNeed : 0) - (p.owner === warOn ? 0.3 : 0) : 1.3;
-    let need = Math.max(1.05, base - 0.06 * A.idle) - (few ? 0.3 : 0);
+    const atP = vsPlayer ? attitude(fid, G.player) : 0;
+    let need = Math.max(1.05, base - 0.06 * A.idle) - (few ? 0.3 : 0) + 0.25 * atP;
     if (ambitious && crownNeeds(fid).includes(p.id)) need = Math.max(1.05, need - 0.3);
     const canSiege = p.b.castle && armySize(A) >= (p.owner ? 12 : 7) && ap >= power(defenders(p)) * (cap ? 2.4 : p.owner ? 1.1 : 0.9) * (vsPlayer ? 1 + D.pNeed * 0.4 : 1);
     if (ratio < need && !canSiege) continue;
@@ -371,13 +374,14 @@ function aiWar(fid, A) {
     if (kin && G.turn < 30) val *= 0.6;
     if (leader && p.owner === leader) val *= 1.8;
     if (warOn && p.owner === warOn) val *= 1.8;
-    if (vsPlayer) val *= D.pVal;
+    if (vsPlayer) val *= D.pVal * (1 - 0.45 * atP);
     const sc = val * Math.min(ratio, 3) * (0.8 + Math.random() * 0.4);
     if (sc > bs) { bs = sc; best = p; bestS = s; }
   }
   if (!best) { A.idle++; stepToward(fid, A); return; }
   A.acted = true; A.idle = 0; F.struck = true;
   if (best.owner === G.player) hitP[fid] = G.turn;
+  hostility(fid, best.owner || best.ally);
   A.mp -= bestS.dist; A.siege = null; A.loc = bestS.stage;
   if (best.b.castle && ap <= defPow(best) * 1.6) {
     A.siege = best.id; A.loc = best.id;

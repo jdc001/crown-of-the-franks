@@ -83,11 +83,20 @@ function garrisonsHtml() {
   const ps = provList().filter(p => holds(me(), p.id)).sort((a, b) => garMen(b) - garMen(a) || a.name.localeCompare(b.name));
   return `<p class="sub">Men in a garrison stay put when your armies march. The number beside a castle on the map is its garrison. The levy is raised by each county and defends it too.</p><div class="rivals">${ps.map(p => `<div class="rival" onclick="goProv('${p.id}')"><div style="min-width:0"><b>${p.name}</b>${isCap(p) ? ' ' + ico('crown') : ''}<div class="sub" style="font-size:13px">${p.b.castle ? (p.ruined ? 'ruined castle' : CASTLE_N[castleLv(p)].toLowerCase() + ' · walls ' + p.walls + '%') : 'no castle'}${besieging(p) ? ' · <span class="bad">besieged</span>' : ''}</div></div><div class="pw"><b>${garMen(p)}</b>${p.gar.cat ? p.gar.cat + ' cat. · ' : ''}levy ${p.militia}</div></div>`).join('')}</div>`;
 }
+// two bars: how they feel about you, and where things stand between you
+function relBars(o) {
+  const a = attitude(o, me()), parts = attitudeParts(o, me()).sort((x, y) => Math.abs(y[0]) - Math.abs(x[0]));
+  const st = allied(me(), o) ? 3 : atPeace(me(), o) ? 2 : atWar(me(), o) ? 0 : 1;
+  const segs = [['At war', '#a3222c'], ['No pact', '#8a7458'], ['Pact', '#2e9a4a'], ['Allied', '#2f6fd6']];
+  return `<div class="relb"><div class="rlab"><span>Hostile</span><b>${attWord(a)}</b><span>Friendly</span></div><div class="mood"><i style="left:${((a + 1) / 2 * 100).toFixed(0)}%"></i></div>
+    ${parts.length ? `<div class="why">${parts.slice(0, 4).map(([v, t]) => `<span class="${v > 0 ? 'good' : 'bad'}">${v > 0 ? '▲' : '▼'} ${esc(t)}</span>`).join('')}</div>` : '<div class="why"><span class="sub">Nothing between you yet.</span></div>'}
+    <div class="rstate">${segs.map(([n, c], i) => `<span class="${i === st ? 'on' : ''}" style="--c:${c}">${n}</span>`).join('')}</div></div>`;
+}
 // where a house stands: with you, and with everyone else
 function houseStatus(o) {
   const T = G.fac[o], rows = [];
   const pu = peaceUntil(me(), o);
-  rows.push(allied(me(), o) ? `${ico('handshake')} <b style="color:#2f5aa8">Your ally</b> until ${dateStr(pu)}: your armies may cross each other's lands.` : atPeace(me(), o) ? `${ico('dove')} <b style="color:#2f6b3a">Pact of peace</b> with you until ${dateStr(pu)}.` : truce() ? `${ico('dove')} The Peace of God holds until ${dateStr(TRUCE)}.` : `${ico('swords')} <b>No pact</b>: you may attack each other.`);
+  if (allied(me(), o)) rows.push(`${ico('handshake')} Your ally until ${dateStr(pu)}: your armies may cross each other's lands.`); else if (atPeace(me(), o)) rows.push(`${ico('dove')} Pact of peace until ${dateStr(pu)}.`); else if (truce()) rows.push(`${ico('dove')} The Peace of God holds until ${dateStr(TRUCE)}.`);
   if (T.warOn && T.warOn.target && G.fac[T.warOn.target] && G.fac[T.warOn.target].alive) rows.push(`${ico('swords')} Sworn to make war on ${T.warOn.target === me() ? '<b class="bad">you</b>' : esc(FAC(T.warOn.target).name)} until ${dateStr(T.warOn.until)}.`);
   const others = alive().filter(f => f !== me() && f !== o);
   const al = others.filter(f => allied(o, f)), pe = others.filter(f => atPeace(o, f) && !allied(o, f));
@@ -96,7 +105,7 @@ function houseStatus(o) {
   if (isKing(o)) rows.push(`${ico('crown')} Wears the crown of the Franks.`);
   if (T.excom > 0) rows.push(`${ico('interdict')} Excommunicated.`);
   if (T.captive) rows.push(`${ico('chain')} Its lord is a prisoner${T.captive.by ? ' of ' + esc(fname(T.captive.by)) : ''}.`);
-  return `<div class="statcard">${rows.map(r => `<p style="margin:3px 0">${r}</p>`).join('')}</div>`;
+  return `<div class="statcard">${relBars(o)}${rows.map(r => `<p style="margin:3px 0">${r}</p>`).join('')}</div>`;
 }
 function crownsHtml() {
   const F = G.fac[me()], k = king(), others = alive().filter(f => f !== me());
@@ -183,7 +192,7 @@ function overviewPanel() {
       <p>Generals: ${F.gens.length ? F.gens.map(g => `${GENMAP[g.id].n} <span class="sub">(${genPost(me(), g)})</span>`).join(', ') : '<span class="sub">none. Hire one at court.</span>'}</p>
       <p>Allied lords: ${allies(me()).length ? allies(me()).map(p => `<span class="tag" onclick="goProv('${p.id}')" style="cursor:pointer">${p.name}</span>`).join('') : '<span class="sub">none</span>'}</p>
       ${G.truces.filter(t => t.a === me() || t.b === me()).map(t => `<p>${ico('dove')} ${t.pact ? 'Peace' : 'Truce of God'} with ${fname(t.a === me() ? t.b : t.a)} until ${dateStr(t.until)}</p>`).join('')}`)}
-    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : ''}${allied(me(), id) ? ' <span class="tag on">ally</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${atPeace(me(), id) ? ' · at peace with you' : ''}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} counties</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
+    ${acc('houses', 'Other houses', 'people', `<div class="rivals">${rivals.map(id => { const R = G.fac[id], d = FAC(id); return `<div class="rival${R.alive ? '' : ' dead'}" onclick="${R.alive ? `goProv('${homeOf(id)}')` : ''}">${shield(id, 24)}<div style="min-width:0"><b>${esc(d.name)}</b>${d.realm === 'Rebel' ? ' <span class="tag red">rebels</span>' : ''}${isKing(id) ? ' <span class="tag on">king</span>' : ''}${allied(me(), id) ? ' <span class="tag on">ally</span>' : ''}<div class="sub" style="font-size:13px">${R.alive ? `${esc(rulerOf(id))}${R.excom ? ' · <span class="bad">excommunicated</span>' : ''}${R.captive ? ' · <span class="bad">lord captive</span>' : ''}${allied(me(), id) ? ' · your ally' : atPeace(me(), id) ? ' · at peace with you' : atWar(me(), id) ? ' · <span class="bad">at war with you</span>' : ''} · ${attWord(attitude(id, me())).toLowerCase()}${R.fallen ? ' · rallied once' : ''}` : 'destroyed'}</div></div>${R.alive ? `<div class="pw"><b>${owned(id).length} counties</b>armies ${usableArmies(id).map(a => armySize(a)).join('+') || '0'}</div>` : ''}</div>`; }).join('')}</div>`, `${alive().length - 1} standing`)}
     <p class="hint" style="margin-top:14px">Tap a county. Pinch or scroll to zoom, drag to pan, double-tap to zoom in. Green dots mark where the chosen army can march; red dashes mark what it can strike this turn.</p>
     <p class="sub ctr">Rivals: ${diff().n.toLowerCase()} · ${G.turn} turn${G.turn === 1 ? '' : 's'} played</p>
     <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('chest')}Save / load</span></button><button class="btn sm" onclick="openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="homeView(true)"><span class="lbl">${ico('home')}Find my lands</span></button><button class="btn sm ghost" onclick="confirmNew()">New game</button></div>`;
@@ -218,6 +227,14 @@ function castleText(p) {
   if (p.ruined) return `<div class="notebox bad">${ico('rebuild')} The castle lies in ruins. Its walls give no protection until it is rebuilt.</div>`;
   return `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ' with a moat' : ''}${isCap(p) ? ', citadel' : ''} · walls ${p.walls}% <span class="sub">(defenders ${['fight in the open', 'protected', 'well protected', 'strongly protected', 'nearly unassailable'][Math.min(4, wallLvl(p))]})</span></p><div class="bar walls"><i style="width:${p.walls}%"></i></div>${hasOuter(p) ? `<p style="margin:6px 0 0">${ico('wall')} Outer wall · ${p.outer ?? 100}% <span class="sub">(must fall before the inner walls can be breached)</span></p><div class="bar walls"><i style="width:${p.outer ?? 100}%"></i></div>` : ''}${castleLv(p) === 1 ? '<p class="sub">A wooden palisade: quick to raise, but it barely slows an assault. Raise it to stone to hold the county.</p>' : ''}`;
 }
+// what a county is worth: to whoever holds it now, to you if you took it, and at the fair
+function wealthCard(p) {
+  const mine = incomeFor(p, me()), steps = reachOf(me(), p), now = p.owner ? incomeFor(p, p.owner) : p.ally ? Math.floor(minorIncome(p) / 2) : 0;
+  const lots = WARES.map(w => [w, p.b[w.id] || 0]).filter(x => x[1]).map(([w, n]) => `${n} lot${n > 1 ? 's' : ''} of ${w.grades[Math.min(2, n - 1)].toLowerCase()}`);
+  const bl = ['farm', 'market', 'port', 'mine'].filter(t => p.b[t]).map(t => `${BLD[t].n.toLowerCase()} ${ROMAN[p.b[t]]}`);
+  return `<div class="statcard wealth"><p style="margin:0">${ico('coin')} ${p.owner ? `Pays ${esc(FAC(p.owner).name)} <b>${now} d</b> a turn.` : p.ally ? `Pays ${esc(fname(p.ally))} <b>${now} d</b> a turn as an ally.` : `Its lord keeps <b>${p.base} d</b> a turn.`} Yours, it would pay <b>${mine} d</b> a turn${steps > 3 ? ` <span class="sub">(${steps} steps from your seat, so ${Math.round(reachMult(me(), p) * 100)}%)</span>` : ''}${p.cap && p.cap === p.owner ? ' <span class="sub">A seat pays double only to its own house.</span>' : ''}.</p>
+    <p style="margin:4px 0 0" class="sub">${bl.length ? `Buildings: ${bl.join(', ')}.` : 'No farms, markets, mines or ports yet.'}${lots.length ? ` At the fair it would add ${lots.join(', ')}.` : ''}</p></div>`;
+}
 function provHead(p) {
   const bz = besieging(p);
   const who = p.owner ? FAC(p.owner).name : p.ally ? `${p.lord}, sworn to ${fname(p.ally)}` : p.lord;
@@ -237,6 +254,7 @@ function provHead(p) {
   if (p.interdict > 0) tags.push(`<span class="tag red">${ico('interdict')}interdict, ${p.interdict} turn${p.interdict > 1 ? 's' : ''}</span>`);
   if (p.heiress && !p.owner) tags.push(`<span class="tag">${ico('ring')}Lady ${p.heiress}</span>`);
   h += `<p style="margin:0 0 4px">${tags.join('')}</p>`;
+  if (!holds(me(), p.id)) h += wealthCard(p);
   if (p.cap && p.cap !== p.owner && FAC(p.cap)) h += `<p class="sub">Former seat of ${FAC(p.cap).name}</p>`;
   const why = { reims: 'Its archbishop anoints the kings of the Franks.', paris: 'The royal seat of the Robertians: a king needs it, with Reims.', laon: 'The last city of the Carolingians: Charles may be crowned with it in place of Paris.' }[p.id];
   if (why) h += `<p class="sub">${ico('crown')} ${why}</p>`;
@@ -453,7 +471,7 @@ function act(c, a) {
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
     case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
-    case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
+    case 'besiege': { const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); hostility(me(), p.owner || p.ally); A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;
     case 'lift': note(`You lift the siege of ${p.name}.`); A.siege = null; A.loc = nearestHeld(me(), p.id); break;
