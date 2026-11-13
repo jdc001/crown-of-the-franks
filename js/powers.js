@@ -13,7 +13,7 @@ const ALM_EVERY = 6, EMP_EVERY = 5;
 function pressBattle(p, force, st = 'aggressive') {
   const cfg = { A: { militia: 0, ...force }, D: defenders(p), castle: !!p.b.castle, wallLvl: wallLvl(p), castleLv: castleLv(p), moat: !!(p.b.moat && !p.ruined), ruined: !!p.ruined,
     aSt: st, dSt: defStance(p, power(force)), aGen: null, dGen: defGen(p), aMod: 0, dMod: mods(p.owner), aBon: { atk: 0, hp: 0, cav: 0 }, dBon: { ...bonus(p.owner) } };
-  if (p.owner === 'barcelona') cfg.dBon.hp += 0.15;
+  cfg.dBon.hp += TR(p.owner).march || 0;
   const d0 = { ...cfg.D }, res = runBattle(cfg);
   applyDefLoss(p, cfg.D, res.D);
   return { won: res.won, lost: lossStr(d0, res.D) };
@@ -177,12 +177,39 @@ function answerPlea(help) {
 }
 function powersTick() {
   if (G.over) return;
+  if (SC.tick) return SC.tick();
   eventsTick(); almanzorTick(); pamplonaTick(); empireTick(); arlesTick(); englandTick(); danesTick();
+}
+// ---------- an outside raider for maps other than France (the Danes of Sweyn, ...) ----------
+// SC.raider: { who, title, targets(), every, size(p), sack(p, loot), held(p), tribute }
+function raiderTick() {
+  const R = SC.raider; if (!R) return;
+  if (G.turn < (R.from || 4) || G.turn - (G.ev.raid ?? -99) < R.every || Math.random() > 0.3) return;
+  const t = R.targets(); if (!t.length) return;
+  const p = pick(t), n = Math.min(60, 12 + Math.round(G.turn * 0.35) + Math.round(owned(p.owner).length * 0.6));
+  G.ev.raid = G.turn;
+  if (p.owner === G.player) { G.pend = { kind: 'raider', p: p.id, n }; report(`${R.who} sails for ${p.name}`, `${R.title} leads about ${n} companies toward ${p.name}. He will take ${R.tribute} to sail away, or fight for it.`, { kind: 'raider' }); return; }
+  const F = G.fac[p.owner];
+  if (F.gold > parias(n) * 2 && Math.random() < 0.3) { F.gold -= parias(n); note(`${FAC(p.owner).name} pays ${R.who} ${parias(n)} d to spare ${p.name}.`); }
+  else raiderStrike(p, n);
+}
+function raiderStrike(p, n) {
+  const R = SC.raider, o = p.owner, r = pressBattle(p, forceOf(n, 0.15));
+  if (r.won) {
+    damageWalls(p, 35); p.militia = 0;
+    const b = ['farm', 'market', 'port', 'mine'].filter(t => p.b[t] > 0); if (b.length) p.b[pick(b)]--;
+    const loot = Math.round(Math.min(G.fac[o].gold, 30 + rnd(40) + G.fac[o].gold * 0.25)); G.fac[o].gold -= loot;
+    p.sacked = 3; for (const u of ['foot', 'bow', 'cav']) p.gar[u] = Math.floor(p.gar[u] / 2);
+    tell(o, `${R.who} sacks ${p.name}`, `${R.sack(p, loot)} Your losses: ${r.lost}.`);
+  } else tell(o, `${p.name} holds against ${R.who}`, `${R.held(p)} Your losses: ${r.lost}.`);
+  return r;
 }
 // a choice left unanswered when the player ends the turn takes its default
 function settlePending() {
   const d = G.pend; if (!d) return;
   if (d.kind === 'almanzor') { G.pend = null; almanzorStrike(P(d.p), d.n); }
+  else if (d.kind === 'raider') { G.pend = null; raiderStrike(P(d.p), d.n); }
+  else if (d.kind === 'event' && SC.eventDefault) { SC.eventDefault(d); }
   else if (d.kind === 'plea') answerPlea(false);
   else if (d.kind === 'danes') { G.pend = null; setDanes('open'); }
   else G.pend = null;
@@ -192,6 +219,8 @@ function powerButtons(a) {
   const d = G.pend; if (!d || !a || d.kind !== a.kind) return null;
   const F = G.fac[me()];
   if (d.kind === 'almanzor') return `<button class="btn" onclick="powerAnswer('fight')"><span class="lbl">${ico('swords')}Fight for ${P(d.p).name}</span><small>the garrison and any army there</small></button><button class="btn gold" onclick="powerAnswer('pay')" ${F.gold >= parias(d.n) ? '' : 'disabled'}><span class="lbl">${ico('coin')}Pay the parias · ${parias(d.n)} d</span></button>`;
+  if (d.kind === 'raider') return `<button class="btn" onclick="powerAnswer('fight')"><span class="lbl">${ico('swords')}Fight for ${P(d.p).name}</span><small>the garrison and any army there</small></button><button class="btn gold" onclick="powerAnswer('pay')" ${F.gold >= parias(d.n) ? '' : 'disabled'}><span class="lbl">${ico('coin')}Pay ${SC.raider.tribute} · ${parias(d.n)} d</span></button>`;
+  if (d.kind === 'event' && SC.eventButtons) return SC.eventButtons(d, F);
   if (d.kind === 'plea') return `<button class="btn gold" onclick="powerAnswer('help')" ${F.gold >= 60 ? '' : 'disabled'}><span class="lbl">${ico('flag')}Send help · 60 d</span><small>an alliance for three years, with passage</small></button><button class="btn" onclick="powerAnswer('refuse')"><span class="lbl">Send nothing</span><small>Borrell remembers it</small></button>`;
   if (d.kind === 'danes') return `<button class="btn gold" onclick="powerAnswer('open')"><span class="lbl">${ico('coin')}Open the ports</span><small>+6 d a turn, no raids on you; worse with Rome, raids elsewhere grow</small></button><button class="btn" onclick="powerAnswer('closed')"><span class="lbl">${ico('church')}Close the ports</span><small>better with Rome, half the raids; an English treaty may follow</small></button>`;
   return null;
@@ -199,6 +228,8 @@ function powerButtons(a) {
 function powerAnswer(v) {
   const d = G.pend; if (!d) return closeModal();
   if (d.kind === 'almanzor') { G.pend = null; if (v === 'pay') { G.fac[me()].gold -= parias(d.n); note(`You pay Almanzor ${parias(d.n)} d, and he turns back from ${P(d.p).name}.`); } else almanzorStrike(P(d.p), d.n); }
+  else if (d.kind === 'raider') { G.pend = null; if (v === 'pay') { G.fac[me()].gold -= parias(d.n); note(`You pay ${SC.raider.who} ${parias(d.n)} d, and his ships sail away from ${P(d.p).name}.`); } else raiderStrike(P(d.p), d.n); }
+  else if (d.kind === 'event' && SC.eventAnswer) SC.eventAnswer(d, v);
   else if (d.kind === 'plea') answerPlea(v === 'help');
   else if (d.kind === 'danes') { G.pend = null; setDanes(v); }
   closeModal(); save(); render(); showReports();

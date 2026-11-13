@@ -7,7 +7,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 
 // ---- the anointing at Reims: the nave in perspective, light through the glass of the apse ----
 function coronationScene(fid, kid) {
-  const col = FAC(fid).color, latin = LATIN[kid] || 'REX';
+  const col = FAC(fid).color, latin = SC.crown.latin;
   const name = FAC(fid).pname.split(' ')[0].toUpperCase();
   const W = 600, H = 400, VX = 300, VY = 196;
   const R = seeded('reims' + fid);

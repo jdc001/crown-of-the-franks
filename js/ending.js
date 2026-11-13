@@ -12,15 +12,15 @@ gameOver = function () {
   if (won) {
     setMusic('coronation'); sfx('bell'); setTimeout(() => sfx('cheer'), 900); buzz(60);
     const body = S.how === 'conquest'
-      ? `In ${dateStr(G.turn)} the last rival house falls. At Reims the archbishop anoints ${FAC(me()).pname}, and from Flanders to Barcelona no prince stands against him.`
-      : `In ${dateStr(G.turn)} ${FAC(me()).pname} kneels before the altar of Reims. The archbishop anoints him, the crown is set on his head, and the bells ring out across a kingdom he holds in his own hand: ${owned(me()).length} counties, half the realm of the Franks.`;
+      ? `In ${dateStr(G.turn)} the last rival house falls. ${SC.crown.endAll(FAC(me()).pname)}`
+      : `In ${dateStr(G.turn)} ${SC.crown.endWon(FAC(me()).pname)} ${owned(me()).length} counties, half the realm of ${SC.crown.people}.`;
     showModal(`<div class="splash">${coronationScene(me(), 'franks')}<div class="splashtxt"><h2>Rex Francorum</h2><p class="sub ctr" style="margin-top:-6px">${esc(FAC(me()).name)} · ${G.turn} turns</p><p>${body}</p>
       <div class="row ctr"><button class="btn gold big" onclick="closeModal();openStats(G.recorded,0)">Long live the King</button></div></div></div>`, 'splashcard');
   } else {
     setMusic('defeat'); sfx('defeat');
     const W = G.winner ? FAC(G.winner) : null;
     showModal(`<div class="rep badrep"><div class="sealmark">${ico('swords')}</div><h2>${W ? `${esc(W.name)} takes the crown` : 'Your house has fallen'}</h2>
-      <p>${W ? `${esc(W.pname)} ${alive().length === 1 ? 'has broken every rival house' : 'is anointed at Reims, master of half the kingdom'}. ${G.fac[me()].alive ? `${esc(rulerOf(me()))} keeps his lands, but not the crown.` : `${esc(rulerOf(me()))}'s line is broken.`}` : `${esc(rulerOf(me()))}'s line is broken. Another will take the kingdom.`}</p>
+      <p>${W ? `${esc(W.pname)} ${alive().length === 1 ? 'has broken every rival house' : `is ${SC.crown.anointed}, master of half the kingdom`}. ${G.fac[me()].alive ? `${esc(rulerOf(me()))} keeps his lands, but not the crown.` : `${esc(rulerOf(me()))}'s line is broken.`}` : `${esc(rulerOf(me()))}'s line is broken. Another will take the kingdom.`}</p>
       <p class="sub ctr">${dateStr(G.turn)} · ${G.turn} turns</p>
       <div class="row ctr"><button class="btn gold big" onclick="closeModal();openStats(G.recorded,0)">The chronicle of your reign</button></div></div>`);
   }
@@ -55,7 +55,7 @@ const row = (k, v, cls = '') => `<tr><td>${k}</td><td class="${cls}">${v}</td></
 function statsGame(S, L) {
   if (!S) return '<p class="sub">No game finished yet. Play one to the end and its chronicle appears here.</p>';
   const m = S.m || {}, P = profile();
-  let h = `<h3>${S.won ? 'Victory' : 'Defeat'} · ${esc(S.name)}</h3><p class="sub">${S.won ? (S.how === 'conquest' ? 'Every rival broken' : 'Crowned at Reims with half the kingdom') : S.winner ? `The crown went to ${esc(FACMAP[S.winner] ? FACMAP[S.winner].name : 'a rebel house')}` : 'Your house fell'} · ${S.year} · ${S.turns} turns · ${DIFF[S.diff] ? DIFF[S.diff].n : ''} rivals${S.challenge ? ' · challenge' : ''}</p>`;
+  let h = `<h3>${S.won ? 'Victory' : 'Defeat'} · ${esc(S.name)}</h3><p class="sub">${S.won ? (S.how === 'conquest' ? 'Every rival broken' : `${SC.crown.crowned[0].toUpperCase() + SC.crown.crowned.slice(1)} with half the kingdom`) : S.winner ? `The crown went to ${esc(FACMAP[S.winner] ? FACMAP[S.winner].name : 'a rebel house')}` : 'Your house fell'} · ${S.year} · ${S.turns} turns · ${DIFF[S.diff] ? DIFF[S.diff].n : ''} rivals${S.challenge ? ' · challenge' : ''}</p>`;
   if (S.rankAfter > S.rankBefore) h += `<div class="notebox good rankup">${myAchievement(70, { noScroll: true })}<div><b>You rise to ${RANKS[S.rankAfter].n}!</b><br><span class="sub">Unlocked: ${RANKS[S.rankAfter].unlock}.</span></div></div>`;
   if (S.trophies && S.trophies.length) h += `<div class="notebox good">${ico('star')} <b>New trophies:</b> ${S.trophies.map(id => { const t = TROPHIES.find(x => x.id === id); return t ? `${t.n} (${t.pts})` : id; }).join(', ')}</div>`;
   h += `<p class="sub">+${S.points || 0} points this game.</p>`;
@@ -72,8 +72,8 @@ function statsGame(S, L) {
   h += `<h3>Your deeds</h3><table class="sttab">${[
     ['Battles won', m.won], ['Battles lost', m.lost], ['Attacks beaten off', m.defWon], ['Counties lost to assault', m.defLost], ['Counties taken', m.taken], ['Castles taken', m.castlesTaken], ['House seats taken', m.seats],
     ['Enemies killed', m.kills], ['Men lost', m.menLost], ['Lords captured', m.lords], ['Ransoms collected', m.ransomGold ? `${m.ransomGold} d (${m.ransoms})` : 0], ['Ransom paid', m.ransomPaid ? m.ransomPaid + ' d' : 0],
-    ['Castles raised', m.castles], ['Pacts signed', m.pacts], ['Alliances sworn', m.alliances], ['Heiresses married', m.heiresses], ['Charters forged', m.charters], ['Profit at Troyes', (m.fairProfit || 0) + ' d'],
-    ['Walls brought down by mines', m.mines], ['Viking raids driven off', m.raids], ['Almanzor thrown back', m.almanzor], ['Most killed by rats in one bombardment', m.ratBest], ['Most burned by oil in one bombardment', m.oilBest],
+    ['Castles raised', m.castles], ['Pacts signed', m.pacts], ['Alliances sworn', m.alliances], ['Heiresses married', m.heiresses], ['Charters forged', m.charters], ['Profit at the fair', (m.fairProfit || 0) + ' d'],
+    ['Walls brought down by mines', m.mines], ['Viking raids driven off', m.raids], [SC.raider ? SC.raider.who + ' thrown back' : 'Almanzor thrown back', m.almanzor], ['Most killed by rats in one bombardment', m.ratBest], ['Most burned by oil in one bombardment', m.oilBest],
     ['Most counties', m.peakC], ['Largest treasury', (m.peakG || 0) + ' d'], ['Largest host', (m.peakM || 0) + ' men'], ['Crowned', m.crownedAt != null ? dateStr(m.crownedAt) : 'never'],
   ].map(([k, v]) => row(k, v ?? 0)).join('')}</table>`;
   return h;
@@ -99,7 +99,7 @@ function playLapse(L) {
   L = L || loadJ(LAST_KEY, null); const svg = document.getElementById('lapse'); if (!L || !svg) return;
   if (LAPSE) clearInterval(LAPSE);
   const cols = L.houses.map(h => h.col);
-  if (!svg.childElementCount) svg.innerHTML = `<defs><clipPath id="lapseclip"><path d="${pathOf(CONT)}"/></clipPath></defs><rect width="${MW}" height="${MH}" fill="#9fc3c8"/>` + LANDS.map(l => `<path d="${pathOf(l)}" fill="#d8cba5"/>`).join('') + `<g clip-path="url(#lapseclip)">${L.ids.map(id => `<path d="${CELLD[id]}" data-c="${id}" stroke="#5c4630" stroke-width="1.2"/>`).join('')}</g>`;
+  if (!svg.childElementCount) svg.innerHTML = `<defs><clipPath id="lapseclip"><path d="${LANDS.map(pathOf).join(' ')}"/></clipPath></defs><rect width="${MW}" height="${MH}" fill="#9fc3c8"/>` + LANDS.map(l => `<path d="${pathOf(l)}" fill="#d8cba5"/>`).join('') + `<g clip-path="url(#lapseclip)">${L.ids.map(id => `<path d="${CELLD[id]}" data-c="${id}" stroke="#5c4630" stroke-width="1.2"/>`).join('')}</g>`;
   const cells = [...svg.querySelectorAll('[data-c]')];
   const frames = L.own.map((s, t) => [t, s]).filter(x => x[1]);
   let i = 0;
@@ -144,8 +144,8 @@ async function shareCard(draw, name) {
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
   const g = x.createLinearGradient(0, 0, 0, 1350); g.addColorStop(0, '#f6ecd2'); g.addColorStop(1, '#e6d4a8'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
   x.strokeStyle = '#8e1f1b'; x.lineWidth = 14; x.strokeRect(24, 24, 1032, 1302); x.strokeStyle = '#e2b33c'; x.lineWidth = 4; x.strokeRect(46, 46, 988, 1258);
-  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText('Crown of the Franks', 540, 130);
-  x.fillStyle = '#5c4630'; x.font = 'italic 34px Georgia, serif'; x.fillText('Anno Domini 987', 540, 180);
+  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText(SC.game, 540, 130);
+  x.fillStyle = '#5c4630'; x.font = 'italic 34px Georgia, serif'; x.fillText(`Anno Domini ${SC.date.y0}`, 540, 180);
   await draw(x);
   x.fillStyle = '#5c4630'; x.font = 'italic 28px Georgia, serif'; x.fillText('jdc001.github.io/crown-of-the-franks', 540, 1290);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
@@ -164,7 +164,7 @@ function shareGame() {
     x.fillStyle = '#2a1d12'; x.font = '700 50px Cinzel, Georgia, serif';
     x.fillText(S.won ? 'Rex Francorum' : 'The crown escapes me', 540, 640);
     x.font = '36px Georgia, serif'; x.fillStyle = '#5c4630';
-    let y = wrapText(x, `${S.name}, ${S.won ? (S.how === 'conquest' ? 'every rival broken' : 'crowned at Reims') : 'beaten'}, in the year ${S.year}, after ${S.turns} turns.`, 540, 700, 880, 48);
+    let y = wrapText(x, `${S.name}, ${S.won ? (S.how === 'conquest' ? 'every rival broken' : SC.crown.crowned) : 'beaten'}, in the year ${S.year}, after ${S.turns} turns.`, 540, 700, 880, 48);
     x.font = 'italic 32px Georgia, serif'; x.fillText(`${RANKS[r].n} · ${P.points} points${S.trophies && S.trophies.length ? ` · ${S.trophies.length} new troph${S.trophies.length === 1 ? 'y' : 'ies'}` : ''}`, 540, y + 6);
     if (L && L.own && L.own.length) {
       const s = L.own[L.own.length - 1] || L.own.filter(Boolean).pop(), cols = L.houses.map(h => h.col), sc = 430 / MH;
@@ -172,7 +172,7 @@ function shareGame() {
       x.beginPath(); x.rect(0, 0, MW, MH); x.clip();
       x.fillStyle = '#9fc3c8'; x.fillRect(0, 0, MW, MH);
       x.fillStyle = '#d8cba5'; for (const l of LANDS) x.fill(new Path2D(pathOf(l)));
-      x.clip(new Path2D(pathOf(CONT)));
+      x.clip(new Path2D(LANDS.map(pathOf).join(' ')));
       L.ids.forEach((id, k) => { const ch = s[k]; x.fillStyle = ch === '.' ? '#efe4c6' : cols[ch.charCodeAt(0) - 48] || '#999'; const pth = new Path2D(CELLD[id]); x.fill(pth); x.strokeStyle = '#5c4630'; x.lineWidth = 2; x.stroke(pth); });
       x.restore();
     }
@@ -192,16 +192,7 @@ function shareRank() {
 // ---------- the Chronicler's challenge ----------
 // A set start that changes from time to time: the same house, rivals and twists for every player while it lasts,
 // so friends can compare how quickly they took the crown.
-const CHALLENGES = [
-  { id: 'breton', n: 'The Breton Gambit', house: 'brittany', diff: 'original', d: 'Brittany, far from Reims, against Standard rivals.' },
-  { id: 'alm', n: "Almanzor's Summers", house: 'barcelona', diff: 'original', mod: { almEvery: 3 }, d: 'Barcelona, with Almanzor raiding twice as often.' },
-  { id: 'poor', n: 'A Poor Crown', house: 'capet', diff: 'hard', mod: { gold: 20 }, d: 'The Royal Domain with an empty treasury, against Hard rivals.' },
-  { id: 'alone', n: 'No Friends in the North', house: 'normandy', diff: 'original', mod: { noPacts: true }, d: 'Normandy, and no house will sign a pact or alliance with you.' },
-  { id: 'usurper', n: 'The Carolingian Return', house: 'charles', diff: 'hard', d: 'Lower Lorraine against Hard rivals.' },
-  { id: 'rhone', n: 'Across the Rhône', house: 'provence', diff: 'original', mod: { gold: 250 }, d: 'Provence, with a full treasury but a long road to Reims.' },
-  { id: 'fairs', n: 'The Fair Kingdom', house: 'champagne', diff: 'hard', d: 'Champagne, between the King and Lorraine, against Hard rivals.' },
-  { id: 'basque', n: 'The Basque Crown', house: 'gascony', diff: 'gentle', mod: { almEvery: 4 }, d: 'Gascony against Gentle rivals, with Almanzor restless.' },
-];
+const CHALLENGES = SC.challenges;
 const chalWeek = () => Math.floor((Date.now() / 864e5 + 3) / 7);
 function currentChallenge() { const w = chalWeek(); return { ...CHALLENGES[w % CHALLENGES.length], seed: w }; }
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }

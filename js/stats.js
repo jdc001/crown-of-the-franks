@@ -28,7 +28,7 @@ function statsSnap() {
   if (G.turn >= 8 && G.fac[me_].alive) m.lowC = Math.min(m.lowC, n);
   if (usableArmies(me_).filter(a => armySize(a) > 0).length >= 3) m.used3 = true;
   m.maxPacts = Math.max(m.maxPacts, alive().filter(f => f !== me_ && atPeace(me_, f)).length);
-  if (G.player === 'capet' && king() !== 'capet') m.keptCrown = false;
+  if (G.player === SC.crown.start && king() !== SC.crown.start) m.keptCrown = false;
 }
 // ---------- hooks into the rules ----------
 (function hookStats() {
@@ -136,7 +136,7 @@ const TROPHIES = [
   { id: 'fire', n: 'Greek Fire', d: 'Flaming oil kills 12 defenders in a single bombardment.', pts: 25, test: S => S.m.oilBest >= 12 },
   { id: 'sapper', n: 'Sapper', d: 'Bring down walls with a mine three times in one game.', pts: 25, test: S => S.m.mines >= 3 },
   { id: 'forger', n: 'The Forger', d: 'Five forged charters accepted, and none exposed, in one game.', pts: 40, test: S => S.m.charters >= 5 && !S.m.caught },
-  { id: 'merchant', n: 'Merchant Prince', d: 'Make 200 d profit at the fair of Troyes in one game.', pts: 30, test: S => S.m.fairProfit >= 200 },
+  { id: 'merchant', n: 'Merchant Prince', d: 'Make 200 d profit at the summer fair in one game.', pts: 30, test: S => S.m.fairProfit >= 200 },
   { id: 'beach', n: 'Shield Wall on the Beach', d: 'Drive off three Viking raids in one game.', pts: 30, test: S => S.m.raids >= 3 },
   { id: 'almanzor', n: 'Bane of Almanzor', d: 'Throw back an army of Almanzor.', pts: 40, test: S => S.m.almanzor >= 1 },
   { id: 'wives', n: 'A Marriage Policy', d: 'Marry three heiresses in one game.', pts: 30, test: S => S.m.heiresses >= 3 },

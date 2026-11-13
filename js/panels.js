@@ -42,10 +42,10 @@ function renderHeader() {
   const net = gross - up;
   const chips = [`<span class="chip btn-like" onclick="openTreasury()" title="Treasury ${F.gold} d · income +${gross} · upkeep −${up} · net ${net >= 0 ? '+' : ''}${net} a turn">${ico('coin')}<span class="num">${F.gold}</span><small class="${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : ''}${net}/turn</small></span>`];
   { const wars = alive().filter(f => f !== me() && atWar(me(), f)), left = TRUCE - G.turn;
-    const tip = truce() ? `Peace of God: ${left} turn${left === 1 ? '' : 's'} left` : wars.length ? `At war with ${wars.map(f => FAC(f).name).join(', ')}` : 'At war with no one';
+    const tip = truce() ? `${SC.peace.Name}: ${left} turn${left === 1 ? '' : 's'} left` : wars.length ? `At war with ${wars.map(f => FAC(f).name).join(', ')}` : 'At war with no one';
     chips.push(truce() ? `<span class="chip peace btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('dove')}<small>Peace · ${left}</small></span>` : wars.length ? `<span class="chip warn btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('swords')}<small>War · ${wars.length}</small></span>` : `<span class="chip peace btn-like" onclick="openRelations()" title="${esc(tip)}">${ico('dove')}<small>Peace</small></span>`); }
   if (F.unrest) chips.push(`<span class="chip warn btn-like" onclick="goProv('${F.unrest.seed}')" title="Unrest at ${P(F.unrest.seed).name}">${ico('fire')}<small>${Math.max(0, F.unrest.at - G.turn)}</small></span>`);
-  if (fairOpen()) chips.push(`<span class="chip ok btn-like" onclick="openFair()" title="The summer fair at Troyes is open">${ico('market')}<small>Fair</small></span>`);
+  if (fairOpen()) chips.push(`<span class="chip ok btn-like" onclick="openFair()" title="${SC.fair.open}">${ico('market')}<small>Fair</small></span>`);
   if (G.diplo) chips.push(`<span class="chip ok btn-like" onclick="G.sel=null;render();setSheet('full')" title="An envoy waits">${ico('handshake')}</span>`);
   if (F.bless) chips.push(`<span class="chip ok" title="Blessed: your troops fight 12% harder">${ico('bless')}${F.bless}</span>`);
   if (F.excom) chips.push(`<span class="chip warn" title="Excommunicated">${ico('interdict')}${F.excom}</span>`);
@@ -105,7 +105,7 @@ function houseStatus(o) {
   const al = others.filter(f => allied(o, f)), pe = others.filter(f => atPeace(o, f) && !allied(o, f));
   if (al.length) rows.push(`${ico('handshake')} Allied with ${al.map(f => esc(FAC(f).name)).join(', ')}.`);
   if (pe.length) rows.push(`${ico('dove')} At peace with ${pe.map(f => esc(FAC(f).name)).join(', ')}.`);
-  if (isKing(o)) rows.push(`${ico('crown')} Wears the crown of the Franks.`);
+  if (isKing(o)) rows.push(`${ico('crown')} Wears ${SC.crown.the}.`);
   if (T.excom > 0) rows.push(`${ico('interdict')} Excommunicated.`);
   if (T.captive) rows.push(`${ico('chain')} Its lord is a prisoner${T.captive.by ? ' of ' + esc(fname(T.captive.by)) : ''}.`);
   return `<div class="statcard">${relBars(o)}${rows.map(r => `<p style="margin:3px 0">${r}</p>`).join('')}</div>`;
@@ -135,7 +135,7 @@ function openRelationsOld() {
   const ally = others.filter(f => allied(me(), f)).map(f => [f, `allied until ${dateStr(peaceUntil(me(), f))}`]);
   const pact = others.filter(f => atPeace(me(), f) && !allied(me(), f)).map(f => [f, `at peace until ${dateStr(peaceUntil(me(), f))}`]);
   showModal(`<h2>${ico(truce() ? 'dove' : 'swords')} Peace and war</h2>
-    ${truce() ? `<div class="notebox good">${ico('dove')} <b>The Peace of God</b> forbids war between the great houses for ${left} more turn${left === 1 ? '' : 's'}, until ${dateStr(TRUCE)}. Lesser lords may be attacked.</div>` : ''}
+    ${truce() ? `<div class="notebox good">${ico('dove')} <b>${SC.peace.Name}</b> forbids war between the great houses for ${left} more turn${left === 1 ? '' : 's'}, until ${dateStr(TRUCE)}. Lesser lords may be attacked.</div>` : ''}
     <h3>At war with</h3>${wars.length ? `<div class="rivals">${rowsFor(wars)}</div>` : '<p class="sub">No one has fought you, or you them, in the last two years.</p>'}
     ${ally.length ? `<h3>Allies</h3><div class="rivals">${rowsFor(ally)}</div>` : ''}
     ${pact.length ? `<h3>Pacts of peace</h3><div class="rivals">${rowsFor(pact)}</div>` : ''}
@@ -146,13 +146,13 @@ function crownsHtml() {
   let h = '';
   if (isKing(me())) {
     const n = crownIncome(me());
-    h += `<div class="statcard on"><b>${ico('crown')} King of the Franks</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${owned(me()).length >= KING_ARMY3 ? ', and a third army' : `. A third army once you hold ${KING_ARMY3} counties`}</li></ul></div>`;
+    h += `<div class="statcard on"><b>${ico('crown')} ${SC.crown.title}</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${owned(me()).length >= KING_ARMY3 ? ', and a third army' : `. A third army once you hold ${KING_ARMY3} counties`}</li></ul></div>`;
     return h;
   }
-  if (k) h += `<p>${ico('crown')} The crown is worn by <b>${esc(FAC(k).pname)}</b>. Take Reims and the royal seat and it can be yours.</p>`;
-  else h += `<p>${ico('crown')} No one wears the crown of the Franks.</p>`;
+  if (k) h += `<p>${ico('crown')} The crown is worn by <b>${esc(FAC(k).pname)}</b>. ${SC.crown.take}</p>`;
+  else h += `<p>${ico('crown')} No one wears ${SC.crown.the}.</p>`;
   const need = crownNeeds(me());
-  h += `<div class="statcard"><b>The coronation</b><br>The archbishop of Reims anoints kings, and a king needs his royal seat. You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">A prince who holds ${CROWN_GREAT} counties of the kingdom needs only Reims: the bishops cannot refuse him.</span><br><span class="sub">The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he fields a third army.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be crowned at Reims</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
+  h += `<div class="statcard"><b>The coronation</b><br>${SC.crown.coronation} You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">A prince who holds ${CROWN_GREAT} counties of the kingdom needs only ${P(SC.kingdom.keys[0]).name}: the bishops cannot refuse him.</span><br><span class="sub">The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he fields a third army.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be crowned at Reims</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
   return h;
 }
 function prisonersHtml() {
@@ -211,7 +211,7 @@ function overviewPanel() {
   const prisoners = prisonersHtml();
   return `<div class="phead">${shield(me(), 46)}<div><h2>${esc(rulerOf(me()))}</h2><span class="sub">${esc(f.trait || (f.realm === 'Rebel' ? 'A rebel house, risen in civil war.' : ''))}</span></div></div>
     ${tiles}
-    ${unrestBox()}${envoyBox()}${fairOpen() ? `<div class="notebox good">${ico('market')} <b>The summer fair at Troyes is open</b> this turn only. Your carts are worth about ${fairCap()} d there.<div class="row" style="margin-top:6px"><button class="btn gold sm" onclick="openFair()"><span class="lbl">${ico('market')}Go to the fair</span></button></div></div>` : ''}
+    ${unrestBox()}${envoyBox()}${fairOpen() ? `<div class="notebox good">${ico('market')} <b>${SC.fair.open}</b> this turn only. Your carts are worth about ${fairCap()} d there.<div class="row" style="margin-top:6px"><button class="btn gold sm" onclick="openFair()"><span class="lbl">${ico('market')}Go to the fair</span></button></div></div>` : ''}
     ${F.captive ? `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}` : ''}
     ${prisoners ? acc('prisoners', 'Your prisoners', 'chain', prisoners, G.offers.length ? G.offers.length + ' offer' + (G.offers.length > 1 ? 's' : '') : '') : ''}
     ${acc('garrisons', 'Your garrisons', 'castle', garrisonsHtml(), owned(me()).reduce((a, p) => a + garMen(p), 0) + ' men')}
@@ -291,11 +291,11 @@ function provHead(p) {
   h += `<p style="margin:0 0 4px">${tags.join('')}</p>`;
   if (!holds(me(), p.id)) h += wealthCard(p);
   if (p.cap && p.cap !== p.owner && FAC(p.cap)) h += `<p class="sub">Former seat of ${FAC(p.cap).name}</p>`;
-  const why = { reims: 'Its archbishop anoints the kings of the Franks.', paris: 'The royal seat of the Robertians: a king needs it, with Reims.', laon: 'The last city of the Carolingians: Charles may be crowned with it in place of Paris.' }[p.id];
+  const why = SC.crown.why[p.id];
   if (why) h += `<p class="sub">${ico('crown')} ${why}</p>`;
   if (p.owner && inCrown(p.owner, p)) h += `<p class="sub">Held by the king: +1 d and double levies.</p>`;
   else if (p.owner && p.owner !== me() && reachOf(p.owner, p) >= 4) h += `<p class="sub">Far from ${FAC(p.owner).name}'s seat: it pays ${Math.round(reachMult(p.owner, p) * 100)}%.</p>`;
-  if (p.owner && p.r === 'fr' && foreign(p.owner) && !inCrown(p.owner, p)) h += `<p class="sub">French lords resent foreign rule: income -30%.</p>`;
+  if (p.owner && coreR(p.r) && foreign(p.owner) && !inCrown(p.owner, p)) h += `<p class="sub">${SC.foreignTxt}: income -30%.</p>`;
   return h;
 }
 function defenceHtml(p) {
@@ -500,7 +500,7 @@ function courtshipBtn(p, F) {
 }
 // every county of a great house carries a quick way to its ambassador, whatever tab is open
 function ambassadorBar(o) {
-  const a = attitude(o, me()), st = allied(me(), o) ? 'allied' : atPeace(me(), o) ? 'at peace' : atWar(me(), o) ? 'at war' : truce() ? 'Peace of God' : 'no treaty';
+  const a = attitude(o, me()), st = allied(me(), o) ? 'allied' : atPeace(me(), o) ? 'at peace' : atWar(me(), o) ? 'at war' : truce() ? SC.peace.Name : 'no treaty';
   return `<button class="ambbar" onclick="openDiplo('${o}')">${shield(o, 26)}<span class="t"><b>Speak with their ambassador</b><small>${esc(FAC(o).name)} · ${attWord(a)} · ${st}</small></span>${ico('handshake')}</button>`;
 }
 function foreignPanel(p, F, A) {
@@ -530,7 +530,7 @@ function foreignPanel(p, F, A) {
       h += `<p class="sub">${!armySize(A) ? `Army ${ARMY_NUM(A)} has no fighting men. Raise troops into it or draw them from a garrison.` : A.acted ? `Army ${ARMY_NUM(A)} has already fought this turn.` : `Out of reach for army ${ARMY_NUM(A)} this turn. An army strikes from a county of yours, or an ally's, that borders the target.`}</p>`;
       if (others.length) cta += others.map(b => `<button class="btn" onclick="pickArmy('${b.id}')"><span class="lbl">${ico('swords')}Army ${ARMY_NUM(b)} can strike from ${P(strikeFrom(me(), b, p).stage).name}</span><small>${armySize(b)} men · switch to it</small></button>`).join('');
     } else {
-      if (peace) h += `<div class="notebox bad">${ico('dove')} The Peace of God protects the great houses until ${dateStr(TRUCE)}. Attack ${FAC(p.owner).name} now and the Pope excommunicates you for 4 turns.</div>`;
+      if (peace) h += `<div class="notebox bad">${ico('dove')} ${SC.peace.Name} protects the great houses until ${dateStr(TRUCE)}. Attack ${FAC(p.owner).name} now and the Pope excommunicates you for 4 turns.</div>`;
       if (p.ally && !p.owner) h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}. Taking the county breaks that alliance.</p>`;
       const sea = seaRoute(s.stage, p.id); const how = s.dist ? `marches to ${P(s.stage).name} (${s.dist} move${s.dist > 1 ? 's' : ''}) and ${sea ? 'crosses the sea to strike' : 'strikes'}` : sea ? `crosses the sea from ${P(s.stage).name} to strike` : `strikes from ${P(s.stage).name}`;
       h += `<p>${ico('flag')} Army ${ARMY_NUM(A)} ${how}.</p>`;
@@ -545,7 +545,7 @@ function foreignPanel(p, F, A) {
       const c = allyCost(me(), p);
       h += `<h3>Alliance</h3><p>Pay ${p.lord} to swear to you. You take half the income, control the buildings and can buy troops for the garrison, and your armies may march through their land.</p>`;
       if (canAlly(me(), p)) {
-        cta += `<button class="btn gold" onclick="act('ally')" ${F.gold >= c ? '' : 'disabled'}><span class="lbl">${ico('handshake')}Offer alliance</span><small>${c} d${foreign(me()) && p.r === 'fr' ? ' (French lords ask double of foreigners)' : ''}</small></button>`;
+        cta += `<button class="btn gold" onclick="act('ally')" ${F.gold >= c ? '' : 'disabled'}><span class="lbl">${ico('handshake')}Offer alliance</span><small>${c} d${foreign(me()) && coreR(p.r) ? ` (${SC.foreignAsk})` : ''}</small></button>`;
         h += `<h3>A charter</h3><p class="sub">${forgeNote(p, F)}</p>`;
         cta += `<button class="btn" onclick="openCharter('${p.id}')" ${canForge(p, F) ? '' : 'disabled'}><span class="lbl">${ico('scroll')}Forge an old charter</span><small>${FORGE_COST} d · needs a bishop · may be discovered</small></button>`;
       }
@@ -578,7 +578,7 @@ function breakPeace(p) {
   const F = G.fac[me()];
   if (!p.owner || !truce() || F.excom > 0) return;
   F.excom = 4;
-  report('Excommunicated!', `You broke the Peace of God by attacking ${FAC(p.owner).name}. The Pope has cast ${rulerOf(me())} out of the Church: your troops fight worse and you lose a quarter of your income for 4 turns.`);
+  report('Excommunicated!', `You broke ${SC.peace.name} by attacking ${FAC(p.owner).name}. The Pope has cast ${rulerOf(me())} out of the Church: your troops fight worse and you lose a quarter of your income for 4 turns.`);
 }
 function act(c, a) {
   const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null, F = G.fac[me()], A = myA();

@@ -58,7 +58,7 @@ async function readCode(text) {
   if (m[1]) bytes = await pipeBytes(bytes, new DecompressionStream('gzip'));
   return JSON.parse(new TextDecoder().decode(bytes));
 }
-const saveFileName = () => `crown-987-${FAC(me()).name.toLowerCase().replace(/[^a-z]+/g, '-')}-${dateStr(G.turn).toLowerCase().replace(/\s+/g, '-')}.json`;
+const saveFileName = () => `crown-${SC.date.y0}-${FAC(me()).name.toLowerCase().replace(/[^a-z]+/g, '-')}-${dateStr(G.turn).toLowerCase().replace(/\s+/g, '-')}.json`;
 async function exportFile() {
   if (!G) return;
   const json = JSON.stringify({ ...G, _career: careerPack() }), name = saveFileName();

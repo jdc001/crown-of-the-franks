@@ -10,34 +10,9 @@ function seeded(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) 
 function inPolyXY(x, y, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
 const onLandXY = (x, y) => LANDS.some(L => inPolyXY(x, y, L));
 
-const MOUNTAINS = new Set(['bearn', 'bigorre', 'pallars', 'urgell', 'cerdanya', 'roussillon', 'grenoble', 'nice', 'auvergne', 'velay', 'osona', 'italy', 'jura', 'pamplona']);
-const WOODS = new Set(['ardennes', 'maine', 'belleme', 'chateaudun', 'vendome', 'berry', 'bourbon', 'nevers', 'marche', 'limoges', 'perigord', 'gascony', 'vannes', 'rennes', 'soissons', 'senlis', 'autun', 'namur', 'hainaut', 'dol', 'empire1', 'empire2', 'empire3', 'angouleme', 'thouars', 'loudun', 'velay', 'rouergue', 'kent', 'sussex', 'wessex', 'devon', 'vexin', 'evreux', 'besancon']);
 
-// ---- the rivers, from source to mouth, as longitude and latitude ----
-const RIVERS = [
-  ['Seine', [[4.72, 47.48], [4.57, 47.86], [4.08, 48.3], [3.5, 48.49], [2.95, 48.38], [2.66, 48.54], [2.35, 48.86], [2.05, 48.93], [1.71, 48.99], [1.41, 49.24], [1.1, 49.44], [0.73, 49.53], [0.15, 49.46]]],
-  ['Marne', [[5.3, 47.9], [5.14, 48.1], [4.95, 48.64], [4.36, 48.96], [3.95, 49.04], [3.4, 49.05], [2.88, 48.96], [2.42, 48.82]]],
-  ['Oise', [[4.1, 49.9], [3.3, 49.62], [2.83, 49.42], [2.4, 49.2], [2.1, 49.0]]],
-  ['Loire', [[4.22, 44.84], [4.0, 45.3], [4.07, 46.03], [3.98, 46.48], [3.46, 46.83], [3.16, 46.99], [3.02, 47.18], [2.63, 47.69], [1.9, 47.9], [1.33, 47.59], [0.98, 47.41], [0.69, 47.39], [-0.08, 47.26], [-0.55, 47.38], [-1.55, 47.21], [-2.2, 47.28]]],
-  ['Allier', [[3.8, 44.6], [3.4, 45.5], [3.42, 46.13], [3.33, 46.56], [3.08, 46.96]]],
-  ['Vienne', [[1.9, 45.6], [1.26, 45.83], [0.7, 46.1], [0.55, 46.8], [0.08, 47.21]]],
-  ['Garonne', [[0.6, 42.75], [0.72, 43.1], [1.44, 43.6], [0.62, 44.2], [0.16, 44.5], [-0.57, 44.84], [-0.75, 45.1], [-1.05, 45.55]]],
-  ['Dordogne', [[2.8, 45.55], [2.3, 45.2], [1.4, 44.9], [0.48, 44.85], [-0.24, 44.92], [-0.6, 45.03]]],
-  ['Lot', [[3.5, 44.5], [2.4, 44.6], [1.44, 44.45], [0.34, 44.3]]],
-  ['Tarn', [[3.6, 44.3], [2.15, 43.93], [1.35, 44.05], [1.0, 44.1]]],
-  ['Rhône', [[6.15, 46.2], [5.75, 45.9], [4.83, 45.76], [4.87, 45.52], [4.89, 44.93], [4.75, 44.56], [4.81, 43.95], [4.63, 43.68], [4.65, 43.35]]],
-  ['Saône', [[6.0, 48.0], [5.6, 47.45], [4.85, 46.78], [4.83, 46.31], [4.83, 45.76]]],
-  ['Meuse', [[5.6, 48.0], [5.38, 49.16], [4.94, 49.7], [4.87, 50.46], [5.57, 50.63], [5.69, 50.85], [5.9, 51.3], [5.1, 51.75], [4.2, 51.85]]],
-  ['Moselle', [[6.8, 47.9], [6.45, 48.17], [5.89, 48.68], [6.18, 49.12], [6.64, 49.75], [7.6, 50.36]]],
-  ['Rhine', [[7.59, 47.56], [7.8, 48.58], [8.43, 49.32], [8.27, 50.0], [7.6, 50.36], [6.96, 50.94], [6.6, 51.5], [6.1, 51.85], [5.0, 51.95], [4.2, 51.95]]],
-  ['Scheldt', [[3.3, 49.95], [3.24, 50.17], [3.39, 50.6], [3.72, 51.05], [4.4, 51.22], [3.8, 51.4]]],
-  ['Somme', [[3.3, 49.85], [2.3, 49.9], [1.83, 50.1], [1.6, 50.2]]],
-  ['Charente', [[0.5, 45.95], [0.16, 45.65], [-0.33, 45.7], [-0.63, 45.75], [-1.1, 45.95]]],
-  ['Adour', [[0.15, 43.05], [-0.4, 43.7], [-1.05, 43.71], [-1.47, 43.49]]],
-  ['Vilaine', [[-1.0, 48.2], [-1.68, 48.11], [-1.9, 47.75], [-2.4, 47.5]]],
-  ['Ebro', [[-2.5, 42.45], [-1.6, 42.0], [-0.88, 41.65], [0.5, 41.2], [0.87, 40.72]]],
-  ['Thames', [[-1.9, 51.7], [-1.25, 51.75], [-0.6, 51.5], [0.1, 51.5], [0.6, 51.5]]],
-];
+// ---- the rivers, from source to mouth, as longitude and latitude (each map lists its own) ----
+const MOUNTAINS = new Set(SC.art.mountains), WOODS = new Set(SC.art.woods), RIVERS = SC.art.rivers;
 // a smooth curve through the points (Catmull-Rom as cubic Béziers)
 function smoothPath(pts) {
   let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
@@ -159,9 +134,10 @@ function marginArt_() {
     <path d="M262,8 q14,0 14,14 q0,14 -14,14 l0,-22 q-8,0 -8,-6 z" fill="#d9c79a" stroke="#2a1d12" stroke-width="1.4"/>
     <rect x="-12" y="0" width="274" height="74" rx="3" fill="#efe3c4" stroke="#2a1d12" stroke-width="2"/>
     <rect x="-6" y="6" width="262" height="62" fill="none" stroke="#b8892c" stroke-width="1.2"/><rect x="-2" y="10" width="254" height="54" fill="none" stroke="#2a1d12" stroke-width=".6"/>
-    <text x="125" y="36" class="cart">Regnum Francorum</text><text x="125" y="55" class="cart2">Anno Domini 987</text>
+    <text x="125" y="36" class="cart">${SC.crown.regnum}</text><text x="125" y="55" class="cart2">Anno Domini ${SC.date.y0}</text>
     ${mapIco('crown', 125, -6, 26)}</g>`;
-  return `<g pointer-events="none">${ship(px(-3.9), py(49.4), 1.05)}${ship(px(3.0), py(42.15), 0.75, true)}${serpent(px(-5.2), py(46.95), 1.3)}</g>${rose(px(-4.4), py(44.6))}${cart(px(5.6), py(42.4))}`;
+  const A = SC.art;
+  return `<g pointer-events="none">${A.ships.map(([lo, la, k, f]) => ship(px(lo), py(la), k, f)).join('')}${serpent(px(A.serpent[0]), py(A.serpent[1]), A.serpent[2])}</g>${rose(px(A.rose[0]), py(A.rose[1]))}${cart(px(A.cart[0]), py(A.cart[1]))}`;
 }
 
 // ---- the vellum: a tile of soft stains, fibres and speckles, painted once on a canvas ----

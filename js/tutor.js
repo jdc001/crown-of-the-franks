@@ -10,10 +10,10 @@ const TUT = [
   { id: 'ally', t: 'Win a lesser lord', b: () => 'Tap a neighbouring county with no house colour, open Diplomacy and offer an alliance. You get half its income, and your armies may march through it.', done: d => d.ally || d.court },
   { id: 'church', t: 'The Church', b: () => 'Open the Church and ask the Pope to bless your arms. Raise bishops at a castle later to win more favour in Rome.', done: d => d.pope },
   { id: 'march', t: 'March', b: () => 'Choose a county marked with green dots and tap March here. An army moves two counties a turn through your own and allied land.', done: d => d.move },
-  { id: 'peace', t: 'The Peace of God', b: () => `No war between the great houses until ${dateStr(TRUCE)}. Keep building and raising men, and end turns until then. Lesser lords may be attacked at any time.`, done: () => G.turn >= TRUCE },
+  { id: 'peace', t: SC.peace.Name, b: () => `No war between the great houses until ${dateStr(TRUCE)}. Keep building and raising men, and end turns until then. Lesser lords may be attacked at any time.`, done: () => G.turn >= TRUCE },
   { id: 'pact', t: 'Guard your back', b: () => 'Open Envoys, choose a neighbour you do not mean to fight, and sign a pact of peace. Neither of you can break it. An alliance also lets your armies cross their land.', done: d => d.pact || G.turn >= TRUCE + 6 },
   { id: 'war', t: 'To war', b: () => 'Tap a county with a red dashed border and attack it. A wooden castle falls to a strong assault; against stone, lay siege first, bombard or mine the walls, then storm.', done: d => d.battle || d.besiege },
-  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see what you need: the crown, anointed at Reims, half the kingdom in your own hands, and no rival holding more than a quarter.`, done: d => d.goal },
+  { id: 'goal', t: 'Your goal', b: () => `Open "Your goal" in the realm panel to see what you need: the crown, ${SC.crown.anointed}, half the kingdom in your own hands, and no rival holding more than a quarter.`, done: d => d.goal },
 ];
 function tutorDid(k) { if (G && G.tut) { G.tut.did[k] = (G.tut.did[k] || 0) + 1; } }
 function tutorSkip() { if (!G.tut) return; G.tut.i++; sfx('click'); save(); renderTutor(); }

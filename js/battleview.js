@@ -27,7 +27,7 @@ function drawPreBattle() {
   const castleTxt = cfg.castle && !p.ruined ? `<p>${ico('castle')} ${CASTLE_N[castleLv(p)]}${p.b.moat ? ', moat' : ''} · walls ${p.walls}%</p>${cfg.D.cat ? `<p>${ico('cat')} ${cfg.D.cat} catapult${cfg.D.cat > 1 ? 's' : ''} on the walls</p>` : ''}` : '';
   showModal(`<h2 class="ctr">${title}</h2>
     <div class="vs">${col(me(), FAC(me()).name, cfg.A, bonusTxt(cfg.aBon, cfg.aGen, cfg.aMod))}<div class="vsx">vs</div>${col(enemyF, enemyF ? FAC(enemyF).name : p.lord, cfg.D, castleTxt + bonusTxt(cfg.dBon || {}, cfg.dGen, cfg.dMod) + `<p class="sub">Expect a ${STANCE[cfg.dSt].n.toLowerCase()} stand</p>`)}</div>
-    ${PB.peace ? `<div class="notebox bad">${ico('dove')} This attack breaks the Peace of God.</div>` : ''}
+    ${PB.peace ? `<div class="notebox bad">${ico('dove')} ${SC.peace.breakTxt}</div>` : ''}
     <h3>Your orders · army ${ARMY_NUM(A)}</h3>
     <div class="stances">${['aggressive', 'balanced', 'defensive'].map(st => `<button class="btn stance${PB.st === st ? ' on' : ''}" onclick="PB.st='${st}';drawPreBattle()"><b>${ico(STANCE_ICON[st])}${STANCE[st].n}</b><small>${STANCE[st].d}</small><span class="odds">${oddsTxt(PB.odds[st])} to win</span></button>`).join('')}</div>
     ${canRes ? `<button class="btn${PB.res ? ' on' : ''}" style="width:100%;margin-top:8px" onclick="PB.res=!PB.res;for(const st of ['aggressive','balanced','defensive'])PB.odds[st]=estimateWin(PB.cfgFor(st,PB.res),40);drawPreBattle()"><span class="lbl">${ico('foot')}Hold a reserve</span><small>A third of the foot and bowmen wait behind the line. Commit them for a surge; held back, they halve the losses of a defeat.</small></button>` : ''}

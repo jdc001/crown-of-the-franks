@@ -1,7 +1,7 @@
 'use strict';
 // ================= STATE =================
 let G = null;
-const SK = 'crownOfTheFranks987v8';
+const SK = 'crownOfTheFranks987v8' + (MAP_ID === 'france' ? '' : '-' + MAP_ID);
 const eu = () => ({ foot: 0, bow: 0, cav: 0, cat: 0 });
 const fighters = u => (u.militia || 0) + (u.foot || 0) + (u.bow || 0) + (u.cav || 0);
 // rough strength per company, from attack x hit points
@@ -18,17 +18,21 @@ const homeOf = fid => FAC(fid).home;
 const adjTo = (p, fid) => ADJ[p.id].some(n => holds(fid, n));
 const alive = () => facIds().filter(id => G.fac[id].alive);
 const isCap = p => !!(p.cap && p.cap === p.owner);
-const foreign = fid => FAC(fid).realm !== 'France';
+const foreign = fid => FAC(fid).realm !== SC.realm;
+// a house's trait, as numbers the rules read (see each map's TRAITS)
+const TR = fid => (fid && FACMAP[fid] && FACMAP[fid].tr) || {};
+// counties of the kingdom proper, whose lords are fewer and keep fewer men than the lords of the borderlands
+const coreR = r => r === SC.kingdom.core;
 function rulerOf(fid) {
   const d = FAC(fid);
   if (d.emperor) return `Emperor ${d.pname}`;
-  if (d.kingOf && d.kingOf.length) return `King ${d.pname} of the Franks`;
+  if (d.kingOf && d.kingOf.length) return `King ${d.pname} ${SC.crown.of}`;
   return `${d.title} ${d.pname}`;
 }
 const inCrown = (fid, p) => !!(KPROV[p.id] && (FAC(fid).kingOf || []).some(k => KPROV[p.id].includes(k)));
 function levyMax(p) {
-  if (!p.owner) return (2 + Math.floor(p.base / 2)) * (p.r === 'fr' ? 1 : 2);
-  return (isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1) * (p.owner === 'brittany' ? 2 : 1);
+  if (!p.owner) return (2 + Math.floor(p.base / 2)) * (coreR(p.r) ? 1 : 2);
+  return (isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1) * (TR(p.owner).levy || 1);
 }
 const bishopsOf = fid => G.fac[fid].bishops;
 
@@ -101,13 +105,13 @@ function canBuild(p, t) {
   return (p.b[t] || 0) < MAXLV && (B.need === 'coast' ? p.seas.length > 0 : B.need === 'hills' ? p.hills : true);
 }
 function bldCost(p, t) {
-  if (t === 'castle') return Math.round(CASTLE_C[castleLv(p)] * (p.owner === 'anjou' ? 0.75 : 1));
+  if (t === 'castle') return Math.round(CASTLE_C[castleLv(p)] * (TR(p.owner).castle || 1));
   if (t === 'rebuild') return 50;
   if (BLD[t].realm) return BLD[t].c;
   if (t === 'moat') return BLD[t].c;
   return BLD[t].c * ((p.b[t] || 0) + 1);
 }
-const bldTurns = (p, t) => t === 'castle' ? Math.max(1, CASTLE_T[castleLv(p)] - (p.owner === 'anjou' ? 1 : 0)) : t === 'rebuild' ? 3 : BLD[t].t;
+const bldTurns = (p, t) => t === 'castle' ? Math.max(1, CASTLE_T[castleLv(p)] - (TR(p.owner).castle ? 1 : 0)) : t === 'rebuild' ? 3 : BLD[t].t;
 function bldName(p, t) {
   if (t === 'castle') return castleLv(p) ? `Raise to ${CASTLE_N[castleLv(p) + 1].toLowerCase()}` : CASTLE_N[1];
   if (t === 'rebuild') return 'Rebuild the castle';
@@ -115,9 +119,7 @@ function bldName(p, t) {
 }
 function bldYield(fid, t) {
   let y = BLD[t].y;
-  if (t === 'market' && fid === 'champagne') y += 4;
-  if (t === 'market' && fid === 'flanders') y += 3;
-  if (t === 'port' && fid === 'provence') y += 3;
+  y += (TR(fid)[t] || 0);
   return y;
 }
 function bonus(fid) {
@@ -127,10 +129,7 @@ function bonus(fid) {
 }
 const truce = () => G.turn < TRUCE;
 function unitCost(fid, t) {
-  if (t === 'cav' && fid === 'normandy') return 16;
-  if (t === 'cav' && fid === 'gascony') return 17;
-  if (t === 'bow' && fid === 'roussillon') return 8;
-  if (t === 'bishop' && fid === 'burgundy') return 18;
+  const c = TR(fid).cost; if (c && c[t]) return c[t];
   return UNIT[t].c;
 }
 // Greek fire: sealed jars of Byzantine naphtha. Venetian traders sell them dear; Theophylact the Greek can make them.
@@ -258,7 +257,7 @@ function disbandArmy(fid, a) {
   const i = armiesOf(fid).indexOf(a); armiesOf(fid)[i] = newArmy(a.id, homeOf(fid));
   return out;
 }
-const genCost = (fid, g) => fid === 'provence' ? Math.round(g.c * 0.75) : g.c;
+const genCost = (fid, g) => Math.round(g.c * (TR(fid).gen || 1));
 // move a general between postings: a castle, an empty army slot, or the lord's host
 function postGeneral(fid, gid, at) {
   const F = G.fac[fid], g = F.gens.find(x => x.id === gid); if (!g) return false;
@@ -285,10 +284,10 @@ function provIncome(p) {
 function incomeFor(p, f) {
   let v = p.base * (p.cap === f ? 2 : 1);
   for (const t of ['farm', 'market', 'port', 'mine']) v += (p.b[t] || 0) * bldYield(f, t);
-  if (f === 'aquitaine') v += 2;
+  v += TR(f).income || 0;
   if (inCrown(f, p)) v += 1;
   v = Math.round(v * reachMult(f, p));
-  if (p.r === 'fr' && foreign(f) && !inCrown(f, p)) v = Math.floor(v * 0.7);
+  if (coreR(p.r) && foreign(f) && !inCrown(f, p)) v = Math.floor(v * 0.7);
   return v;
 }
 // a prince's power fades with distance from his seat: counties more than three steps away pay less
@@ -425,13 +424,12 @@ function ensureProvs() {
   PROV.forEach((r, i) => { if (!G.provs[r[0]]) { const p = G.provs[r[0]] = makeProv(r, i); p.owner = null; garrisonAtStart(p); p.militia = levyMax(p); } });
 }
 function newGame(playerId) {
-  G = { v: 8, turn: 0, player: playerId, provs: {}, fac: {}, armies: {}, log: [], reports: [], over: false, winner: null, sel: null, army: 'a0',
+  G = { v: 8, map: MAP_ID, turn: 0, player: playerId, provs: {}, fac: {}, armies: {}, log: [], reports: [], over: false, winner: null, sel: null, army: 'a0',
     genPool: GENERALS.map(g => g.id), fdefs: FACTIONS.map(f => ({ ...f, arms: { ...f.arms }, kingOf: [] })), offers: [], truces: [], crowns: {}, coronated: {}, homage: {}, formed: {}, lastUnion: -99, newN: 0, diplo: null, court: null, ev: {} };
   rebuildFmap();
   PROV.forEach((r, i) => { G.provs[r[0]] = makeProv(r, i); });
   for (const p of provList()) garrisonAtStart(p);
-  // Reims: the archbishop who crowns kings keeps a strong household
-  P('reims').b.castle = 2; Object.assign(P('reims').gar, { foot: 9, bow: 4, cav: 2 });
+  if (SC.setup.before) SC.setup.before();
   G.order = FACTIONS.map(f => f.id);
   FACTIONS.forEach(f => {
     G.fac[f.id] = Object.assign(facState(), { id: f.id });
@@ -440,18 +438,15 @@ function newGame(playerId) {
     G.armies[f.id] = ARMY_IDS.map(id => newArmy(id, f.home));
     Object.assign(G.armies[f.id][0], { foot: 5, bow: 2, cav: 1 });
   });
-  P('troyes').b.market = 1;
-  // Hugh Capet, chosen at Senlis and crowned in July 987
-  G.crowns.franks = 'capet'; G.coronated.franks = 'capet';
-  const cd = FAC('capet'); cd.kingOf = ['franks']; cd.title = 'King';
-  G.fac.capet.cardinals = 1;
+  // the king at the start, crowned already
+  if (SC.crown.start) { const k = SC.crown.start; G.crowns.franks = k; G.coronated.franks = k; const cd = FAC(k); cd.kingOf = ['franks']; cd.title = 'King'; G.fac[k].cardinals = 1; }
+  if (SC.setup.houses) SC.setup.houses();
   for (const p of provList()) p.militia = levyMax(p);
-  // the princes who raised Hugh to the throne stand by him for his first years: Normandy, and his brother in Burgundy
-  for (const f of ['normandy', 'burgundy']) G.truces.push({ a: 'capet', b: f, until: TRUCE + 20, pact: true, treaty: true, pass: true });
+  if (SC.setup.after) SC.setup.after();
   G.start = Object.fromEntries(provList().filter(p => p.owner).map(p => [p.id, p.owner]));
   const neut = provList().filter(p => !p.owner);
   for (let i = 0; i < 7; i++) { const c = neut.filter(p => !p.heiress); pick(c).heiress = pick(LADIES); }
-  note(`Louis V is dead without an heir. At Senlis the great men of the kingdom passed over his uncle, Charles of Lorraine, and chose Hugh, Duke of the Franks; Archbishop Adalbero of Reims crowned him in July. The new king's writ runs little further than Paris and Orléans. The bishops proclaim the Peace of God: no war between the princes until ${dateStr(TRUCE)}.`);
+  note(SC.intro.note);
   beginTurn(playerId);
 }
 
@@ -543,13 +538,13 @@ function endRound() {
       p.militia = Math.min(levyMax(p), p.militia + 1);
       if (p.b.castle && !p.ruined && p.walls < 100) p.walls = Math.min(100, p.walls + WALL_MEND);
       if (hasOuter(p) && (p.outer ?? 100) < 100) p.outer = Math.min(100, (p.outer ?? 100) + WALL_MEND);
-      if (!p.owner && !p.ally && G.turn % 2 === 1 && p.gar.foot < (p.r === 'fr' ? p.base + 2 : p.base * 2 + 4) && (p.b.castle || p.r !== 'fr')) p.gar.foot++;
-      if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot += p.owner === 'toulouse' ? 2 : 1; if (G.turn % 2 === 1) p.gar.bow++; }
+      if (!p.owner && !p.ally && G.turn % 2 === 1 && p.gar.foot < (coreR(p.r) ? p.base + 2 : p.base * 2 + 4) && (p.b.castle || !coreR(p.r))) p.gar.foot++;
+      if (isCap(p) && fighters(p.gar) < Math.min(24, 10 + G.turn / 3)) { p.gar.foot += TR(p.owner).capGrow || 1; if (G.turn % 2 === 1) p.gar.bow++; }
     }
   }
   G.truces = G.truces.filter(t => t.until > G.turn);
   for (const f of facIds()) { const F = G.fac[f]; if (F.warOn && F.warOn.until <= G.turn) F.warOn = null; }
-  if (G.turn === TRUCE - 1) note('The Peace of God has expired. The great houses may now make war on each other.');
+  if (G.turn === TRUCE - 1) note(SC.peace.ends);
   if (Math.random() < 0.25) {
     const c = provList().filter(p => !p.owner && !p.heiress);
     if (c.length) { const p = pick(c); p.heiress = pick(LADIES); note(`Lady ${p.heiress} of ${p.name} is now of marrying age.`); }
@@ -571,7 +566,7 @@ function syncCrown() {
   for (const d of G.fdefs) {
     const is = G.crowns.franks === d.id;
     if (is) { d.kingOf = ['franks']; d.title = 'King'; }
-    else if ((d.kingOf && d.kingOf.length) || d.title === 'King') { d.kingOf = []; d.title = d.id === 'capet' || !FACMAP[d.id] ? 'Duke' : FACMAP[d.id].title; }
+    else if ((d.kingOf && d.kingOf.length) || d.title === 'King') { d.kingOf = []; d.title = lostTitle(d.id); }
   }
 }
 function fixSieges() {
@@ -738,7 +733,7 @@ const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
 const GOALS = {
-  king: { n: 'King of the Franks', s: 'The main game', d: 'Be anointed at Reims and hold the crown, with half of the kingdom\'s counties in your own hands and no rival house holding more than a quarter. Or break every rival.' },
+  king: { n: SC.crown.title, s: 'The main game', d: `Be ${SC.crown.anointed} and hold the crown, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter. Or break every rival.` },
   conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
 const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
@@ -773,7 +768,9 @@ const vassals = () => alive().filter(vassal);
 const crownIncome = fid => FRANCE.filter(id => P(id).owner === fid).length;
 // Reims always. With it, the royal seat (Paris; Laon for Charles), or else a realm so great the bishops cannot refuse.
 const CROWN_GREAT = 12;
-const crownNeeds = fid => domainHeld(fid) >= CROWN_GREAT ? ['reims'] : ['reims', fid === 'charles' ? 'laon' : 'paris'];
+const crownNeeds = fid => SC.crown.needs(fid, domainHeld(fid) >= CROWN_GREAT);
+// a king who loses the crown keeps his house's own title (Hugh Capet goes back to being Duke of the Franks)
+const lostTitle = fid => !FACMAP[fid] ? 'Duke' : FACMAP[fid].lose || FACMAP[fid].title;
 // the bishops will not anoint a man with no lands in the kingdom to speak of
 const CROWN_LANDS = 8;
 function canCrown(fid, kid = 'franks') { return kid === 'franks' && !isKing(fid) && crownNeeds(fid).every(id => P(id).owner === fid) && domainHeld(fid) >= CROWN_LANDS; }
@@ -782,12 +779,12 @@ function crown(fid, kid = 'franks') {
   if (!canCrown(fid) || F.gold < CROWN_COST) return false;
   F.gold -= CROWN_COST;
   const old = king();
-  if (old) { const od = FAC(old); od.kingOf = []; od.title = old === 'capet' || !FACMAP[old] ? 'Duke' : FACMAP[old].title; }
+  if (old) { const od = FAC(old); od.kingOf = []; od.title = lostTitle(old); }
   G.crowns.franks = fid; G.coronated.franks = fid; G.homage = {};
   const d = FAC(fid); d.kingOf = ['franks']; d.title = 'King';
   for (const id of FRANCE) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
-  const txt = `At Reims the archbishop anoints ${d.pname} King of the Franks${old ? `, and ${FAC(old).pname} is king no longer` : ''}. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army.`;
-  if (fid === G.player) report('Long live the king!', txt); else report('A new King of the Franks', txt);
+  const txt = `${SC.crown.rite} ${d.pname} ${SC.crown.title}${old ? `, and ${FAC(old).pname} is king no longer` : ''}. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army.`;
+  if (fid === G.player) report('Long live the king!', txt); else report('A new ' + SC.crown.title, txt);
   checkVictory();
   return true;
 }
@@ -964,7 +961,7 @@ function papal(fid, act, target) {
   const nm = FAC(fid).name;
   if (!ok) return `The Pope will not grant ${nm}'s petition (${POPE[act].n.toLowerCase()}). The gifts are kept all the same.`;
   switch (act) {
-    case 'bless': F.bless = fid === 'burgundy' ? 5 : 3; return `The Pope blesses the banners of ${nm}.`;
+    case 'bless': F.bless = TR(fid).bless || 3; return `The Pope blesses the banners of ${nm}.`;
     case 'merc': { const a = usableArmies(fid).sort((x, y) => armySize(y) - armySize(x))[0]; a.foot += 4; a.cav += 2; return `Papal mercenaries march to join ${armyName(fid, a)}.`; }
     case 'absolve': F.excom = 0; return `The Pope absolves ${rulerOf(fid)} and receives him back into the Church.`;
     case 'dispense': F.sons++; return `The Pope grants ${nm} a dispensation. Another son may now marry.`;
@@ -1082,7 +1079,7 @@ function answerDiplo(id, yes) {
   else { addTruce(D.from, G.player, G.turn + JOINT_TURNS, true); F.warOn = { target: D.target, until: G.turn + JOINT_TURNS }; note(`You and ${FAC(D.from).name} make common cause against ${FAC(D.target).name}.`); }
   return { ok: true };
 }
-const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && p.r === 'fr' ? 2 : 1) * (fid === 'blois' ? 0.75 : 1));
+const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && coreR(p.r) ? 2 : 1) * (TR(fid).ally || 1));
 const canAlly = (fid, p) => !p.owner && !p.ally && adjTo(p, fid) && !besiegerOf(p);
 function makeAlly(fid, p) {
   const F = G.fac[fid], c = allyCost(fid, p);
