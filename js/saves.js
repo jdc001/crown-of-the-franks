@@ -32,7 +32,7 @@ function loadGameObj(obj) {
   G = obj; rebuildFmap(); ensureProvs();
   if (!G.army) G.army = 'a0';
   G.sel = null; G.reports = G.reports || []; PANEL.tab = null;
-  $('#title').style.display = 'none'; closeModal(); closeDrawer();
+  $('#title').style.display = 'none'; closeModal(); setMusic('map'); closeDrawer();
   applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek');
   save(); sfx('bell'); toast(`Loaded: ${FAC(me()).name}, ${dateStr(G.turn)}`, 'scroll');
 }

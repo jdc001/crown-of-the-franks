@@ -258,7 +258,7 @@ function startFair() {
   const st = fairStock(); if (!st.length) return;
   G.fairYear = yearOf(G.turn); tutorDid('fair');
   FR = { stake: 0, stock: st, left: Object.fromEntries(st.map(x => [x.id, x.lots])), pct: {}, tip: {}, take: 0, day: 1, bonus: fairBonus(st) };
-  fairDayPrices(); setMusic('map'); drawFair();
+  fairDayPrices(); setMusic('fair'); drawFair();
 }
 const fairPrice = x => Math.max(1, Math.round(x.each * FR.pct[x.id] * FR.bonus));
 const pctWord = p => p >= 1.3 ? ['Buyers crowd your stall', 'good'] : p >= 1.1 ? ['Brisk trade', 'good'] : p >= 0.92 ? ['A fair price', ''] : p >= 0.75 ? ['Slow trade', 'bad'] : ['Few buyers', 'bad'];

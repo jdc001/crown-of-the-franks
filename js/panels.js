@@ -489,16 +489,16 @@ function act(c, a) {
   const p = G.sel && G.sel[0] === 'p' ? P(G.sel.slice(2)) : null, F = G.fac[me()], A = myA();
   tutorDid(c);
   switch (c) {
-    case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a), turn: G.turn, cost: c0 }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('coin'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
+    case 'build': { const c0 = bldCost(p, a); if (F.gold < c0) return toast('Not enough deniers', 'coin'); F.gold -= c0; p.build = { type: a, left: bldTurns(p, a), turn: G.turn, cost: c0 }; note(`Work begins in ${p.name}: ${bldName(p, a)}.`); sfx('build'); buzz(); toast(`Work begins: ${bldName(p, a)}`, 'hammer'); break; }
     case 'unsiege': { const u = A.undo; if (!u || u.t !== G.turn || A.bombarded || A.stormed || A.siege !== p.id) break; A.siege = null; A.loc = u.loc; A.mp = u.mp; A.campT = u.campT; A.acted = false; F.excom = u.excom; G.grudge = JSON.parse(u.gr); G.fought = JSON.parse(u.fo); A.undo = null; G.reports = G.reports.filter(r => r.title !== 'Excommunicated!'); note(`Army ${ARMY_NUM(A)} thinks better of the siege of ${p.name}.`); toast('Siege called off: choose again', 'back'); break; }
     case 'greek': { const c = gfCost(me(), A); if (!A.cat || (A.gf || 0) >= GF_MAX || F.gold < c) break; F.gold -= c; A.gf = (A.gf || 0) + 1; sfx('coin'); toast('A sealed jar of Greek fire joins the siege train', 'oil'); break; }
     case 'unbuild': if (p.build && p.build.turn === G.turn && p.build.cost != null) { F.gold += p.build.cost; note(`Work is called off in ${p.name}.`); p.build = null; sfx('click'); toast('Work cancelled, silver returned', 'coin'); } break;
     case 'raise': {
       const cost = unitCost(me(), a); if (F.gold < cost) return toast('Not enough deniers', 'coin'); F.gold -= cost;
       if (a === 'bishop') { F.bishops++; toast('A bishop joins your council', 'bishop'); } else { p.gar[a]++; toast(`${UNIT[a].n} raised in ${p.name}`, UNIT_ICON[a]); }
-      sfx('coin'); buzz(); break;
+      sfx(a === 'bishop' ? 'bell' : 'raise'); buzz(); break;
     }
-    case 'raiseA': if (raise(me(), a, A)) { sfx('coin'); buzz(); toast(`${UNIT[a].n} join army ${ARMY_NUM(A)}`, UNIT_ICON[a]); } else toast('Not enough deniers', 'coin'); break;
+    case 'raiseA': if (raise(me(), a, A)) { sfx('raise'); buzz(); toast(`${UNIT[a].n} join army ${ARMY_NUM(A)}`, UNIT_ICON[a]); } else toast('Not enough deniers', 'coin'); break;
     case 'toArmy': if (p.gar[a] > 0 && slotState(A) === 'active') { p.gar[a]--; A[a]++; } break;
     case 'toGar': if (A[a] > 0) { A[a]--; p.gar[a]++; } break;
     case 'allArmy': if (slotState(A) === 'active') for (const t of ['foot', 'bow', 'cav', 'cat']) { A[t] += p.gar[t]; p.gar[t] = 0; } break;
@@ -506,7 +506,7 @@ function act(c, a) {
     case 'genStay': { const g = F.gens.find(x => x.at === 'a0'); const o = F.gens.find(x => x.at === p.id); if (g) g.at = p.id; if (o) o.at = 'a0'; break; }
     case 'genJoin': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === 'a0'); if (g) g.at = 'a0'; if (o) o.at = p.id; break; }
     case 'genSwap': { const g = F.gens.find(x => x.at === p.id); const o = F.gens.find(x => x.at === A.id); if (g && o) { g.at = A.id; o.at = p.id; } break; }
-    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
+    case 'move': { const was = A.siege, prevLoc = A.loc; if (marchArmy(me(), A, p.id)) { sfx('march'); if (was) note(`You lift the siege of ${P(was).name}.`); PANEL.tab = 'army'; PANEL.hist = ['army', ...(PANEL.hist || []).filter(x => x !== 'army')]; { const from = P(prevLoc); toast(`Army ${ARMY_NUM(A)} marches to ${p.name}${holds(me(), from.id) ? ` · ${garMen(from)} stay in ${from.name}` : ''}`, 'flag'); } hint('army'); } break; }
     case 'besiege': { const pre = { t: G.turn, loc: A.loc, mp: A.mp, campT: A.campT, excom: F.excom, gr: JSON.stringify(G.grudge || {}), fo: JSON.stringify(G.fought || {}) }; const s = stageFor(me(), A, p); if (!s) return; breakPeace(p); hostility(me(), p.owner || p.ally); A.undo = pre; A.siege = p.id; A.loc = p.id; A.acted = true; note(`Army ${ARMY_NUM(A)} lays siege to ${p.name}.`); sfx('horn'); buzz(30); hint('siege'); break; }
     case 'bombard': openCatapult(p); return;
     case 'autobomb': if (A.cat && !A.bombarded && A.siege === p.id) autoBombard(A, p); break;

@@ -10,14 +10,14 @@ gameOver = function () {
   saveLastGame(S);
   clearSave();
   if (won) {
-    setMusic('battle'); sfx('bell'); setTimeout(() => sfx('victory'), 600); buzz(60);
+    setMusic('coronation'); sfx('bell'); setTimeout(() => sfx('cheer'), 900); buzz(60);
     const body = S.how === 'conquest'
       ? `In ${dateStr(G.turn)} the last rival house falls. At Reims the archbishop anoints ${FAC(me()).pname}, and from Flanders to Barcelona no prince stands against him.`
       : `In ${dateStr(G.turn)} ${FAC(me()).pname} kneels before the altar of Reims. The archbishop anoints him, the crown is set on his head, and the bells ring out across a kingdom he holds in his own hand: ${owned(me()).length} counties, half the realm of the Franks.`;
     showModal(`<div class="splash">${coronationScene(me(), 'franks')}<div class="splashtxt"><h2>Rex Francorum</h2><p class="sub ctr" style="margin-top:-6px">${esc(FAC(me()).name)} · ${G.turn} turns</p><p>${body}</p>
       <div class="row ctr"><button class="btn gold big" onclick="closeModal();openStats(G.recorded,0)">Long live the King</button></div></div></div>`, 'splashcard');
   } else {
-    sfx('defeat');
+    setMusic('defeat'); sfx('defeat');
     const W = G.winner ? FAC(G.winner) : null;
     showModal(`<div class="rep badrep"><div class="sealmark">${ico('swords')}</div><h2>${W ? `${esc(W.name)} takes the crown` : 'Your house has fallen'}</h2>
       <p>${W ? `${esc(W.pname)} ${alive().length === 1 ? 'has broken every rival house' : 'is anointed at Reims, master of half the kingdom'}. ${G.fac[me()].alive ? `${esc(rulerOf(me()))} keeps his lands, but not the crown.` : `${esc(rulerOf(me()))}'s line is broken.`}` : `${esc(rulerOf(me()))}'s line is broken. Another will take the kingdom.`}</p>
@@ -212,7 +212,7 @@ function startChallenge() {
   try { newGame(C.house); } finally { Math.random = rnd0; }
   G.diff = C.diff; G.goal = 'king'; G.tut = null; G.challenge = { id: C.id + ':' + C.seed, n: C.n, mod: C.mod || {} };
   if (C.mod && C.mod.gold != null) G.fac[C.house].gold = C.mod.gold;
-  $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(C.house);
+  $('#title').style.display = 'none'; setMusic('map'); applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(C.house);
 }
 function challengeBest() { const C = currentChallenge(), id = C.id + ':' + C.seed; const runs = gameHistory().filter(g => g.challenge === id); const w = runs.filter(g => g.won).sort((a, b) => a.turns - b.turns)[0]; return { runs: runs.length, best: w ? w.turns : null }; }
 function challengeBox() {

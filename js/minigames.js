@@ -54,7 +54,7 @@ function startMine(pid) {
   S.cv.onpointerdown = e => { S.cv.setPointerCapture && S.cv.setPointerCapture(e.pointerId); S.down = true; steer(e); };
   S.cv.onpointermove = e => { if (S.down) steer(e); };
   S.cv.onpointerup = S.cv.onpointercancel = () => { S.down = false; };
-  setMusic('battle'); sfx('horn');
+  setMusic('siege'); sfx('horn');
   mgRun(S, dt => { mineUpdate(S, dt); if (MG === S) mineDraw(S); });
 }
 const inRock = (S, x, y) => S.rocks.some(r => ((x - r.x) / r.rx) ** 2 + ((y - r.y) / r.ry) ** 2 < 1);

@@ -25,7 +25,7 @@ function openCatapult(p) {
   const clouds = Array.from({ length: 5 }, (_, i) => [i * 170 + Math.random() * 80, 30 + Math.random() * 80, 30 + Math.random() * 40, 6 + Math.random() * 6]);
   CT = { p, h, cols, rows, lv, wx, oh, ocols, orows, ox, o0: p.outer ?? 100, ground0, wall0, shots: A.cat * catShots(me(), A), ammo: 'stone', wind: Math.round((Math.random() * 2 - 1) * 70), projs: [], drag: null, parts: [], fires: [], arrows: [], crowd, clouds, t: 0,
     msg: 'Drag anywhere on the field and release to fire. Pull further for more power.', killed: 0, plague: 0, rats: [], cages: A.cat + 1, w0: p.walls, last: 0, dead: false, color: p.owner ? FAC(p.owner).color : '#d8cba5' };
-  setMusic('battle');
+  setMusic('siege');
   showModal(`<div class="cthud"><div class="ct"><div class="v" id="ct-shots"></div><div class="k">Shots</div></div><div class="ct"><div class="v" id="ct-walls"></div><div class="k">${ocols ? 'Outer · inner' : 'Walls'}</div></div><div class="ct"><div class="v" id="ct-def"></div><div class="k">Defenders</div></div><div class="ct"><div class="v" id="ct-wind"></div><div class="k">Wind</div></div></div>
     <canvas id="ctc"></canvas>
     <div class="ctbar"><div id="ctmsg"></div>
@@ -83,7 +83,7 @@ function ctBurst(x, y, color, n) { for (let i = 0; i < n; i++) CT.parts.push({ x
 const ctHit = (c, n) => { CT.h[c] = Math.max(0, CT.h[c] - n); };
 function ctHitOuter(c, q) {
   const hit = (k, n) => { if (k >= 0 && k < CT.ocols) CT.oh[k] = Math.max(0, CT.oh[k] - n); };
-  if (q.type === 'greek') { hit(c, 9); hit(c - 1, 3); hit(c + 1, 3); ctBurst(q.x, q.y, '#ff8c1a', 50); CT.msg = 'Greek fire bursts on the outer wall and brings a stretch of it down.'; sfx('wall'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
+  if (q.type === 'greek') { hit(c, 9); hit(c - 1, 3); hit(c + 1, 3); ctBurst(q.x, q.y, '#ff8c1a', 50); CT.msg = 'Greek fire bursts on the outer wall and brings a stretch of it down.'; sfx('greek'); sfx('fire'); if (CT.oh.every(v => v === 0) && !CT.obreach) { CT.obreach = true; CT.msg += ' The outer wall is breached!'; } return; }
   if (q.type === 'stone') { hit(c, 3); if (Math.random() < .7) hit(c - 1, 1); if (Math.random() < .7) hit(c + 1, 1); CT.msg = 'Direct hit on the outer wall! A section comes down.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple') { if (Math.random() < 0.5) { hit(c, 1); CT.msg = 'Stones chip the outer wall.'; sfx('wall'); } else { CT.msg = 'A small stone glances off the outer wall.'; sfx('miss'); } }
   else if (q.type === 'oil') { if (Math.random() < 0.3) hit(c, 1); CT.msg = 'The fire splashes on the outer wall. Aim over both walls to burn the defenders.'; sfx('fire'); }
@@ -93,7 +93,7 @@ function ctHitOuter(c, q) {
 }
 function ctHitWall(c, q) {
   const wood = CT.lv === 1;
-  if (q.type === 'greek') { ctHit(c, wood ? 12 : 9); if (c > 0) ctHit(c - 1, 3); if (c < CT.cols - 1) ctHit(c + 1, 3); CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBurst(q.x, q.y, '#ff8c1a', 50); ctBurst(q.x, q.y, '#8a816e', 30); CT.msg = 'Greek fire bursts against the wall! The stones crack in the heat and a whole stretch comes down.'; sfx('wall'); sfx('fire'); buzz(60); return; }
+  if (q.type === 'greek') { ctHit(c, wood ? 12 : 9); if (c > 0) ctHit(c - 1, 3); if (c < CT.cols - 1) ctHit(c + 1, 3); CT.fires.push({ x: q.x, y: q.y, t: 6 }); ctBurst(q.x, q.y, '#ff8c1a', 50); ctBurst(q.x, q.y, '#8a816e', 30); CT.msg = 'Greek fire bursts against the wall! The stones crack in the heat and a whole stretch comes down.'; sfx('greek'); sfx('fire'); buzz(60); return; }
   if (q.type === 'stone') { ctHit(c, wood ? 4 : 3); if (c > 0 && Math.random() < .7) ctHit(c - 1, 1); if (c < CT.cols - 1 && Math.random() < .7) ctHit(c + 1, 1); ctBurst(q.x, q.y, wood ? '#7a5530' : '#8a816e', 26); CT.msg = 'Direct hit! A section of wall collapses.'; sfx('wall'); buzz(40); }
   else if (q.type === 'triple' && Math.random() > (CT.lv === 1 ? 1 : CT.lv === 2 ? 0.5 : 0.2)) { ctBurst(q.x, q.y, '#8a816e', 6); CT.msg = CT.lv === 3 ? 'The small stones rattle off the great walls. It takes a heavy stone to break these.' : 'A small stone glances off the masonry.'; sfx('miss'); }
   else if (q.type === 'triple') { ctHit(c, 1); if (CT.lv === 1 && Math.random() < .35) { const n = c + (Math.random() < .5 ? -1 : 1); if (n >= 0 && n < CT.cols) ctHit(n, 1); } ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = 'Stones hammer the wall.'; sfx('wall'); buzz(20); }
@@ -106,7 +106,7 @@ function ctHitWall(c, q) {
     else { ctHit(c, 1); CT.msg = 'The oil bursts against the stone and scorches it. Aim over the top to burn the defenders.'; }
     ctBurst(q.x, q.y, '#ff8c1a', 26); sfx('fire');
   } else if (q.type === 'rat') {
-    ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague');
+    ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague'); sfx('rat');
     if (Math.random() < 0.3) { ratNest(q.x, false); CT.msg = 'A rat hits the wall, scrabbles over the top and drops inside.'; }
     else CT.msg = 'The rats hit the wall and scatter into the ditch.';
   } else {
@@ -119,16 +119,16 @@ function ctHitInside(q) {
   const p = CT.p; let k = 0;
   const empty = ctAlive() === 0;
   if (q.type === 'stone' || q.type === 'triple') { k = Math.random() < (q.type === 'stone' ? .5 : .25) ? killDefenders(p, 1) : 0; ctBurst(q.x, q.y, '#8a816e', 12); CT.msg = empty ? 'The stone lands in an empty bailey.' : k ? 'The stone crashes into the bailey and crushes a defender.' : 'The stone lands in the bailey. The defenders scatter.'; sfx('wall'); }
-  else if (q.type === 'greek') { const tired = Math.max(0.3, 1 - 0.1 * (CT.fireN || 0)); CT.fireN = (CT.fireN || 0) + 1; const e = 4.4 * tired; k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBurst(q.x, q.y, '#ff8c1a', 60); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(50); }
+  else if (q.type === 'greek') { const tired = Math.max(0.3, 1 - 0.1 * (CT.fireN || 0)); CT.fireN = (CT.fireN || 0) + 1; const e = 4.4 * tired; k = killDefenders(p, Math.floor(e) + (Math.random() < e % 1 ? 1 : 0)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: 7 }); ctBurst(q.x, q.y, '#ff8c1a', 60); CT.msg = empty ? 'Greek fire burns in an empty bailey.' : `Greek fire pours over the bailey, and water only spreads it! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('greek'); buzz(50); }
   else if (q.type === 'oil') { k = killDefenders(p, fireKills(q.small)); CT.oilKills = (CT.oilKills || 0) + k; CT.fires.push({ x: q.x, y: GY - 4, t: q.small ? 2.5 : 4 }); ctBurst(q.x, q.y, '#ff8c1a', q.small ? 22 : 44); CT.msg = empty ? 'Burning oil spatters an empty bailey. No one is left to burn.' : `${q.small ? 'Fire falls' : 'Burning oil rains'} on the bailey! ${k} defender${k === 1 ? '' : 's'} burned.`; sfx('fire'); buzz(q.small ? 20 : 40); }
   else if (q.type === 'rat') {
     ratNest(q.x, false); if (Math.random() < 0.12) ratPlague();
-    ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague');
+    ctBurst(q.x, q.y, RAT_COL, 8); sfx('plague'); sfx('rat');
     CT.msg = empty ? 'The rats land in an empty bailey and find nothing to eat.' : `Rats rain into the bailey and scurry for the stores. They bite as they run: watch the garrison shrink.${CT.plague ? ' The sickness spreads.' : ''}`;
   }
   else {
     ratNest(q.x, true); ratPlague();
-    ctBurst(q.x, q.y, RAT_COL, 26); sfx('plague'); buzz(40);
+    ctBurst(q.x, q.y, RAT_COL, 26); sfx('plague'); sfx('rat'); buzz(40);
     CT.msg = empty ? 'The giant rat thuds into an empty bailey.' : `A giant plague rat lands in the bailey! It savages the garrison as it runs, and the sickness takes hold (${['', 'mild', 'spreading', 'raging'][p.plague.s]}).`;
   }
   CT.killed += k;
@@ -179,7 +179,7 @@ function ctUpdate(dt) {
     if (!done && q.x > 705 && q.x < 755 && q.y > GY - 120) { ctHitInside(q); done = true; }
     if (!done && q.y >= GY) {
       if (q.x >= WXE && q.x <= 790) ctHitInside(q);
-      else if (CT.p.b.moat && q.x > moat0 && q.x < moat1) { ctBurst(q.x, GY, '#9fc3c8', 16); CT.msg = 'Splash! The shot falls into the moat.'; sfx('miss'); }
+      else if (CT.p.b.moat && q.x > moat0 && q.x < moat1) { ctBurst(q.x, GY, '#9fc3c8', 16); CT.msg = 'Splash! The shot falls into the moat.'; sfx('splash'); }
       else { ctBurst(q.x, GY, '#7a6a4a', 10); CT.msg = q.x < CT.wx ? 'Short! The shot ploughs into the field.' : 'Too long! It sails over the castle.'; sfx('miss'); }
       done = true;
     }

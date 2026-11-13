@@ -114,14 +114,17 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.15';
+const APP_VERSION = '6.16';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
+  const vol = key => `<div class="setrow volrow"><div class="l"><small>Volume</small></div><input type="range" min="0" max="100" step="5" value="${Math.round(volOf(key) * 100)}" aria-label="${key === 'musicVol' ? 'Music' : 'Effects'} volume" oninput="SET.${key}=this.value/100;sndVolumes()" onchange="saveSettings();${key === 'sfxVol' ? "sfx('coin')" : ''}"></div>`;
   showModal(`<h2>${ico('gear')} Settings</h2>
     <div class="setrow"><div class="l">Layout<small>Phone: map with a sliding sheet. Desktop: map with a sidebar.</small></div>${seg('layout', [['auto', 'Auto', 'auto'], ['phone', 'Phone', 'phone'], ['desktop', 'Desktop', 'desktop']])}</div>
-    <div class="setrow"><div class="l">Music<small>Lute, recorder and hurdy-gurdy, all synthesised</small></div>${sw('music')}</div>
-    <div class="setrow"><div class="l">Sound effects<small>Clashes, arrows, bells and horns</small></div>${sw('sfxOn')}</div>
+    <div class="setrow"><div class="l">Music<small>Composed as you play: an air for each season, and others for war, the fair, the siege and the crown</small></div>${sw('music')}</div>
+    ${SET.music ? vol('musicVol') : ''}
+    <div class="setrow"><div class="l">Sound effects<small>Stones, fire, rats, bells, horns, the march and the hammer</small></div>${sw('sfxOn')}</div>
+    ${SET.sfxOn ? vol('sfxVol') : ''}
     <div class="setrow"><div class="l">Tips for new players<small>Short hints on your first turns</small></div>${sw('hints')}</div>
     <div class="setrow"><div class="l">End-of-turn reminder<small>Warn when the army is idle or gold lies unspent</small></div>${sw('confirmEnd')}</div>
     <div class="setrow"><div class="l">Animations<small>Map movement and turn transitions</small></div>${sw('motion')}</div>
@@ -143,8 +146,8 @@ function setOpt(k, v) {
 function applySound() {
   const want = SET.music || SET.sfxOn;
   if (want !== SND.on) sndToggle();
-  if (SND.ctx) { SND.music.gain.value = SET.music ? 0.32 : 0; SND.sfx.gain.value = SET.sfxOn ? 0.6 : 0; }
-  if (SET.music && SND.ctx) setMusic(SND.want);
+  sndVolumes();
+  if (SND.ctx) { if (SET.music) setMusic(SND.want); else stopMusic(); }
 }
 function toggleSound() { SET.music = SET.sfxOn = !(SET.music || SET.sfxOn); saveSettings(); sndUnlock(); applySound(); toast(SET.music ? 'Sound on' : 'Sound off', SET.music ? 'sound' : 'mute'); }
 
@@ -231,7 +234,7 @@ const TITLE_NORTH = ['capet', 'charles', 'normandy', 'flanders', 'champagne', 'b
 function oldCampaign() { try { const o = localStorage.getItem('crownOfTheFranks987v7'); if (o && !JSON.parse(o).over) return true; for (let n = 1; n <= SLOTS; n++) { const s = readSlot(n); if (s && s.game && s.game.v === 7) return true; } } catch (e) { } return false; }
 function showTitle() {
   const s = loadSave();
-  const t = $('#title'); t.style.display = 'block';
+  const t = $('#title'); t.style.display = 'block'; setMusic('title');
   const card = f => `<div class="fcard" style="--c:${f.color}" onclick="openFaction('${f.id}')">${shield(f.id, 46)}<div style="min-width:0"><h3>${f.name}</h3><div class="r">${f.title} ${f.pname}</div><div class="b">${f.blurb}</div><div class="tr">${ico('star')}<span>${f.trait}</span></div></div></div>`;
   t.innerHTML = `<div class="tbg">${titleMap()}</div><div class="inner"><div class="ad">ANNO DOMINI CMLXXXVII</div><h1>Crown of the Franks</h1><div class="orn">❦</div>
     <div id="titlerank">${rankBox()}</div>
@@ -243,7 +246,7 @@ function showTitle() {
     <h2>The north</h2><div class="facs">${FACTIONS.filter(f => TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <h2>The south</h2><div class="facs">${FACTIONS.filter(f => !TITLE_NORTH.includes(f.id)).map(card).join('')}</div>
     <p class="ctr" style="color:#d9c9a3;font-style:italic;margin-top:18px">New games: ${GOALS[setGoal()].n.toLowerCase()} · ${DIFF[SET.diff || 'gentle'].n.toLowerCase()} rivals · change them on a house's page</p>
-    <div class="foot"><button onclick="openSaves()">Saved games</button><button onclick="openHelp()">How to play</button><button onclick="openSettings()">Settings</button><span>Tap anywhere to enable music</span></div>
+    <div class="foot"><button onclick="openSaves()">Saved games</button><button onclick="openHelp()">How to play</button><button onclick="openSettings()">Settings</button><span>Tap anywhere for sound</span></div>
     <p class="ctr" style="color:#e9d9ae;font-size:13px;letter-spacing:.06em;margin-top:10px;text-shadow:0 1px 2px #000">Version ${APP_VERSION}</p></div>`;
 }
 function diffSeg() {
@@ -264,8 +267,8 @@ function openFaction(fid) {
     <h3>The rival houses</h3>${diffSeg()}
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();startGame('${fid}')"><span class="lbl">${ico('flag')}Raise the banner of ${f.name}</span></button></div></div>`, '', { closable: true });
 }
-function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; noteDiff(); G.goal = setGoal(); G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
-function continueGame() { sndUnlock(); G = loadSave(); if (!G || G.v !== 8) { G = null; return showTitle(); } rebuildFmap(); ensureProvs(); if (!G.army) G.army = 'a0'; $('#title').style.display = 'none'; applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek'); }
+function startGame(fid) { sndUnlock(); newGame(fid); G.diff = SET.diff || 'gentle'; noteDiff(); G.goal = setGoal(); G.tut = SET.guided !== false ? { i: 0, did: {} } : null; $('#title').style.display = 'none'; setMusic('map'); applyLayout(); save(); render(); homeView(false); if (isPhone()) setSheet('peek'); showIntro(fid); }
+function continueGame() { sndUnlock(); G = loadSave(); if (!G || G.v !== 8) { G = null; return showTitle(); } rebuildFmap(); ensureProvs(); if (!G.army) G.army = 'a0'; $('#title').style.display = 'none'; setMusic('map'); applyLayout(); render(); homeView(false); if (isPhone()) setSheet('peek'); }
 
 // ================= SPLASH SCENES =================
 const LATIN = { franks: 'REX FRANCORUM', english: 'REX ANGLORUM', germans: 'REX TEUTONICORUM', italians: 'REX ITALIAE', danes: 'REX DANORUM', emperor: 'IMPERATOR AUGUSTUS' };
@@ -319,7 +322,7 @@ function showIntro(fid) {
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();render();hint('start');setTimeout(()=>hint('peace'),13000)">Raise the banners</button><button class="btn" onclick="openHelp()">How to play</button></div></div></div>`, 'splashcard');
 }
 function showCoronation(fid, kid, onDone) {
-  setMusic('battle'); sfx('bell'); setTimeout(() => sfx('victory'), 600); buzz(60);
+  setMusic('coronation'); sfx('bell'); setTimeout(() => sfx('cheer'), 900); buzz(60);
   const title = 'King of the Franks';
   const body = G.over && alive().length === 1
     ? `In ${dateStr(G.turn)}, the last rival house has fallen. At Reims the archbishop anoints ${FAC(fid).pname}, and there is no prince left to stand against him.`
