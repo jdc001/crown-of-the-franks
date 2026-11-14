@@ -276,6 +276,7 @@ return {
     rich: 'The rich land is in the south and east of England.',
     peace: () => `<p><b>The Truce of God.</b> For the first ${TRUCE} turns, while the winter seas are closed, the bishops forbid war between the great houses. Break the truce and you are excommunicated.</p>`,
     powers: `<p><b>Beyond the islands.</b> The hatched lands at the edge of the map are not for conquest.</p>
+      <p><b>The Northmen.</b> Longships from Norway raid the coasts of England and Normandy. The fewer of Norway\'s four counties you hold, the more often they come; hold all four and the raids stop.</p>
       <p><b>Sweyn of Denmark.</b> King Sweyn, Cnut's nephew, has a claim of his own. From the second year his fleets raid the east coast of England. Pay the Danegeld to send them away, or fight.</p>
       <p><b>Events.</b> Some things happened in 1066: the hairy star in spring, Tostig's raids on the coast, the papal banner sent to William, Hardrada's fleet, and the fyrd sent home for the harvest. The game follows them loosely.</p>`,
   },
@@ -338,6 +339,8 @@ return {
     },
   },
   tick() { britainTick(); },
+  // the longships that raid your coasts sail from Norway: hold its four counties and they stop coming
+  vikings: { home: ['bergen', 'stavanger', 'sogn', 'agder'], mineT: 'The fjords are yours', mine: 'Every harbour in Norway answers to you now. The longships that raided your coasts are your own ships, and the Northmen will not come raiding again.' },
   raider: {
     who: 'Sweyn of Denmark', title: "King Sweyn Estridsen, Cnut's nephew, who says England is his by right,", tribute: 'the Danegeld', every: 6, from: 5,
     targets: () => provList().filter(p => p.owner && !besiegerOf(p) && p.r === 'en' && p.seas.includes('north')),

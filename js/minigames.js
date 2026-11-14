@@ -157,9 +157,18 @@ function mineDraw(S) {
 const RW = 800, RH = 440, R_BEACH = 300, R_LAND = 420, R_VILL = 700, R_LANES = [70, 150, 230, 310, 390];
 // the Danes raid the Channel, the German Sea and Biscay coasts; Normandy's choice about its ports changes the odds
 const raiders = () => me() === 'denmark' ? 'Wendish pirates' : 'Northmen';
+// on a map with the Northmen's homeland on it, the longships come from there: hold it and the raids stop
+function northShare() {
+  const V = SC.vikings; if (!V) return 1;
+  const home = V.home.map(P).filter(Boolean); if (!home.length) return 1;
+  return home.filter(p => p.owner !== me()).length / home.length;
+}
 function maybeRaid() {
   if (G.raid || G.turn < 4 || G.over) return;
-  if (G.turn - (G.lastRaid || -99) < 7 || Math.random() > 0.08 * daneMult(me())) return;
+  const share = northShare();
+  if (share === 0 && SC.vikings && !G.ev.northMine) { G.ev.northMine = 1; if (!SC.vikings.home.every(id => G.start && G.start[id] === me())) report(SC.vikings.mineT, SC.vikings.mine); }
+  if (share > 0 && G.ev.northMine) G.ev.northMine = 0;
+  if (G.turn - (G.lastRaid || -99) < 7 || Math.random() > 0.08 * daneMult(me()) * share) return;
   const coast = owned(me()).filter(p => vikingCoast(p) && !besiegerOf(p));
   if (!coast.length) return;
   const p = coast.sort((a, b) => (fighters(a.gar) + a.militia) - (fighters(b.gar) + b.militia))[rnd(Math.min(3, coast.length))];
