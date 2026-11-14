@@ -149,8 +149,8 @@ const PROV = [
   ['kalisz', 'Kalisz', 18.09, 51.76, '', 0, 4, 'poland', 0, '', 'sl'],
   ['krakow', 'Kraków', 19.94, 50.06, '', 1, 6, 'poland', 1, '', 'sl'],
   ['wroclaw', 'Silesia', 17.03, 51.11, '', 0, 5, 'poland', 0, '', 'sl'],
-  ['plock', 'Masovia', 20.0, 52.5, '', 0, 4, 'poland', 0, '', 'sl'],
-  ['gdansk', 'Gdańsk', 18.5, 54.15, 'baltic', 0, 4, 'poland', 0, '', 'sl'],
+  ['plock', 'Masovia', 20.0, 52.5, '', 0, 4, null, 0, 'the Masovian lords', 'sl'],
+  ['gdansk', 'Gdańsk', 18.5, 54.15, 'baltic', 0, 4, null, 0, 'the Pomeranians of Gdańsk', 'sl'],
   ['kolobrzeg', 'Kołobrzeg', 15.8, 53.9, 'baltic', 0, 3, null, 0, 'Bishop Reinbern of Kołobrzeg', 'sl'],
   ['wolin', 'Wolin', 14.6, 53.6, 'baltic', 0, 4, null, 1, 'the Pomeranians of Wolin', 'sl'],
   ['lubusz', 'Lubusz', 14.9, 52.45, '', 0, 3, null, 0, 'the Lubusz lords', 'sl'],
@@ -172,7 +172,7 @@ const PROV = [
   ['lusatia', 'Bautzen', 14.43, 51.18, '', 1, 3, null, 0, 'the Milzeni', 'sl'],
   ['lausitz', 'Lower Lusatia', 13.9, 51.75, '', 0, 3, null, 0, 'the Lusici', 'sl'],
   // ---- the kingdom of Italy ----
-  ['pavia', 'Pavia', 9.16, 45.15, '', 0, 8, 'ivrea', 1, '', 'it'],
+  ['pavia', 'Pavia', 9.1, 45.0, '', 0, 8, 'ivrea', 1, '', 'it'],
   ['ivrea', 'Ivrea', 7.88, 45.47, '', 1, 4, 'ivrea', 1, '', 'it'],
   ['turin', 'Turin', 7.55, 44.95, '', 1, 5, null, 1, 'Margrave Olderic Manfred of Turin', 'it'],
   ['milan', 'Milan', 9.19, 45.6, '', 0, 8, null, 1, 'Archbishop Arnulf of Milan', 'it'],
@@ -290,6 +290,8 @@ return {
     rules: 'The empty throne is filled, and the kingdom of the Germans has one master again.',
   },
   founder: 'Charlemagne',
+  // the map is wide and the houses far apart, so the princes league sooner against a runaway house
+  league: 0.22,
   pnames: ['Conrad', 'Otto', 'Henry', 'Bruno', 'Liudolf', 'Ekkehard', 'Dietrich', 'Gero', 'Hermann', 'Udo', 'Adalbert', 'Wichmann', 'Berengar', 'Lambert', 'Ulrich'],
   houseOf: f => f.houseTxt,
   groups: [['The German princes', ['bavaria', 'swabia', 'saxony', 'meissen', 'carinthia']], ['Lotharingia', ['lorraine', 'upperlorraine']], ['The Slavs', ['poland', 'bohemia']], ['Italy', ['ivrea', 'canossa', 'crescentii']], ['The Lombard south', ['benevento', 'salerno']]],
@@ -402,7 +404,7 @@ function empireTick() {
   }
   // Spring 1002: Bolesław marches west and takes the Milzeni and the Lusici
   if (T === 1 && !E.boleslaw && alv('poland')) {
-    E.boleslaw = 1; const A = lordArmy('poland'); if (armyUsable('poland', A)) { A.foot += 6; A.cav += 3; }
+    E.boleslaw = 1; const A = lordArmy('poland'); if (armyUsable('poland', A)) A.foot += 3;
     const took = ['lusatia', 'lausitz'].map(P).filter(p => p && !p.owner && !p.ally);
     for (const p of took) { p.owner = 'poland'; p.gar = { foot: 3, bow: 1, cav: 1, cat: 0 }; p.militia = levyMax(p); }
     tell('poland', 'West to the Elbe', `With Eckard dead, your army crosses into the marches.${took.length ? ` ${took.map(p => p.name).join(' and ')} open their gates to you.` : ''} The Polish host is ready for more.`);

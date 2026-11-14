@@ -245,7 +245,6 @@ function renderOverlay() {
     const T = (dx, dy, inner) => `<g class="pin" transform="translate(${(p.x + dx * s).toFixed(1)},${(p.y + dy * s).toFixed(1)}) scale(${s.toFixed(2)})">${inner}</g>`;
     if (p.b.castle) o += T(0, -6, castleIcon(p));
     if (holds(me(), p.id) && (garMen(p) || p.gar.cat)) { const n = garMen(p), w = n > 99 ? 32 : n > 9 ? 25 : 19; o += T(-27, 0, `<g class="garb"><path d="M${-w / 2},-11 H${w / 2} V3 Q${w / 2},10 0,13 Q${-w / 2},10 ${-w / 2},3 Z" fill="#f3e8cc" stroke="#2a1d12" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle">${n}</text></g>`); }
-    if (isCap(p)) o += T(0, -32, mapIco('crown', 0, 0, 24));
     if (p.heiress) o += T(-30, -2, mapIco('ring', 0, 0, 21));
     if (p.build && (far < 1 || holds(me(), p.id))) o += T(28, 0, mapIco('hammer', 0, 0, 18, 'style="color:#5c4630"'));
     if (p.plague) o += T(-28, -20, mapIco('skull', 0, 0, 18, 'style="color:#3f4a1f"'));
@@ -256,6 +255,9 @@ function renderOverlay() {
   // names: when the map is zoomed out there is no room for all of them, so the important ones are placed first
   // (the chosen county, seats, your own lands, the richer counties) and a name that would overlap one is left out
   const selId = G.sel && G.sel[0] === 'p' ? G.sel.slice(2) : null, placed = [];
+  // seats' crowns are placed first, so no county name is written over them (Pavia sits right under Milan)
+  const caps = provList().filter(isCap);
+  for (const p of caps) placed.push([p.x - 14 * s, p.y - 46 * s, 28 * s, 26 * s]);
   const rank = p => (p.id === selId ? 1000 : 0) + (isCap(p) ? 500 : 0) + (holds(me(), p.id) ? 200 : 0) + (p.owner ? 50 : 0) + castleLv(p) * 10 + p.base;
   for (const p of provList().slice().sort((a, b) => rank(b) - rank(a))) {
     const cap = isCap(p), w = p.name.length * (cap ? 10.4 : 9.2) * s + 6 * s, h = 17 * s, x0 = p.x - w / 2, y0 = p.y + 30 * s - h * 0.8;
@@ -264,6 +266,8 @@ function renderOverlay() {
     const cls = 'lbl' + (cap ? ' cap' : '') + (holds(me(), p.id) ? ' mine' : '');
     o += `<g class="pin" transform="translate(${p.x.toFixed(1)},${(p.y + 30 * s).toFixed(1)}) scale(${s.toFixed(2)})"><text class="${cls}" text-anchor="middle">${p.name}</text></g>`;
   }
+  // crowns go on top of the castles, garrisons and names of the counties around them
+  for (const p of caps) o += `<g class="pin" transform="translate(${p.x.toFixed(1)},${(p.y - 32 * s).toFixed(1)}) scale(${s.toFixed(2)})">${mapIco('crown', 0, 0, 24)}</g>`;
   const at = {};
   for (const fid in G.armies) {
     if (!G.fac[fid].alive) continue;

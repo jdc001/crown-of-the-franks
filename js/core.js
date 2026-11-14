@@ -931,7 +931,7 @@ function maybeLeague() {
   const counts = alive().map(f => [f, provList().filter(p => holds(f, p.id)).length]).sort((a, b) => b[1] - a[1]);
   if (counts.length < 3) return;
   const [L, lc] = counts[0];
-  if (lc < PROV.length * 0.27) return;
+  if (lc < PROV.length * (SC.league || 0.27)) return;
   const members = alive().filter(f => f !== L && f !== G.player && !atPeace(f, L));
   if (members.length < 2) return;
   G.lastUnion = G.turn;
