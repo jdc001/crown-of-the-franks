@@ -2,80 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Anointed">
-<meta name="theme-color" content="#1a120b">
-<meta name="description" content="Anointed, a turn-based strategy game of crowns and succession: France in 987, the Empire in 1002 and England in 1066.">
-<title>Anointed</title>
-<link rel="manifest" href="manifest.webmanifest">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Anointed has moved</title>
+<meta http-equiv="refresh" content="3;url=https://jdc001.github.io/Anointed/">
+<link rel="canonical" href="https://jdc001.github.io/Anointed/">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<style>
+  html,body{margin:0;height:100%;background:#1a120b;color:#f3e8cc;font-family:Georgia,'Times New Roman',serif}
+  main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box;gap:14px}
+  img{width:120px;height:120px;border-radius:26px;box-shadow:0 6px 24px #000a}
+  h1{font-size:30px;margin:6px 0 0;color:#f1d58c;letter-spacing:.04em}
+  p{font-size:17px;line-height:1.5;max-width:30em;margin:0}
+  a.go{display:inline-block;margin-top:6px;padding:12px 22px;border-radius:10px;background:#e2b33c;color:#2a1d12;text-decoration:none;font-weight:700}
+  small{opacity:.75;font-size:14px}
+</style>
 </head>
 <body>
-<div id="app">
-  <header id="hdr"></header>
-  <div id="main">
-    <div id="mapwrap">
-      <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg>
-      <div id="tip" class="tip hidden"></div>
-      <div id="mapctl">
-        <button class="ctl" onclick="zoomBtn(0.75)" aria-label="Zoom in"><svg class="ic"><use href="#i-plus"/></svg></button>
-        <button class="ctl" onclick="zoomBtn(1.33)" aria-label="Zoom out"><svg class="ic"><use href="#i-minus"/></svg></button>
-        <button class="ctl" onclick="homeView(true)" aria-label="My lands"><svg class="ic"><use href="#i-home"/></svg></button>
-      </div>
-      <div id="legend" class="hidden"></div>
-    </div>
-    <aside id="panel">
-      <div id="grip"><span></span></div>
-      <div id="pbody"></div>
-    </aside>
-  </div>
-  <nav id="dock"></nav>
-</div>
-<div id="turnov" class="hidden"></div>
-<div id="modal" class="modal hidden"><div class="card" id="mcard"></div></div>
-<div id="drawer" class="hidden"></div>
-<div id="title"></div>
-<div id="toast"></div>
-<div id="hintbox" class="hidden"></div>
-<script src="js/bugs.js"></script>
-<script src="js/icons.js"></script>
-<script src="js/scenario.js"></script>
-<script src="js/map-france.js"></script>
-<script src="js/map-britain.js"></script>
-<script src="js/map-empire.js"></script>
-<script src="js/data.js"></script>
-<script src="js/core.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/ai.js"></script>
-<script src="js/powers.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/view.js"></script>
-<script src="js/map.js"></script>
-<script src="js/mapart.js"></script>
-<script src="js/panels.js"></script>
-<script src="js/dialogs.js"></script>
-<script src="js/scenes.js"></script>
-<script src="js/store.js"></script>
-<script src="js/saves.js"></script>
-<script src="js/replay.js"></script>
-<script src="js/tutor.js"></script>
-<script src="js/minigames.js"></script>
-<script src="js/dealings.js"></script>
-<script src="js/diplomacy.js"></script>
-<script src="js/stats.js"></script>
-<script src="js/heraldry.js"></script>
-<script src="js/ending.js"></script>
-<script src="js/battleview.js"></script>
-<script src="js/catapult.js"></script>
-<script src="js/difficulty.js"></script>
-<script src="js/app.js"></script>
+<main>
+  <img src="icon-512.png" alt="">
+  <h1>Anointed has moved</h1>
+  <p>The game now lives at <b>jdc001.github.io/Anointed</b>. Your campaigns, trophies and settings come with you.</p>
+  <a class="go" id="go" href="https://jdc001.github.io/Anointed/">Go to Anointed</a>
+  <small>On an iPhone or iPad, add the new page to your Home Screen from Safari, and remove this old icon.</small>
+</main>
+<script>
+// retire this site's offline copy, then go to the new address (keeping ?map= and the like)
+(async () => {
+  const to = 'https://jdc001.github.io/Anointed/' + location.search + location.hash;
+  document.getElementById('go').href = to;
+  try {
+    if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) if (r.scope.includes('/crown-of-the-franks/')) await r.unregister();
+    if (window.caches) for (const k of await caches.keys()) if (k.startsWith('cotf-')) await caches.delete(k);
+  } catch (e) { }
+  setTimeout(() => location.replace(to), 1200);
+})();
+</script>
 </body>
 </html>
