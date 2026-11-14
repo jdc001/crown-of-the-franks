@@ -4,6 +4,8 @@ const LAST_KEY = 'cotf-lastgame';
 // a finished game belongs to its own map: its names, dates and coastline come from there, not from the map now open
 const mapOfGame = S => MAPS[(S && S.map) || 'france'] || SC;
 const onThisMap = L => !!L && (L.map || 'france') === MAP_ID && (L.ids || []).every(id => CELLD[id]);
+// a house as it was on the map its game was played on
+const houseOfGame = (id, map) => ((MAPS[map || 'france'] || SC).FACTIONS.find(f => f.id === id)) || FACMAP[id] || null;
 const latinTitle = M => M.crown.latin.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
 // ---------- the ending ----------
@@ -61,10 +63,11 @@ function statsGame(S, L) {
   const m = S.m || {}, P = profile();
   let h = `<h3>${S.won ? 'Victory' : 'Defeat'} · ${esc(S.name)}</h3><p class="sub">${S.won ? (S.how === 'conquest' ? 'Every rival broken' : `${mapOfGame(S).crown.crowned[0].toUpperCase() + mapOfGame(S).crown.crowned.slice(1)} with half the kingdom`) : S.winner ? `The crown went to ${esc(FACMAP[S.winner] ? FACMAP[S.winner].name : 'a rebel house')}` : 'Your house fell'} · ${S.year} · ${S.turns} turns · ${DIFF[S.diff] ? DIFF[S.diff].n : ''} rivals${S.challenge ? ' · challenge' : ''}</p>`;
   if (S.rankAfter > S.rankBefore) h += `<div class="notebox good rankup">${myAchievement(70, { noScroll: true })}<div><b>You rise to ${RANKS[S.rankAfter].n}!</b><br><span class="sub">Unlocked: ${RANKS[S.rankAfter].unlock}.</span></div></div>`;
+  else if (S.honour) h += `<div class="notebox good">${ico('star')} <b>An honour: ${esc(S.honour)}.</b> <span class="sub">${(() => { const ho = honourOf(profile().points); return ho.next ? `${ho.n} of 3 honours toward ${RANKS[ho.r + 1].n}.` : `The way to ${RANKS[ho.r + 1] ? RANKS[ho.r + 1].n : 'the next rank'} is open.`; })()}</span></div>`;
   if (S.trophies && S.trophies.length) h += `<div class="notebox good">${ico('star')} <b>New trophies:</b> ${S.trophies.map(id => { const t = TROPHIES.find(x => x.id === id); return t ? `${t.n} (${t.pts})` : id; }).join(', ')}</div>`;
   h += `<p class="sub">+${S.points || 0} points this game.</p>`;
   if (L) {
-    if (onThisMap(L)) h += `<h3>The kingdom, turn by turn</h3><div class="lapse"><svg id="lapse" viewBox="0 0 ${MW} ${MH}"></svg><div class="lapsebar"><button class="btn sm" onclick="playLapse()">${ico('next')}Replay</button><span id="lapseyr"></span></div></div>`;
+    if (onThisMap(L)) h += `<h3>The kingdom, turn by turn</h3><div class="lapse"><svg id="lapse" viewBox="0 0 ${MW} ${MH}"></svg><div class="lapsebar"><button class="btn sm" onclick="playLapse()">${ico('next')}Replay</button><button class="btn sm ghost" onclick="lapseFit()">Whole map</button><span id="lapseyr"></span></div><p class="sub zhint">Pinch or scroll to zoom, drag to look around.</p></div>`;
     else h += `<p class="sub">This game was played on ${esc(mapOfGame(L).name)}. Open that map from the title screen to watch it again, turn by turn.</p>`;
     h += `<h3>Counties held</h3>${territoryChart(L)}`;
     const others = L.houses.filter(x => x.id !== L.player && x.c.some(v => v > 0));
@@ -102,11 +105,12 @@ function territoryChart(L) {
 let LAPSE = null;
 function playLapse(L) {
   L = L || loadJ(LAST_KEY, null); const svg = document.getElementById('lapse'); if (!L || !svg || !onThisMap(L)) return;
+  lapseControls();
   if (LAPSE) clearInterval(LAPSE);
   const cols = L.houses.map(h => h.col);
   if (!svg.childElementCount) svg.innerHTML = `<defs><clipPath id="lapseclip"><path d="${LANDS.map(pathOf).join(' ')}"/></clipPath></defs><rect width="${MW}" height="${MH}" fill="#9fc3c8"/>` + LANDS.map(l => `<path d="${pathOf(l)}" fill="#d8cba5"/>`).join('') + `<g clip-path="url(#lapseclip)">${L.ids.map(id => `<path d="${CELLD[id]}" data-c="${id}" stroke="#5c4630" stroke-width="1.2"/>`).join('')}</g>`;
   const cells = [...svg.querySelectorAll('[data-c]')];
-  const frames = L.own.map((s, t) => [t, s]).filter(x => x[1]);
+  const frames = L.own.map((s, t) => [t, s]).filter(x => x[1]); if (!frames.length) return;
   let i = 0;
   const step = () => {
     const [t, s] = frames[i];
@@ -120,10 +124,10 @@ function playLapse(L) {
 function statsHistory(H) {
   if (!H.length) return '<p class="sub">Your finished games will be listed here.</p>';
   const wins = H.filter(g => g.won).length, by = {};
-  for (const g of H) { const b = by[g.house] = by[g.house] || { n: 0, w: 0 }; b.n++; if (g.won) b.w++; }
+  for (const g of H) { const key = (g.map || 'france') + ':' + g.house, b = by[key] = by[key] || { n: 0, w: 0, d: houseOfGame(g.house, g.map), map: g.map || 'france' }; b.n++; if (g.won) b.w++; }
   let h = `<h3>Your games</h3><p>${H.length} finished · ${wins} won · ${Math.round(wins / H.length * 100)}% won</p>
-    <div class="byhouse">${Object.keys(by).map(k => `<span class="tag">${FACMAP[k] ? armsSvg(FACMAP[k].arms, 14) : ''} ${FACMAP[k] ? esc(FACMAP[k].name) : k} ${by[k].w}/${by[k].n}</span>`).join('')}</div>
-    <div class="glist">${H.slice().reverse().map(g => `<div class="gitem${g.won ? ' won' : ''}">${FACMAP[g.house] ? armsSvg(FACMAP[g.house].arms, 26) : ''}<div style="min-width:0"><b>${esc(g.name)}</b> <span class="${g.won ? 'good' : 'bad'}">${g.won ? (g.how === 'conquest' ? 'conquest' : 'crowned') : 'lost'}</span><small>${new Date(g.when).toLocaleDateString()} · ${g.year} · ${g.turns} turns · ${DIFF[g.diff] ? DIFF[g.diff].n : ''}${g.challenge ? ' · challenge' : ''}</small></div><div class="pw"><b>+${g.points || 0}</b>pts</div></div>`).join('')}</div>`;
+    <div class="byhouse">${Object.keys(by).map(k => { const b = by[k], d = b.d; return `<span class="tag">${d ? armsSvg(d.arms, 14) : ''} ${d ? esc(d.name) : esc(k.split(':')[1])}${b.map !== 'france' && MAPS[b.map] ? ` <small>${MAPS[b.map].date.y0}</small>` : ''} ${b.w}/${b.n}</span>`; }).join('')}</div>
+    <div class="glist">${H.slice().reverse().map(g => `<div class="gitem${g.won ? ' won' : ''}">${houseOfGame(g.house, g.map) ? armsSvg(houseOfGame(g.house, g.map).arms, 26) : ''}<div style="min-width:0"><b>${esc(g.name)}</b> <span class="${g.won ? 'good' : 'bad'}">${g.won ? (g.how === 'conquest' ? 'conquest' : 'crowned') : 'lost'}</span><small>${new Date(g.when).toLocaleDateString()} · ${g.year} · ${g.turns} turns · ${DIFF[g.diff] ? DIFF[g.diff].n : ''}${g.challenge ? ' · challenge' : ''}</small></div><div class="pw"><b>+${g.points || 0}</b>pts</div></div>`).join('')}</div>`;
   return h;
 }
 const STAT_KEYS = [['Turns played', S => S.turns, 'turns'], ['Most counties', S => S.m.peakC], ['Battles won', S => S.m.won], ['Battles lost', S => S.m.lost, 'less'], ['Counties taken', S => S.m.taken], ['Enemies killed', S => S.m.kills], ['Men lost', S => S.m.menLost, 'less'], ['Lords captured', S => S.m.lords], ['Ransoms collected', S => S.m.ransomGold], ['Castles raised', S => S.m.castles], ['Largest treasury', S => S.m.peakG], ['Pacts and alliances', S => (S.m.pacts || 0) + (S.m.alliances || 0)]];
@@ -165,7 +169,7 @@ function shareGame() {
   const L = loadJ(LAST_KEY, null), P = profile(), r = rankOf(P.points);
   shareCard(async x => {
     const im = await svgImg(myAchievement(300)); if (im) x.drawImage(im, 120, 220, 300, 333);
-    if (FACMAP[S.house]) { const hs = await svgImg(armsSvg(FACMAP[S.house].arms, 200)); if (hs) x.drawImage(hs, 680, 250, 200, 240); }
+    if (houseOfGame(S.house, S.map)) { const hs = await svgImg(armsSvg(houseOfGame(S.house, S.map).arms, 200)); if (hs) x.drawImage(hs, 680, 250, 200, 240); }
     x.fillStyle = '#2a1d12'; x.font = '700 50px Cinzel, Georgia, serif';
     x.fillText(S.won ? latinTitle(mapOfGame(S)) : 'The crown escapes me', 540, 640);
     x.font = '36px Georgia, serif'; x.fillStyle = '#5c4630';
@@ -219,3 +223,28 @@ function challengeBox() {
 // ---------- the title: your rank ----------
 function rankBox() { const P = profile(), r = rankOf(P.points), nx = RANKS[r + 1]; return `<div class="rankbox" style="border-color:${RANKS[r].col}" onclick="openMedals('rank')">${myAchievement(96)}<div style="min-width:0"><div class="rk">${RANKS[r].n}</div><small>${P.points} points${nx ? ` · ${nx.n} at ${nx.at}` : ''}</small><small>${Object.keys(P.trophies).length} of ${TROPHIES.length} trophies</small><span class="btn sm"><span class="lbl">${ico('crown')}Medals and arms</span></span></div></div>`; }
 function refreshTitleRank() { const el = document.getElementById('titlerank'); if (el) el.innerHTML = rankBox(); }
+
+// the replay map: the whole kingdom at first, then pinch, scroll and drag to look closer
+const LZ = { x: 0, y: 0, w: 0, h: 0 };
+function lapseView(svg) { svg.setAttribute('viewBox', `${LZ.x} ${LZ.y} ${LZ.w} ${LZ.h}`); }
+function lapseFit() { const svg = document.getElementById('lapse'); if (!svg) return; Object.assign(LZ, { x: 0, y: 0, w: MW, h: MH }); lapseView(svg); }
+function lapseZoomAt(svg, k, cx, cy) {
+  const r = svg.getBoundingClientRect(), s = Math.max(LZ.w / r.width, LZ.h / r.height);
+  const ox = (r.width - LZ.w / s) / 2, oy = (r.height - LZ.h / s) / 2, mx = LZ.x + (cx - r.left - ox) * s, my = LZ.y + (cy - r.top - oy) * s;
+  const w = clamp(LZ.w * k, MW / 8, MW), h = w * MH / MW;
+  LZ.x = clamp(mx - (mx - LZ.x) * w / LZ.w, -MW * 0.1, MW - w * 0.9); LZ.y = clamp(my - (my - LZ.y) * h / LZ.h, -MH * 0.1, MH - h * 0.9); LZ.w = w; LZ.h = h; lapseView(svg);
+}
+function lapseControls() {
+  const svg = document.getElementById('lapse'); if (!svg || svg._z) return; svg._z = true; lapseFit();
+  const pts = new Map(); let last = null, pinch = 0;
+  svg.addEventListener('wheel', e => { e.preventDefault(); lapseZoomAt(svg, e.deltaY > 0 ? 1.15 : 0.87, e.clientX, e.clientY); }, { passive: false });
+  svg.addEventListener('pointerdown', e => { svg.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY]; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  svg.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) lapseZoomAt(svg, pinch / d, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); pinch = d; return; }
+    const r = svg.getBoundingClientRect(), s = Math.max(LZ.w / r.width, LZ.h / r.height);
+    LZ.x = clamp(LZ.x - (e.clientX - last[0]) * s, -MW * 0.1, MW - LZ.w * 0.9); LZ.y = clamp(LZ.y - (e.clientY - last[1]) * s, -MH * 0.1, MH - LZ.h * 0.9); last = [e.clientX, e.clientY]; lapseView(svg);
+  });
+  const up = e => { pts.delete(e.pointerId); pinch = 0; if (pts.size === 1) last = [...pts.values()][0]; };
+  svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+}

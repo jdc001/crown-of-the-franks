@@ -151,13 +151,13 @@ function crownsHtml() {
   let h = '';
   if (isKing(me())) {
     const n = crownIncome(me());
-    h += `<div class="statcard on"><b>${ico('crown')} ${SC.crown.title}</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack${owned(me()).length >= KING_ARMY3 ? ', and a third army' : `. A third army once you hold ${KING_ARMY3} counties`}</li></ul></div>`;
+    h += `<div class="statcard on"><b>${ico('crown')} ${SC.crown.title}</b><ul><li>+1 d from each of your ${n} counties in the kingdom: <b>+${n} d a turn</b></li><li>Double levies there</li><li>The royal host: +10% attack</li><li>Lesser lords swear to you for a third less</li></ul></div>`;
     return h;
   }
   if (k) h += `<p>${ico('crown')} The crown is worn by <b>${esc(FAC(k).pname)}</b>. ${SC.crown.take}</p>`;
   else h += `<p>${ico('crown')} No one wears ${SC.crown.the}.</p>`;
   const need = crownNeeds(me());
-  h += `<div class="statcard"><b>The coronation</b><br>${SC.crown.coronation} You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">A prince who holds ${CROWN_GREAT} counties of the kingdom needs only ${P(SC.kingdom.keys[0]).name}: the bishops cannot refuse him.</span><br><span class="sub">The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he fields a third army.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be ${SC.crown.crowned}</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
+  h += `<div class="statcard"><b>The coronation</b><br>${SC.crown.coronation} You need ${need.map(id => `<b>${P(id).name}</b> ${P(id).owner === me() ? '<span class="good">(held)</span>' : '<span class="bad">(not held)</span>'}`).join(' and ')}, and at least ${CROWN_LANDS} counties of the kingdom (you hold ${domainHeld(me())}).${me() === 'charles' ? ' <span class="sub">As a Carolingian, Laon serves you for Paris.</span>' : ''}<br><span class="sub">A prince who holds ${CROWN_GREAT} counties of the kingdom needs only ${P(SC.kingdom.keys[0]).name}: the bishops cannot refuse him.</span><br><span class="sub">The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and lesser lords swear to him for a third less.</span>${canCrown(me()) ? `<br><button class="btn gold" onclick="doCrown('franks')" ${F.gold >= CROWN_COST ? '' : 'disabled'}><span class="lbl">${ico('crown')}Be ${SC.crown.crowned}</span><small>${CROWN_COST} d for the coronation</small></button>` : ''}</div>`;
   return h;
 }
 function prisonersHtml() {
@@ -245,10 +245,10 @@ function goalHtml(held) {
   if (g === 'king') {
     const crowned = wears(me()), dh = domainHeld(me()), dn = domainNeed(), k = king();
     return `<p>${GOALS.king.d}</p>
-      <p>${ico('crown')} Crown: ${crowned ? '<span class="good">anointed</span>' : holdsCrownSeat(me()) ? `<span class="good">you hold ${crownNeeds(me()).map(id => P(id).name).join(' and ')}</span>` : `${k ? `worn by ${esc(FAC(k).pname)}` : 'no one wears it'}; <span class="bad">or hold ${crownNeeds(me()).map(id => P(id).name).join(' and ')}</span>`}</p>
+      <p>${ico('crown')} ${winSeats(me()).map(id => `${P(id).name} ${P(id).owner === me() ? '<span class="good">held</span>' : '<span class="bad">not held</span>'}`).join(' · ')}${crowned ? ' · <span class="good">anointed</span>' : k ? ` · the crown is worn by ${esc(FAC(k).pname)}` : ''}</p>
       <p>${ico('map')} Your own counties in the kingdom: ${dh} of ${dn}</p><div class="bar"><i style="width:${pct(Math.min(dh, dn), dn)}%"></i></div>
       ${(() => { const r = greatRival(me()), rh = r ? domainHeld(r) : 0, ok = rh <= rivalCap(); return r ? `<p>${ico('swords')} Your greatest rival: ${esc(FAC(r).name)}, with ${rh} counties. ${ok ? '<span class="good">No rival holds more than ' + rivalCap() + '.</span>' : `<span class="bad">Bring every rival down to ${rivalCap()} or fewer.</span>`}</p>` : ''; })()}
-      <p class="sub">The first house to have all three wins, and is crowned as it wins: there is no need to hold a coronation first.${k && k !== me() ? ` The king holds ${domainHeld(k)} of the kingdom's counties.` : ''}</p>${size}`;
+      <p class="sub">The first house to have all three wins, and is crowned as it wins: there is no need to hold a coronation first.${G.playOn && goalMet(me()) ? `<br><button class="btn gold" onclick="claimWin()"><span class="lbl">${ico('crown')}Claim the victory</span></button>` : ''}${k && k !== me() ? ` The king holds ${domainHeld(k)} of the kingdom's counties.` : ''}</p>${size}`;
   }
   return `<p>${GOALS.conquest.d} <b>${rivals}</b> rival house${rivals === 1 ? '' : 's'} still stand${rivals === 1 ? 's' : ''}.</p>${fall}<p class="sub">You hold ${domainHeld(me())} of the kingdom's ${FRANCE.length} counties.</p><div class="bar"><i style="width:${pct(domainHeld(me()), FRANCE.length)}%"></i></div>${size}`;
 }
@@ -629,7 +629,7 @@ function doRansom() {
   save(); render(); showReports();
 }
 function doOffer(fid, yes) { answerOffer(fid, yes); if (yes) sfx('coin'); save(); render(); showReports(); }
-function doCrown(k) { if (crown(me(), k)) { G.reports = G.reports.filter(r => r.title !== 'Long live the king!'); if (G.over) { render(); return showReports(); } save(); render(); showCoronation(me(), k); } }
+function doCrown(k) { if (crown(me(), k)) { G.reports = G.reports.filter(r => r.title !== 'Long live the king!'); if (G.over || G.askWin) { render(); return showReports(); } save(); render(); showCoronation(me(), k); } }
 function doPact(f) { const r = marriagePact(me(), f); if (r) { sfx(r.ok ? 'bell' : 'miss'); report(r.ok ? 'A marriage pact' : 'Proposal refused', r.text); save(); render(); showReports(); } }
 
 // ================= END OF TURN =================

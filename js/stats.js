@@ -50,7 +50,7 @@ function statsSnap() {
   wrap('capture', (o, p, fid) => {
     const seat = isCap(p), castle = !!p.b.castle, prev = p.owner;
     const r = o(p, fid);
-    if (fid === G.player) { statInc('taken'); if (castle) statInc('castlesTaken'); if (seat && prev) statInc('seats'); }
+    if (fid === G.player) { statInc('taken'); if (castle) statInc('castlesTaken'); if (seat && prev) statInc('seats'); if (prev === 'byzantium') statInc('byz'); }
     return r;
   });
   wrap('loseArmy', (o, fid, a, captor) => {
@@ -76,6 +76,7 @@ function statsSnap() {
   wrap('autoFair', (o, stake) => { const g0 = G.fac[me()].gold; const r = o(stake); statInc('fairProfit', Math.max(0, G.fac[me()].gold - g0)); return r; });
   wrap('mineOutcome', (o, p, A, reached, ...a) => { if (reached) statInc('mines'); return o(p, A, reached, ...a); });
   wrap('raidOutcome', (o, repelled, plundered, lost) => { if (repelled > 0 && !plundered) statInc('raids'); return o(repelled, plundered, lost); });
+  wrap('raiderStrike', (o, p, n) => { const own = p.owner; const r = o(p, n); if (own === G.player && r && !r.won) statInc('raider'); return r; });
   wrap('almanzorStrike', (o, p, n) => { const own = p.owner; const r = o(p, n); if (own === G.player && r && !r.won) statInc('almanzor'); return r; });
   wrap('finishCatapult', (o) => { if (CT && SM()) { const m = SM(); m.ratBest = Math.max(m.ratBest, CT.ratKills || 0); m.oilBest = Math.max(m.oilBest, CT.oilKills || 0); } return o(); });
 })();
@@ -108,16 +109,32 @@ function careerMerge(c) {
 // ---------- ranks ----------
 const RANKS = [
   { id: 'seigneur', n: 'Seigneur', at: 0, col: '#8a6a3a', unlock: 'Your own coat of arms' },
-  { id: 'baron', n: 'Baron', at: 60, col: '#9aa3ad', unlock: "A baron's coronet and a silver border" },
-  { id: 'viscount', n: 'Viscount', at: 160, col: '#3d7a4a', unlock: 'Supporters: lions or hounds' },
-  { id: 'count', n: 'Count', at: 300, col: '#2f5aa8', unlock: "A count's coronet, and stags or wolves as supporters" },
-  { id: 'marquis', n: 'Marquis', at: 480, col: '#7a3f8f', unlock: 'A laurel wreath, and griffins' },
-  { id: 'duke', n: 'Duke', at: 700, col: '#a3222c', unlock: "A ducal coronet, a mantle of estate, and unicorns" },
-  { id: 'king', n: 'King', at: 960, col: '#e2b33c', unlock: 'A royal crown, an ermine mantle, and eagles' },
-  { id: 'emperor', n: 'Emperor', at: 1260, col: '#5a1f6e', unlock: 'The imperial crown and golden laurels' },
+  { id: 'baron', n: 'Baron', at: 50, col: '#9aa3ad', unlock: "A baron's coronet and a silver border" },
+  { id: 'viscount', n: 'Viscount', at: 150, col: '#3d7a4a', unlock: 'Supporters: lions or hounds' },
+  { id: 'count', n: 'Count', at: 320, col: '#2f5aa8', unlock: "A count's coronet, and stags or wolves as supporters" },
+  { id: 'marquis', n: 'Marquis', at: 620, col: '#7a3f8f', unlock: 'A laurel wreath, and griffins' },
+  { id: 'duke', n: 'Duke', at: 1050, col: '#a3222c', unlock: "A ducal coronet, a mantle of estate, and unicorns" },
+  { id: 'king', n: 'King', at: 1650, col: '#e2b33c', unlock: 'A royal crown, an ermine mantle, and eagles' },
+  { id: 'emperor', n: 'Emperor', at: 2500, col: '#5a1f6e', unlock: 'The imperial crown and golden laurels' },
 ];
 const rankOf = pts => { let r = 0; RANKS.forEach((k, i) => { if (pts >= k.at) r = i; }); return r; };
 const rankNow = () => RANKS[rankOf(profile().points)];
+// between two ranks, three honours mark the way: the first ranks come quickly, the high ones take many campaigns
+const HONOURS = [
+  ["A knight's spurs", 'A seat at the high table', 'Your banner in the hall'],
+  ['Witness to a royal charter', 'A pilgrimage to Compostela', 'A gift of hawks from the king'],
+  ['Steward of the household', 'A fief in the march', 'Keeper of a royal castle'],
+  ['Envoy to the Pope', 'Founder of an abbey', 'Marshal of the host'],
+  ['Chancellor of the realm', 'A relic for your chapel', 'Guardian of a young prince'],
+  ['Envoy to Constantinople', 'Peer of the realm', 'Regent of the kingdom'],
+  ['Crowned in a second kingdom', 'Protector of the Holy See', 'Hailed as Augustus'],
+];
+// honours held at a score: 0 to 3 within the current rank, and the next one's name and threshold
+function honourOf(pts) {
+  const r = rankOf(pts), a = RANKS[r], b = RANKS[r + 1]; if (!b) return { r, n: 0, next: null };
+  const step = (b.at - a.at) / 4, n = Math.min(3, Math.floor((pts - a.at) / step));
+  return { r, n, names: HONOURS[r], next: n < 3 ? { name: HONOURS[r][n], at: Math.round(a.at + step * (n + 1)) } : null };
+}
 
 // ---------- trophies ----------
 // test(S, P) gets the game summary and the profile; points are worth more the stranger the feat
@@ -131,7 +148,7 @@ const TROPHIES = [
   ...Object.keys(HOUSE_TROPHY_1066).map(h => ({ id: 'win66_' + h, n: HOUSE_TROPHY_1066[h][0], d: `Win as ${MAPS.britain.FACTIONS.find(f => f.id === h).name}, in 1066.`, pts: HOUSE_TROPHY_1066[h][1], kind: 'house', test: S => S.won && S.house === h && S.map === 'britain' })),
   ...Object.keys(HOUSE_TROPHY_1002).map(h => ({ id: 'win02_' + h, n: HOUSE_TROPHY_1002[h][0], d: `Win as ${MAPS.empire.FACTIONS.find(f => f.id === h).name}, in 1002.`, pts: HOUSE_TROPHY_1002[h][1], kind: 'house', test: S => S.won && S.house === h && S.map === 'empire' })),
   { id: 'first', n: 'Anointed', d: 'Win your first game.', pts: 20, test: S => S.won },
-  { id: 'conquest', n: 'Hammer of the Franks', d: 'Win by breaking every rival house.', pts: 60, test: S => S.won && S.how === 'conquest' },
+  { id: 'conquest', n: 'Hammer of the Princes', d: 'Win by breaking every rival house.', pts: 60, test: S => S.won && S.how === 'conquest' },
   { id: 'swift', n: 'Swift Succession', d: 'Win within eighteen years of the start.', pts: 50, test: S => S.won && S.year - (MAPS[S.map || 'france'] || MAPS.france).date.y0 < 18 },
   { id: 'hard', n: 'Against the Odds', d: 'Win against Hard rivals.', pts: 60, test: S => S.won && S.diff === 'hard' },
   { id: 'two', n: 'Two Hosts Suffice', d: 'Win without ever fielding a third army.', pts: 40, test: S => S.won && !S.m.used3 },
@@ -144,7 +161,7 @@ const TROPHIES = [
   { id: 'forger', n: 'The Forger', d: 'Five forged charters accepted, and none exposed, in one game.', pts: 40, test: S => S.m.charters >= 5 && !S.m.caught },
   { id: 'merchant', n: 'Merchant Prince', d: 'Make 200 d profit at the summer fair in one game.', pts: 30, test: S => S.m.fairProfit >= 200 },
   { id: 'beach', n: 'Shield Wall on the Beach', d: 'Drive off three Viking raids in one game.', pts: 30, test: S => S.m.raids >= 3 },
-  { id: 'almanzor', n: 'Bane of Almanzor', d: 'Throw back an army of Almanzor.', pts: 40, test: S => S.m.almanzor >= 1 },
+  { id: 'almanzor', n: 'Bane of Almanzor', d: 'In France, 987: throw back an army of Almanzor.', map: 'france', pts: 40, test: S => S.m.almanzor >= 1 },
   { id: 'wives', n: 'A Marriage Policy', d: 'Marry three heiresses in one game.', pts: 30, test: S => S.m.heiresses >= 3 },
   { id: 'web', n: 'A Web of Treaties', d: 'Be at peace with four houses at once.', pts: 25, test: S => S.m.maxPacts >= 4 },
   { id: 'brothers', n: 'Brothers in Arms', d: 'Win while allied to another house.', pts: 25, test: S => S.won && S.alliedAtEnd },
@@ -154,7 +171,18 @@ const TROPHIES = [
   { id: 'usurper', n: 'Usurper', d: 'Be crowned while another king still lives.', pts: 30, test: S => S.m.usurped },
   { id: 'builder', n: 'Builder of Castles', d: 'Raise ten castles in one game.', pts: 25, test: S => S.m.castles >= 10 },
   { id: 'anathema', n: 'Anathema', d: 'Win while excommunicated.', pts: 50, test: S => S.won && S.excom },
-  { id: 'unbroken', n: 'The Crown Unbroken', d: 'Win as the Royal Domain without ever losing the crown.', pts: 40, test: S => S.won && S.house === 'capet' && S.m.keptCrown },
+  { id: 'unbroken', n: 'The Crown Unbroken', d: 'Win as the house that starts with the crown (the Royal Domain, or Wessex in 1066) without ever losing it.', pts: 40, test: S => S.won && S.house === (MAPS[S.map || 'france'] || MAPS.france).crown.start && S.m.keptCrown !== false },
+  { id: 'coast', n: 'Hold the Coast', d: 'Throw back two raids by Sweyn of Denmark (1066) or the Saracens (1002) in one game.', pts: 35, test: S => (S.m.raider || 0) >= 2 },
+  // ---- the islands, 1066 ----
+  { id: 'ardri', n: 'Ard Rí', d: 'In 1066: hold every county of Ireland at the end of a game.', pts: 45, map: 'britain', test: S => S.map === 'britain' && S.f && S.f.ireland },
+  { id: 'britannia', n: 'Emperor of Britain', d: 'In 1066: win holding at least three counties each in England, Scotland, Wales and Ireland.', pts: 60, map: 'britain', test: S => S.won && S.map === 'britain' && S.f && S.f.four },
+  { id: 'fjords', n: 'Lord of the Fjords', d: "In 1066: hold all four counties of Norway at the end of a game, playing a house that did not start with them.", pts: 40, map: 'britain', test: S => S.map === 'britain' && S.f && S.f.fjords },
+  { id: 'channel', n: 'The Conquest Reversed', d: 'In 1066: as an English or Welsh house, take Rouen.', pts: 45, map: 'britain', test: S => S.map === 'britain' && S.f && S.f.rouen },
+  // ---- the Empire, 1002 ----
+  { id: 'rome', n: 'Crowned in Rome', d: 'In 1002: win holding Rome, where emperors are crowned.', pts: 50, map: 'empire', test: S => S.won && S.map === 'empire' && S.f && S.f.rome },
+  { id: 'ironcrown', n: 'Two Crowns', d: 'In 1002: win holding Pavia, the seat of the kings of Italy, as well as Mainz and Aachen.', pts: 45, map: 'empire', test: S => S.won && S.map === 'empire' && S.f && S.f.pavia },
+  { id: 'greeks', n: 'Bane of the Greeks', d: 'In 1002: take a county from Byzantium.', pts: 35, map: 'empire', test: S => S.map === 'empire' && (S.m.byz || 0) >= 1 },
+  { id: 'elbe', n: 'Across the Elbe', d: 'In 1002: hold Brandenburg, Havelberg, Rethra, Mecklenburg and Rügen at the end of a game.', pts: 35, map: 'empire', test: S => S.map === 'empire' && S.f && S.f.elbe },
   { id: 'veteran', n: 'Veteran', d: 'Finish ten games, won or lost.', pts: 30, test: (S, P) => P.games >= 10 },
 ];
 
@@ -166,7 +194,19 @@ function gameSummary() {
   const me_ = G.player, won = G.winner === me_, m = G.stats ? G.stats.me : {};
   return { when: Date.now(), house: me_, name: FAC(me_).name, won, how: !won ? (G.winner ? 'beaten' : 'fallen') : alive().length === 1 ? 'conquest' : 'crown',
     map: MAP_ID, winner: G.winner || null, turns: G.turn, year: yearOf(G.turn), diff: (noteDiff(), DIFF_ORDER[G.diffLow]), counties: owned(me_).length, excom: G.fac[me_].excom > 0,
-    alliedAtEnd: alive().some(f => f !== me_ && allied(me_, f)), challenge: G.challenge ? G.challenge.id : null, m: { ...m } };
+    alliedAtEnd: alive().some(f => f !== me_ && allied(me_, f)), challenge: G.challenge ? G.challenge.id : null, m: { ...m }, f: endFlags(me_) };
+}
+// what the map trophies look at when a game ends
+function endFlags(fid) {
+  const mine = id => G.provs[id] && G.provs[id].owner === fid, inR = r => provList().filter(p => p.r === r), f = {};
+  if (MAP_ID === 'britain') {
+    f.ireland = inR('ir').every(p => p.owner === fid);
+    f.four = ['en', 'sc', 'wa', 'ir'].every(r => inR(r).filter(p => p.owner === fid).length >= 3);
+    const nor = ['bergen', 'stavanger', 'sogn', 'agder']; f.fjords = nor.every(mine) && !nor.every(id => G.start && G.start[id] === fid);
+    f.rouen = mine('rouen') && ['England', 'Wales'].includes(FACMAP[fid] && FACMAP[fid].realm);
+  }
+  if (MAP_ID === 'empire') { f.rome = mine('rome'); f.pavia = mine('pavia'); f.elbe = ['brandenburg', 'havelberg', 'rethra', 'obodrites', 'rugen'].every(mine); }
+  return f;
 }
 // called once when a game ends: history, trophies, points; returns what changed for the ending screens
 function recordGame() {
@@ -179,6 +219,7 @@ function recordGame() {
   P.points += base;
   S.points = P.points - before; S.trophies = newT;
   S.rankBefore = rankOf(before); S.rankAfter = rankOf(P.points);
+  { const a = honourOf(before), b = honourOf(P.points); if (b.r === a.r && b.n > a.n) S.honour = b.names[b.n - 1]; }
   saveProfile(P);
   const H = gameHistory(); H.push(S); while (H.length > 300) H.shift(); saveJ(HIST_KEY, H);
   G.recorded = S;

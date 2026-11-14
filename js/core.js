@@ -48,8 +48,8 @@ const armySize = a => fighters(armySide(a));
 const armySide = a => ({ militia: 0, foot: a.foot, bow: a.bow, cav: a.cav });
 const setArmy = (a, s) => { a.foot = s.foot; a.bow = s.bow; a.cav = s.cav; };
 // a third army for a great realm, or for a crowned king with a realm worth the name
-const ARMY3_LANDS = 25, KING_ARMY3 = 15;
-const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (owned(fid).length >= ARMY3_LANDS || (isKing(fid) && owned(fid).length >= KING_ARMY3) ? 1 : 0);
+const ARMY3_LANDS = 25;
+const armyMax = fid => 1 + (owned(fid).length >= 9 ? 1 : 0) + (owned(fid).length >= ARMY3_LANDS ? 1 : 0);
 function armyGen(fid, a) { const g = G.fac[fid].gens.find(x => x.at === a.id); return g ? GENMAP[g.id] : null; }
 function armyUsable(fid, a) {
   const F = G.fac[fid]; if (!F.alive) return false;
@@ -735,7 +735,7 @@ const frenchHeld = fid => FRANCE.filter(id => holds(fid, id)).length;
 const empireHeld = fid => EMPIRE.filter(id => holds(fid, id)).length;
 // ================= VICTORY =================
 const GOALS = {
-  king: { n: SC.crown.title, s: 'The main game', d: `Wear the crown or hold ${SC.PROV.find(r => r[0] === SC.kingdom.keys[0])[1]}, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter. Or break every rival.` },
+  king: { n: SC.crown.title, s: 'The main game', d: `Hold ${SC.crown.needs('', false).map(id => SC.PROV.find(r => r[0] === id)[1]).join(' and ')}, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter. Or break every rival.` },
   conquest: { n: 'Full conquest', s: 'Longest', d: 'Break every rival house, including rebels.' },
 };
 const goalId = () => (G && GOALS[G.goal]) ? G.goal : 'king';
@@ -751,15 +751,23 @@ const greatRival = fid => alive().filter(f => f !== fid).sort((a, b) => domainHe
 const undisputed = fid => alive().every(f => f === fid || domainHeld(f) <= rivalCap());
 // the crown, or the places a king is made in: whoever holds them with half the kingdom, undisputed, is crowned as he wins
 const holdsCrownSeat = fid => crownNeeds(fid).every(id => P(id).owner === fid);
-function goalMet(fid) { return goalId() === 'king' && (wears(fid) || holdsCrownSeat(fid)) && alive().length > 1 && domainHeld(fid) >= domainNeed() && undisputed(fid); }
+// to win, a house must hold every place a king is made in (Reims and Paris, London and Winchester, Mainz and Aachen),
+// however great it is, with half the kingdom, undisputed
+const winSeats = fid => SC.crown.needs(fid, false);
+const holdsWinSeats = fid => winSeats(fid).every(id => P(id).owner === fid);
+function goalMet(fid) { return goalId() === 'king' && holdsWinSeats(fid) && alive().length > 1 && domainHeld(fid) >= domainNeed() && undisputed(fid); }
+function declareWinner(w) {
+  G.over = true; G.winner = w; G.askWin = false;
+  // a victor who never paid for the rite is anointed now, as part of the victory: one ceremony, not two
+  if (!wears(w)) { const old = king(); if (old && old !== w) { const od = FAC(old); od.kingOf = []; od.title = lostTitle(old); } G.crowns.franks = w; G.coronated.franks = w; const d = FAC(w); d.kingOf = ['franks']; d.title = 'King'; }
+}
 function victor() { const al = alive(); if (al.length === 1) return al[0]; return al.find(goalMet) || null; }
 function checkVictory() {
   const w = victor();
   if (w) {
-    G.over = true; G.winner = w;
-    // a victor who never paid for the rite is anointed now, as part of the victory: one ceremony, not two
-    if (!wears(w)) { const old = king(); if (old && old !== w) { const od = FAC(old); od.kingOf = []; od.title = lostTitle(old); } G.crowns.franks = w; G.coronated.franks = w; const d = FAC(w); d.kingOf = ['franks']; d.title = 'King'; }
-    return;
+    // the player is asked whether to take the victory or play on; once they play on, only a claim or a conquest ends it
+    if (w === G.player && alive().length > 1 && typeof document !== 'undefined') { if (!G.playOn) G.askWin = true; return; }
+    declareWinner(w); return;
   }
   if (!G.fac[G.player].alive) G.over = true;
 }
@@ -792,7 +800,7 @@ function crown(fid, kid = 'franks') {
   G.crowns.franks = fid; G.coronated.franks = fid; G.homage = {};
   const d = FAC(fid); d.kingOf = ['franks']; d.title = 'King';
   for (const id of FRANCE) { const p = P(id); if (p.owner === fid) p.militia = levyMax(p); }
-  const txt = `${SC.crown.rite} ${d.pname} ${SC.crown.title}${old ? `, and ${FAC(old).pname} is king no longer` : ''}. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army.`;
+  const txt = `${SC.crown.rite} ${d.pname} ${SC.crown.title}${old ? `, and ${FAC(old).pname} is king no longer` : ''}. The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and lesser lords swear to him for a third less.`;
   if (fid === G.player) report('Long live the king!', txt); else report('A new ' + SC.crown.title, txt);
   checkVictory();
   return true;
@@ -1088,7 +1096,8 @@ function answerDiplo(id, yes) {
   else { addTruce(D.from, G.player, G.turn + JOINT_TURNS, true); F.warOn = { target: D.target, until: G.turn + JOINT_TURNS }; note(`You and ${FAC(D.from).name} make common cause against ${FAC(D.target).name}.`); }
   return { ok: true };
 }
-const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && coreR(p.r) ? 2 : 1) * (TR(fid).ally || 1));
+// lesser lords swear to an anointed king for a third less
+const allyCost = (fid, p) => Math.round((40 + 10 * p.base + 3 * fighters(p.gar)) * (foreign(fid) && coreR(p.r) ? 2 : 1) * (TR(fid).ally || 1) * (isKing(fid) ? 0.67 : 1));
 const canAlly = (fid, p) => !p.owner && !p.ally && adjTo(p, fid) && !besiegerOf(p);
 function makeAlly(fid, p) {
   const F = G.fac[fid], c = allyCost(fid, p);

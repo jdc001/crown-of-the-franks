@@ -3,6 +3,7 @@
 const REPORT_ICON = [[/Unrest|unrest/, 'fire'], [/envoy|Envoy/, 'handshake'], [/Desertion/, 'coin'], [/destroyed|An army/, 'swords'],[/fallen|destroyed|beaten|Defeat/i, 'swords'], [/captured|prisoner|Ransom/i, 'chain'], [/Excommunicated|Rome|interdict/i, 'church'], [/Siege|siege/i, 'tent'], [/Rebellion|Civil war|rises/i, 'flag'], [/wedding|marriage|pact/i, 'ring'], [/ally|alliance/i, 'handshake'], [/king|King|crown/i, 'crown'], [/sea/i, 'ship']];
 function showReports() {
   if (G.over) return gameOver();
+  if (G.askWin) { G.askWin = false; if (goalMet(G.player)) return showWinChoice(); }
   const r = G.reports.shift();
   if (!r) return;
   const bad = /fallen|captured|lost|Excommunicated|Siege|beaten|Defeat|refused|broken|Rebellion|Civil war|rises/i.test(r.title);
@@ -46,7 +47,8 @@ function openPope() {
   showModal(`<h2>${ico('church')} The Church</h2>
     <h3>College of Cardinals</h3>
     <div class="bar"><i style="width:${Math.round(inf * 100)}%"></i></div>
-    <p>You have <b>${cardsOf(me())}</b> of <b>${totalCards()}</b> cardinals${hasRome(me()) ? ' (including the 6 Roman cardinals that follow whoever holds Rome)' : '. The 6 Roman cardinals follow whoever holds or is allied with Rome'}. Your influence with the Pope: <b>${Math.round(inf * 100)}%</b>.${popeIsYours(me()) ? ' <span class="good">The Pope is your man: every petition succeeds at half price.</span>' : ' Hold more than half the college and the Pope is your man.'}</p>
+    <p>You have <b>${cardsOf(me())}</b> of the <b>${totalCards()}</b> cardinals${SC.rome ? (hasRome(me()) ? ', including the 6 Roman cardinals, who follow whoever holds Rome' : `. The 6 Roman cardinals follow whoever holds Rome (${P(SC.rome).owner ? esc(FAC(P(SC.rome).owner).name) + ' does' : 'no great house does'})`) : '. Six more are Roman cardinals of the curia, who vote with no prince'}. Your share of the college: <b>${Math.round(inf * 100)}%</b>.</p>
+    <div class="notebox${popeIsYours(me()) ? ' good' : ''}">${ico('church')} <b>What the college gives you.</b> Your share of the cardinals is your weight with the Pope: the bigger it is, the likelier he grants your petitions, and the harder it is for rivals to have you excommunicated or your lands put under interdict.${SC.rome ? ' Holding Rome also halves the price of every petition.' : ''} <b>Hold more than half the college</b> and the Pope is your man: every petition you make succeeds, at half the price.${popeIsYours(me()) ? ' <span class="good">That is you now.</span>' : ''}</div>
     <p>${college || '<span class="sub">No house has a cardinal yet.</span>'}</p>
     <h3>Council of bishops</h3>
     <p>${F.bishops} bishop${F.bishops === 1 ? '' : 's'} sit in your council. Each makes petitions a little likelier, helps marriages, and two or more tend the sick when plague strikes. Raise bishops at any castle.</p>
@@ -114,7 +116,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.44';
+const APP_VERSION = '6.45';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -159,7 +161,7 @@ function openHelp() {
   const T = {
     goal: `${SC.help.top}
       <p><b>The goal.</b> You choose it when you raise your banner. <i>${SC.crown.title}</i>: wear the crown, or hold the places a king is made in, with half of the kingdom's counties in your own hands and no rival house holding more than a quarter of them. You are crowned as you win; you need not hold the coronation first. Paying for it earlier gives you the king's strength while you fight on. <i>Full conquest</i>: break every rival house. The first house to reach the goal wins, and the last house standing always wins.</p>
-      <p><b>The crown.</b> ${SC.crown.rule()} The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and with ${KING_ARMY3} counties he may field a third army. Whoever takes the places a king needs can take the crown from him.</p>
+      <p><b>The crown.</b> ${SC.crown.rule()} The king's counties in the kingdom pay +1 d and raise double levies, his host fights 10% harder, and lesser lords swear to him for a third less. Whoever takes the places a king needs can take the crown from him.</p>
       <p><b>How the houses feel about you.</b> Each house's mood runs from hostile to friendly, shown on its Envoys tab with the reasons: attacks on it (a grudge that fades over a few years), how much of the kingdom you hold, your armies at its border, the crown, a pact or alliance, or an enemy you both fight. A hostile house attacks you more readily and asks more for a pact; a friendly one leaves you alone and signs cheaply. The second bar shows where things stand: at war (you have fought in the last two years), no pact, pact or allied.</p>
       <p><b>Pacts and alliances.</b> Every house plays for the crown. Open Envoys to sign a pact of peace (2 or 3 years) that neither side can break, an alliance that also lets your armies march through each other's lands, or a war alliance that turns another house on a third. A house that gains from it asks nothing; a reluctant one names its price in silver, or takes a county instead; a hostile one refuses.</p>
       ${SC.help.sea}
@@ -310,7 +312,7 @@ function showCoronation(fid, kid, onDone) {
   const title = SC.crown.title;
   const body = G.over && alive().length === 1
     ? `In ${dateStr(G.turn)}, the last rival house has fallen. ${SC.crown.wonAll(fid)}`
-    : `${SC.crown.won(fid)} His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. With ${KING_ARMY3} counties he may field a third army.`;
+    : `${SC.crown.won(fid)} His counties in the kingdom pay +1 d each a turn and raise double levies, and his host fights 10% harder. Lesser lords swear to him for a third less.`;
   window._coronDone = onDone || null;
   showModal(`<div class="splash">${coronationScene(fid, kid)}<div class="splashtxt"><h2>${title}</h2><p>${body}</p>
     <div class="row ctr"><button class="btn gold big" onclick="closeModal();(window._coronDone||(()=>{render();showReports();}))()">Long live the King</button></div></div></div>`, 'splashcard');
@@ -365,3 +367,15 @@ function openTitles() {
     ${body}
     <div class="row ctr" style="margin-top:10px"><button class="btn sm" onclick="openMedals('rank')"><span class="lbl">${ico('star')}Your rank and heraldry</span></button></div>`, '', { closable: true });
 }
+
+// ================= VICTORY, OR PLAY ON =================
+function showWinChoice() {
+  sfx('horn');
+  const seats = winSeats(me()).map(id => P(id).name).join(' and ');
+  showModal(`<div class="sealmark">${ico('crown')}</div><h2 class="ctr">The crown is yours to take</h2>
+    <p class="ctr">You hold ${seats}, ${domainHeld(me())} of the kingdom's ${FRANCE.length} counties, and no rival is strong enough to stand against you.</p>
+    <p class="sub ctr">Claim it, and the game ends in victory. Or play on: conquer more, chase trophies, break the last rivals. You can claim the victory later from your goal, as long as you still meet it.</p>
+    <div class="grid2"><button class="btn gold" onclick="claimWin()"><span class="lbl">${ico('crown')}Claim the victory</span></button><button class="btn" onclick="playOn()"><span class="lbl">${ico('swords')}Play on</span></button></div>`);
+}
+function claimWin() { if (!goalMet(me())) return closeModal(); closeModal(); declareWinner(me()); save(); render(); gameOver(); }
+function playOn() { G.playOn = true; closeModal(); save(); render(); toast('The war goes on', 'swords'); showReports(); }

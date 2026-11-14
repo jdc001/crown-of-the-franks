@@ -99,15 +99,21 @@ function openMedals(tab) {
     const H = gameHistory(), wins = H.filter(g => g.won).length;
     body = `<div class="ctr">${myAchievement(220)}</div>
       <p class="ctr" style="margin:4px 0"><b style="font:700 22px var(--head);color:${rk.col}">${rk.n}</b><br><span class="sub">${P.points} points${next ? ` · ${next.at - P.points} to ${next.n}` : ' · the highest rank'}</span></p>
-      ${next ? `<div class="bar"><i style="width:${pct(P.points - rk.at, next.at - rk.at)}%"></i></div><p class="sub ctr">At ${next.n}: ${next.unlock}.</p>` : ''}
+      ${next ? (() => { const ho = honourOf(P.points); return `<div class="bar"><i style="width:${pct(P.points - rk.at, next.at - rk.at)}%"></i></div>
+        <div class="honours">${ho.names.map((n, i) => `<span class="hon${i < ho.n ? ' on' : ''}">${ico(i < ho.n ? 'star' : 'lock')}${esc(n)}</span>`).join('')}</div>
+        <p class="sub ctr">${ho.next ? `Next honour, at ${ho.next.at} points: <b>${esc(ho.next.name)}</b>. ` : ''}At ${next.n}: ${next.unlock}.</p>`; })() : ''}
       <h3>The ladder</h3><div class="ladder">${RANKS.map((k, i) => `<div class="rung${i <= r ? ' on' : ''}" style="--c:${k.col}">${achievementSvg(P.arms, i, P.look, 54, { noScroll: true })}<b>${k.n}</b><small>${k.at} pts</small></div>`).join('')}</div>
-      <p class="sub">Points come from trophies and from every game you finish: ${30} for a win (more against harder rivals), 8 for a loss.</p>
+      <p class="sub">Points come from trophies and from every game you finish: 30 for a win (more against harder rivals), 8 for a loss. The first ranks come quickly. After that, three honours mark the road to each new rank.</p>
       <h3>Your record</h3><p>${P.games} game${P.games === 1 ? '' : 's'} finished · ${wins} won</p>
       <div class="row ctr"><button class="btn gold" onclick="shareRank()"><span class="lbl">${ico('star')}Share your rank</span></button>${H.length ? `<button class="btn" onclick="closeModal();openStats(null, 1)"><span class="lbl">${ico('scroll')}Past games</span></button>` : ''}</div>`;
   } else if (MED.tab === 'trophies') {
-    const card = t => { const g = P.trophies[t.id]; return `<div class="trophy${g ? ' on' : ''}"><div class="tm">${ico(g ? 'star' : 'lock')}</div><div style="min-width:0"><b>${t.n}</b><small>${t.d}</small>${g ? `<i>Won ${new Date(g.when).toLocaleDateString()}${g.house && FACMAP[g.house] ? ' as ' + FACMAP[g.house].name : ''}</i>` : ''}</div><div class="tp">${t.pts}</div></div>`; };
-    body = `<h3>The houses</h3><p class="sub">Win the crown with each of the fifteen houses.</p><div class="trophies">${TROPHIES.filter(t => t.kind === 'house').map(card).join('')}</div>
-      <h3>Feats</h3><div class="trophies">${TROPHIES.filter(t => t.kind !== 'house').map(card).join('')}</div>`;
+    const card = t => { const g = P.trophies[t.id]; return `<div class="trophy${g ? ' on' : ''}"><div class="tm">${ico(g ? 'star' : 'lock')}</div><div style="min-width:0"><b>${t.n}</b><small>${t.d}</small>${g ? `<i>Won ${new Date(g.when).toLocaleDateString()}${g.house && houseOfGame(g.house, t.map || (t.id.startsWith('win66_') ? 'britain' : t.id.startsWith('win02_') ? 'empire' : 'france')) ? ' as ' + houseOfGame(g.house, t.map || (t.id.startsWith('win66_') ? 'britain' : t.id.startsWith('win02_') ? 'empire' : 'france')).name : ''}</i>` : ''}</div><div class="tp">${t.pts}</div></div>`; };
+    const sec = (h, sub, list) => { const n = list.filter(t => P.trophies[t.id]).length; return `<h3>${h} <span class="sub" style="text-transform:none;letter-spacing:0">${n} of ${list.length}</span></h3>${sub ? `<p class="sub">${sub}</p>` : ''}<div class="trophies">${list.map(card).join('')}</div>`; };
+    const houses = p => TROPHIES.filter(t => t.kind === 'house' && t.id.startsWith(p));
+    body = sec('Feats', 'Deeds that can be done on any map.', TROPHIES.filter(t => t.kind !== 'house' && !t.map))
+      + sec('France, 987', 'Win the crown with each house, and the deeds of this map.', houses('win_').concat(TROPHIES.filter(t => t.map === 'france')))
+      + sec(MAPS.britain ? MAPS.britain.name : '1066', '', houses('win66_').concat(TROPHIES.filter(t => t.map === 'britain')))
+      + sec(MAPS.empire ? MAPS.empire.name : '1002', '', houses('win02_').concat(TROPHIES.filter(t => t.map === 'empire')));
   } else {
     const a = P.arms, L = P.look;
     const tin = (k, cur) => `<div class="tins">${TINCTURES.map(([c, n]) => `<button class="${cur === c ? 'on' : ''}" style="background:${c}" title="${n}" onclick="setArms('${k}','${c}')"></button>`).join('')}</div>`;
