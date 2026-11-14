@@ -138,7 +138,8 @@ const gfCost = (fid, a) => armyGen(fid, a) && armyGen(fid, a).siege ? 25 : TR(fi
 const catShots = (fid, a) => 3 + (a && armyGen(fid, a) && armyGen(fid, a).siege ? 1 : 0);
 function mods(fid) { if (!fid) return 0; const F = G.fac[fid]; return (F.bless > 0 ? 1 : 0) - (F.excom > 0 ? 1 : 0); }
 // Rome is beyond the map: its cardinals answer to no prince
-const hasRome = fid => false;
+// on a map with Rome on it, whoever holds Rome has its cardinals
+const hasRome = fid => !!(SC.rome && G && G.provs && G.provs[SC.rome] && G.provs[SC.rome].owner === fid);
 const atPeace = (a, b) => G.truces.some(t => t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
 // an alliance is a pact that also opens each house's land to the other's armies
 const allied = (a, b) => !!a && !!b && a !== b && G.truces.some(t => t.pass && t.until > G.turn && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));

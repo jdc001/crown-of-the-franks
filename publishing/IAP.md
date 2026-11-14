@@ -50,11 +50,13 @@ shows an "Expansion" badge on the title screen, and tapping it opens its unlock 
 Register it next to the full-game product in the script above:
 
 ```js
-const MAPS_IAP = { 'com.yourname.crownofthefranks.britain': 'britain' };
+const MAPS_IAP = { 'com.yourname.crownofthefranks.britain': 'britain', 'com.yourname.crownofthefranks.empire': 'empire' };
 store.register(Object.keys(MAPS_IAP).map(id => ({ id, type: ProductType.NON_CONSUMABLE, platform: Platform.APPLE_APPSTORE })));
 store.when().productUpdated(p => { if (MAPS_IAP[p.id] && p.owned) cotfMapUnlocked(MAPS_IAP[p.id]); });
 window.COTF_BUY = what => { const id = what === 'full' ? ID : Object.keys(MAPS_IAP).find(k => MAPS_IAP[k] === what); const o = id && store.get(id)?.getOffer(); if (o) o.order(); };
 ```
 
 A bundle ("Complete Edition") can be added later as a third product that unlocks both: call `cotfUnlocked()`
-and `cotfMapUnlocked('britain')` when it is owned.
+and `cotfMapUnlocked('britain')` and `cotfMapUnlocked('empire')` when it is owned.
+
+The second expansion, *The Empire, 1002*, uses `<appId>.empire` the same way.

@@ -685,7 +685,7 @@ body.nomotion #title .tbg, body.nomotion #title .hcrown .glint, body.nomotion #t
 .unlock .ulgrid small { color: var(--ink2); font-style: italic; }
 
 /* the map picker on the title screen */
-.mappick { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; max-width: 720px; margin: 10px auto 6px; }
+.mappick { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; max-width: 980px; margin: 10px auto 6px; }
 .mappick .mp { position: relative; display: flex; align-items: center; gap: 6px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 2px solid #b8892c88; background: #1b120acc; color: var(--vel); cursor: pointer; font: inherit; }
 .mappick .mp.on { border-color: var(--gold2); background: linear-gradient(#3a2614ee, #22160cee); box-shadow: 0 0 0 1px #e2b33c55, 0 4px 14px #0008; }
 .mappick .mp .t { display: flex; flex-direction: column; min-width: 0; margin-left: 4px; }

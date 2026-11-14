@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.37';
+const APP_VERSION = '6.38';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -320,7 +320,7 @@ function showCoronation(fid, kid, onDone) {
 // Every land you hold carries a title. A house's seat carries the house's title (Duke of Normandy, Count of Flanders);
 // every other county carries its own, from the lord who held it in 987: count, viscount, lord, or, for a bishop's
 // lands, advocate, the lay protector of the see. Lesser lords sworn to you make you their overlord.
-const TITLE_RANK = { King: 0, Duke: 1, Marquis: 2, Earl: 3, Count: 3, Viscount: 4, Advocate: 5, Lord: 6, Overlord: 7 };
+const TITLE_RANK = { King: 0, Patrician: 1, Prince: 1, Catepan: 1, Duke: 1, Margrave: 2, Marquis: 2, Earl: 3, Count: 3, Viscount: 4, Advocate: 5, Lord: 6, Overlord: 7 };
 function landTitle(p) {
   const t = landTitle0(p);
   return t === 'Count' && SC.countAs ? SC.countAs(p) : t;
@@ -356,7 +356,7 @@ function titleStyle(fid) {
   return `${f.pname}, by the grace of God ${list}${rest ? `, and of ${rest} more title${rest === 1 ? '' : 's'} besides` : ''}`;
 }
 function openTitles() {
-  const T = titlesOf(me()), groups = [['King', 'The crown'], ['Duke', 'Duchies'], ['Marquis', 'Marches'], ['Earl', 'Earldoms'], ['Count', 'Counties'], ['Viscount', 'Viscounties'], ['Advocate', 'Church lands under your protection'], ['Lord', 'Lordships'], ['Overlord', 'Lords sworn to you']];
+  const T = titlesOf(me()), groups = [['King', 'The crown'], ['Patrician', 'Rome'], ['Prince', 'Principalities'], ['Catepan', 'The Greek lands'], ['Duke', 'Duchies'], ['Margrave', 'Marches'], ['Marquis', 'Marches'], ['Earl', 'Earldoms'], ['Count', 'Counties'], ['Viscount', 'Viscounties'], ['Advocate', 'Church lands under your protection'], ['Lord', 'Lordships'], ['Overlord', 'Lords sworn to you']];
   const row = t => `<div class="trow"${t.pid ? ` onclick="closeModal();goProv('${t.pid}')"` : ''}><span class="tico">${t.crown ? ico('crown') : t.house ? shield(t.house, 26) : ico(t.rank === 'Advocate' ? 'church' : t.rank === 'Overlord' ? 'handshake' : t.rank === 'Lord' ? 'castle' : 'fleur')}</span><span class="tn"><b>${esc(t.n)}</b><small>${esc(t.sub)}</small></span></div>`;
   const body = groups.map(([r, h]) => { const g = T.filter(t => t.rank === r); return g.length ? `<h3>${h} <span class="sub" style="text-transform:none;letter-spacing:0">${g.length}</span></h3><div class="tlist">${g.map(row).join('')}</div>` : ''; }).join('');
   showModal(`<div class="ctr">${houseAchievement(me(), 64)}</div><h2 class="ctr" style="margin-top:4px">Your titles</h2>

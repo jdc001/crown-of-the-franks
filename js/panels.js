@@ -535,7 +535,7 @@ function foreignPanel(p, F, A) {
       if (peace) h += `<div class="notebox bad">${ico('dove')} ${SC.peace.Name} protects the great houses until ${dateStr(TRUCE)}. Attack ${FAC(p.owner).name} now and the Pope excommunicates you for 4 turns.</div>`;
       if (p.ally && !p.owner) h += `<p class="sub">${p.lord} is sworn to ${fname(p.ally)}. Taking the county breaks that alliance.</p>`;
       const sea = seaRoute(s.stage, p.id); const how = s.dist ? `marches to ${P(s.stage).name} (${s.dist} move${s.dist > 1 ? 's' : ''}) and ${sea ? 'crosses the sea to strike' : 'strikes'}` : sea ? `crosses the sea from ${P(s.stage).name} to strike` : `strikes from ${P(s.stage).name}`;
-      h += `<p>${ico('flag')} Army ${ARMY_NUM(A)} ${how}.${sea ? ' If it wins, it lands and holds the county.' : ''}</p>`;
+      h += `<p>${ico('flag')} Army ${ARMY_NUM(A)} ${how}. If it wins, it ${sea ? 'lands' : 'marches in'} and holds the county.</p>`;
       const odds = estimateWin({ ...assaultCfg(me(), A, p, 'balanced'), aMod: mods(me()) - (peace ? 1 : 0) }, 30);
       h += `<p class="units">Your army: ${uStr(A, false)}</p>`;
       if (p.b.castle && !p.ruined) { h += `<p class="sub">Storm now, or lay siege: starve them, bombard the walls, then storm when the odds improve.</p>`; cta += `<div class="grid2" style="margin:0"><button class="btn" onclick="act('besiege')"><span class="lbl">${ico('tent')}Lay siege</span><small>${A.cat ? 'then bombard' : 'starve them out'}</small></button><button class="btn red" onclick="openPreBattle('assault','${p.id}')"><span class="lbl">${ico('swords')}Storm at once</span><small>odds ${oddsTxt(odds)}</small></button></div>`; }

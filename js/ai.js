@@ -30,9 +30,11 @@ function resolveAssault(fid, A, p, res, cfg) {
   const prev = p.owner, prevAlly = p.ally, s0 = armySize(A);
   setArmy(A, res.A); applyDefLoss(p, cfg.D, res.D);
   A.acted = true; A.stormed = true; A.idle = 0;
-  // across the sea the victors land and hold what they took; left on the far shore, they would watch it retaken by any passing band
-  const crossed = A.loc && A.loc !== p.id && seaRoute(A.loc, p.id);
-  if (res.won) { capture(p, fid); if (crossed && armySize(A) > 0) { A.siege = null; A.loc = p.id; } }
+  // the victors march in and hold what they took; left behind on their own side, they would watch it retaken by any passing band
+  // (the computer's armies land after a sea crossing but otherwise choose to fall back on their own ground: marching every
+  // victor forward lets one southern house run away with the game)
+  const advance = fid === G.player || (A.loc && A.loc !== p.id && seaRoute(A.loc, p.id));
+  if (res.won) { capture(p, fid); if (advance && armySize(A) > 0) { A.siege = null; A.loc = p.id; } }
   else if (armySize(A) === 0) loseArmy(fid, A, prev);
   else maybeTakeLord(fid, A, prev, s0);
   return { prev, prevAlly };
@@ -77,7 +79,7 @@ function aiTurn(fid) {
   F.guard = aiPickGuard(fid);
   aiConcentrate(fid);
   F.struck = false;
-  for (const a of usableArmies(fid).sort((x, y) => armyPowA(fid, y) - armyPowA(fid, x))) { if (G.over) return; if (!a.acted) aiWar(fid, a); }
+  for (const a of usableArmies(fid).sort((x, y) => armyPowA(fid, y) - armyPowA(fid, x))) { if (G.over) return; if (!a.acted && !(SC.idle && SC.idle(fid))) aiWar(fid, a); }
   const n = owned(fid).length; if (n > (F.maxProv || 0)) { F.maxProv = n; F.lastGrow = G.turn; }
   F.guard = null;
   F.unrestMarch = false;
