@@ -1,6 +1,10 @@
 'use strict';
 // ================= THE END OF A GAME, STATISTICS, SHARING, AND THE CHRONICLER'S CHALLENGE =================
 const LAST_KEY = 'cotf-lastgame';
+// a finished game belongs to its own map: its names, dates and coastline come from there, not from the map now open
+const mapOfGame = S => MAPS[(S && S.map) || 'france'] || SC;
+const onThisMap = L => !!L && (L.map || 'france') === MAP_ID && (L.ids || []).every(id => CELLD[id]);
+const latinTitle = M => M.crown.latin.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
 // ---------- the ending ----------
 // replaces the old one-box ending: a coronation (or a fall), then the chronicle of the game
@@ -29,7 +33,7 @@ gameOver = function () {
 function saveLastGame(S) {
   if (!G.stats) return;
   const houses = G.fdefs.map(d => ({ id: d.id, n: d.name, col: d.color, c: (G.stats.h[d.id] || { c: [] }).c }));
-  saveJ(LAST_KEY, { when: S.when, player: G.player, houses, own: G.stats.own, ids: PROV.map(r => r[0]) });
+  saveJ(LAST_KEY, { when: S.when, map: MAP_ID, player: G.player, houses, own: G.stats.own, ids: PROV.map(r => r[0]) });
 }
 
 // ---------- the statistics pages ----------
@@ -55,12 +59,13 @@ const row = (k, v, cls = '') => `<tr><td>${k}</td><td class="${cls}">${v}</td></
 function statsGame(S, L) {
   if (!S) return '<p class="sub">No game finished yet. Play one to the end and its chronicle appears here.</p>';
   const m = S.m || {}, P = profile();
-  let h = `<h3>${S.won ? 'Victory' : 'Defeat'} · ${esc(S.name)}</h3><p class="sub">${S.won ? (S.how === 'conquest' ? 'Every rival broken' : `${SC.crown.crowned[0].toUpperCase() + SC.crown.crowned.slice(1)} with half the kingdom`) : S.winner ? `The crown went to ${esc(FACMAP[S.winner] ? FACMAP[S.winner].name : 'a rebel house')}` : 'Your house fell'} · ${S.year} · ${S.turns} turns · ${DIFF[S.diff] ? DIFF[S.diff].n : ''} rivals${S.challenge ? ' · challenge' : ''}</p>`;
+  let h = `<h3>${S.won ? 'Victory' : 'Defeat'} · ${esc(S.name)}</h3><p class="sub">${S.won ? (S.how === 'conquest' ? 'Every rival broken' : `${mapOfGame(S).crown.crowned[0].toUpperCase() + mapOfGame(S).crown.crowned.slice(1)} with half the kingdom`) : S.winner ? `The crown went to ${esc(FACMAP[S.winner] ? FACMAP[S.winner].name : 'a rebel house')}` : 'Your house fell'} · ${S.year} · ${S.turns} turns · ${DIFF[S.diff] ? DIFF[S.diff].n : ''} rivals${S.challenge ? ' · challenge' : ''}</p>`;
   if (S.rankAfter > S.rankBefore) h += `<div class="notebox good rankup">${myAchievement(70, { noScroll: true })}<div><b>You rise to ${RANKS[S.rankAfter].n}!</b><br><span class="sub">Unlocked: ${RANKS[S.rankAfter].unlock}.</span></div></div>`;
   if (S.trophies && S.trophies.length) h += `<div class="notebox good">${ico('star')} <b>New trophies:</b> ${S.trophies.map(id => { const t = TROPHIES.find(x => x.id === id); return t ? `${t.n} (${t.pts})` : id; }).join(', ')}</div>`;
   h += `<p class="sub">+${S.points || 0} points this game.</p>`;
   if (L) {
-    h += `<h3>The kingdom, turn by turn</h3><div class="lapse"><svg id="lapse" viewBox="0 0 ${MW} ${MH}"></svg><div class="lapsebar"><button class="btn sm" onclick="playLapse()">${ico('next')}Replay</button><span id="lapseyr"></span></div></div>`;
+    if (onThisMap(L)) h += `<h3>The kingdom, turn by turn</h3><div class="lapse"><svg id="lapse" viewBox="0 0 ${MW} ${MH}"></svg><div class="lapsebar"><button class="btn sm" onclick="playLapse()">${ico('next')}Replay</button><span id="lapseyr"></span></div></div>`;
+    else h += `<p class="sub">This game was played on ${esc(mapOfGame(L).name)}. Open that map from the title screen to watch it again, turn by turn.</p>`;
     h += `<h3>Counties held</h3>${territoryChart(L)}`;
     const others = L.houses.filter(x => x.id !== L.player && x.c.some(v => v > 0));
     const pk = x => Math.max(0, ...x.c.filter(v => v != null)), you = L.houses.find(x => x.id === L.player);
@@ -74,7 +79,7 @@ function statsGame(S, L) {
     ['Enemies killed', m.kills], ['Men lost', m.menLost], ['Lords captured', m.lords], ['Ransoms collected', m.ransomGold ? `${m.ransomGold} d (${m.ransoms})` : 0], ['Ransom paid', m.ransomPaid ? m.ransomPaid + ' d' : 0],
     ['Castles raised', m.castles], ['Pacts signed', m.pacts], ['Alliances sworn', m.alliances], ['Heiresses married', m.heiresses], ['Charters forged', m.charters], ['Profit at the fair', (m.fairProfit || 0) + ' d'],
     ['Walls brought down by mines', m.mines], ['Viking raids driven off', m.raids], [SC.raider ? SC.raider.who + ' thrown back' : 'Almanzor thrown back', m.almanzor], ['Most killed by rats in one bombardment', m.ratBest], ['Most burned by oil in one bombardment', m.oilBest],
-    ['Most counties', m.peakC], ['Largest treasury', (m.peakG || 0) + ' d'], ['Largest host', (m.peakM || 0) + ' men'], ['Crowned', m.crownedAt != null ? dateStr(m.crownedAt) : 'never'],
+    ['Most counties', m.peakC], ['Largest treasury', (m.peakG || 0) + ' d'], ['Largest host', (m.peakM || 0) + ' men'], ['Crowned', m.crownedAt != null ? dateIn(S.map, m.crownedAt) : 'never'],
   ].map(([k, v]) => row(k, v ?? 0)).join('')}</table>`;
   return h;
 }
@@ -96,7 +101,7 @@ function territoryChart(L) {
 // the time-lapse: the map's colours change turn by turn, with the year beside it
 let LAPSE = null;
 function playLapse(L) {
-  L = L || loadJ(LAST_KEY, null); const svg = document.getElementById('lapse'); if (!L || !svg) return;
+  L = L || loadJ(LAST_KEY, null); const svg = document.getElementById('lapse'); if (!L || !svg || !onThisMap(L)) return;
   if (LAPSE) clearInterval(LAPSE);
   const cols = L.houses.map(h => h.col);
   if (!svg.childElementCount) svg.innerHTML = `<defs><clipPath id="lapseclip"><path d="${LANDS.map(pathOf).join(' ')}"/></clipPath></defs><rect width="${MW}" height="${MH}" fill="#9fc3c8"/>` + LANDS.map(l => `<path d="${pathOf(l)}" fill="#d8cba5"/>`).join('') + `<g clip-path="url(#lapseclip)">${L.ids.map(id => `<path d="${CELLD[id]}" data-c="${id}" stroke="#5c4630" stroke-width="1.2"/>`).join('')}</g>`;
@@ -140,12 +145,12 @@ function statsVsAvg(S, H) {
 
 // ---------- sharing ----------
 function svgImg(svg) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }); }
-async function shareCard(draw, name) {
+async function shareCard(draw, name, M = SC) {
   const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
   const g = x.createLinearGradient(0, 0, 0, 1350); g.addColorStop(0, '#f6ecd2'); g.addColorStop(1, '#e6d4a8'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
   x.strokeStyle = '#8e1f1b'; x.lineWidth = 14; x.strokeRect(24, 24, 1032, 1302); x.strokeStyle = '#e2b33c'; x.lineWidth = 4; x.strokeRect(46, 46, 988, 1258);
-  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText('Anointed', 540, 130); x.font = 'italic 30px Georgia, serif'; x.fillStyle = '#5c4630'; x.fillText(SC.game, 540, 172);
-  x.fillStyle = '#5c4630'; x.font = 'italic 34px Georgia, serif'; x.fillText(`Anno Domini ${SC.date.y0}`, 540, 180);
+  x.fillStyle = '#8e1f1b'; x.font = '700 58px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.fillText('Anointed', 540, 130); x.font = 'italic 30px Georgia, serif'; x.fillStyle = '#5c4630'; x.fillText(M.game, 540, 172);
+  x.fillStyle = '#5c4630'; x.font = 'italic 34px Georgia, serif'; x.fillText(`Anno Domini ${M.date.y0}`, 540, 180);
   await draw(x);
   x.fillStyle = '#5c4630'; x.font = 'italic 28px Georgia, serif'; x.fillText('jdc001.github.io/crown-of-the-franks', 540, 1290);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
@@ -162,11 +167,11 @@ function shareGame() {
     const im = await svgImg(myAchievement(300)); if (im) x.drawImage(im, 120, 220, 300, 333);
     if (FACMAP[S.house]) { const hs = await svgImg(armsSvg(FACMAP[S.house].arms, 200)); if (hs) x.drawImage(hs, 680, 250, 200, 240); }
     x.fillStyle = '#2a1d12'; x.font = '700 50px Cinzel, Georgia, serif';
-    x.fillText(S.won ? SC.crown.latin.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'The crown escapes me', 540, 640);
+    x.fillText(S.won ? latinTitle(mapOfGame(S)) : 'The crown escapes me', 540, 640);
     x.font = '36px Georgia, serif'; x.fillStyle = '#5c4630';
-    let y = wrapText(x, `${S.name}, ${S.won ? (S.how === 'conquest' ? 'every rival broken' : SC.crown.crowned) : 'beaten'}, in the year ${S.year}, after ${S.turns} turns.`, 540, 700, 880, 48);
+    let y = wrapText(x, `${S.name}, ${S.won ? (S.how === 'conquest' ? 'every rival broken' : mapOfGame(S).crown.crowned) : 'beaten'}, in the year ${S.year}, after ${S.turns} turns.`, 540, 700, 880, 48);
     x.font = 'italic 32px Georgia, serif'; x.fillText(`${RANKS[r].n} · ${P.points} points${S.trophies && S.trophies.length ? ` · ${S.trophies.length} new troph${S.trophies.length === 1 ? 'y' : 'ies'}` : ''}`, 540, y + 6);
-    if (L && L.own && L.own.length) {
+    if (onThisMap(L) && L.when === S.when && L.own && L.own.length) {
       const s = L.own[L.own.length - 1] || L.own.filter(Boolean).pop(), cols = L.houses.map(h => h.col), sc = 430 / MH;
       x.save(); x.translate(540 - MW * sc / 2, y + 40); x.scale(sc, sc);
       x.beginPath(); x.rect(0, 0, MW, MH); x.clip();
@@ -176,7 +181,7 @@ function shareGame() {
       L.ids.forEach((id, k) => { const ch = s[k]; x.fillStyle = ch === '.' ? '#efe4c6' : cols[ch.charCodeAt(0) - 48] || '#999'; const pth = new Path2D(CELLD[id]); x.fill(pth); x.strokeStyle = '#5c4630'; x.lineWidth = 2; x.stroke(pth); });
       x.restore();
     }
-  }, 'anointed.png');
+  }, 'anointed.png', mapOfGame(S));
 }
 function shareRank() {
   const P = profile(), r = rankOf(P.points), got = Object.keys(P.trophies).length;

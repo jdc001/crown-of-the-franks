@@ -369,12 +369,13 @@ function aiWar(fid, A) {
     if (ambitious && crownNeeds(fid).includes(p.id)) need = Math.max(1.05, need - 0.3);
     const canSiege = p.b.castle && armySize(A) >= (p.owner ? 12 : 7) && ap >= power(defenders(p)) * (cap ? 2.4 : p.owner ? 1.1 : 0.9) * (vsPlayer ? 1 + D.pNeed * 0.4 : 1);
     if (ratio < need && !canSiege) continue;
-    let val = p.base + (cap ? (G.turn < 30 ? 6 : 18) : 0) + (p.owner === G.player ? D.pBonus : 0) + (p.owner ? 1 : 0) + (p.r === 'fr' ? 4 : 0) + (p.ally ? 1 : 0);
+    let val = p.base + (cap ? (G.turn < 30 ? 6 : 18) : 0) + (p.owner === G.player ? D.pBonus : 0) + (p.owner ? 1 : 0) + (p.r === SC.kingdom.core ? 4 : 0) + (p.ally ? 1 : 0);
     // the crown cities, and the Empire's wrath in Lorraine
     // a house big enough to be anointed goes for Reims and its royal seat in earnest
     if (wantCrown && crownNeeds(fid).includes(p.id)) val = (val + 8) * (ambitious ? 3 : 1);
     else if (ambitious && goalCity) val *= 1 + 0.9 / (1 + (HOPS[goalCity][p.id] ?? 9));
-    if (p.r === 'lo' && !(G.start && (G.start[p.id] === fid || G.start[p.id] === 'charles'))) val *= 0.6;
+    // (France only: the Empire's wrath in Lorraine. On the Empire map 'lo' is the Lombard south)
+    if (MAP_ID === 'france' && p.r === 'lo' && !(G.start && (G.start[p.id] === fid || G.start[p.id] === 'charles'))) val *= 0.6;
     if (s.dist) val *= 0.9;
     if (kin && G.turn < 30) val *= 0.6;
     if (leader && p.owner === leader) val *= 1.8;

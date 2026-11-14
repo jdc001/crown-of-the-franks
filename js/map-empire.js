@@ -14,7 +14,7 @@ const FACTIONS = [
     blurb: 'The princes of the Rhine and many bishops would rather have Hermann than Henry. He has the Swabian knights, Alsace, and a grudge against Strasbourg.', trait: 'Swabian knights: cavalry cost 16 instead of 20.',
     arms: { t: 'lion', f: '#e2b33c', c: '#1d1d1d' } },
   { id: 'saxony', title: 'Duke', pname: 'Bernard Billung', name: 'Saxony', ruler: 'Duke Bernard of Saxony', color: '#7a7f2c', home: 'luneburg', realm: 'Germany', houseTxt: 'A duchy of the kingdom of the Germans',
-    blurb: 'Duke of the Saxons, the people of the Ottos. The Saxon lords meet at Werla to choose their own king, and Bernard will speak for them.', trait: 'The Saxon levies: your counties raise 30% more levies.',
+    blurb: 'Duke of the Saxons, the people of the Ottos. The Saxon lords meet at Werla to choose their own king, and Bernard will speak for them.', trait: 'The Saxon levies: your counties raise 20% more levies.',
     arms: { t: 'barry', f: '#e2b33c', c: '#1d1d1d' } },
   { id: 'meissen', title: 'Margrave', pname: 'Eckard of Meissen', name: 'Meissen', ruler: 'Margrave Eckard of Meissen', color: '#3a7a5a', home: 'meissen', realm: 'Germany', houseTxt: 'A march on the Elbe',
     blurb: 'The hardest fighter in Saxony, who holds the Elbe against the Slavs. The Thuringians have already hailed him as their duke. He has many enemies.', trait: 'The march on the Elbe: your men fight 10% harder, and castles cost 25% less.',
@@ -24,7 +24,7 @@ const FACTIONS = [
     arms: { t: 'chief', f: '#8a5a2a', c: '#e2b33c' } },
   // ---- Lotharingia ----
   { id: 'lorraine', title: 'Duke', pname: 'Otto of Lower Lorraine', name: 'Lower Lorraine', ruler: 'Duke Otto of Lower Lorraine', color: '#b8342c', home: 'brussels', realm: 'Germany', houseTxt: 'A duchy of Lotharingia',
-    blurb: "Son of Charles of Lorraine, the Carolingian the Franks passed over. Charlemagne's blood and Charlemagne's Aachen, a day's ride away.", trait: 'The Meuse towns: market towns yield +2 more.',
+    blurb: "Son of Charles of Lorraine, the Carolingian the Franks passed over. Charlemagne's blood and Charlemagne's Aachen, a day's ride away.", trait: "Charlemagne's blood: the Pope's blessings on your banners last 5 turns.",
     arms: { t: 'fess2', f: '#b8342c', c: '#e2b33c' } },
   { id: 'upperlorraine', title: 'Duke', pname: 'Theoderic of Bar', name: 'Upper Lorraine', ruler: 'Duke Theoderic of Upper Lorraine', color: '#d0832a', home: 'bar', realm: 'Germany', houseTxt: 'A duchy of Lotharingia',
     blurb: 'A small duchy between the bishops of Metz, Toul and Verdun, and the kingdom of the Franks. Theoderic is careful, and his castles are strong.', trait: 'Forest castles: your castles and garrisons hold 15% harder, and mines yield +2.',
@@ -60,8 +60,8 @@ const FACTIONS = [
 ];
 // the houses' traits, as the rules read them
 const TRAITS = {
-  bavaria: { ally: 0.75, cost: { bishop: 22 } }, swabia: { cost: { cav: 16 } }, saxony: { levy: 1.3 }, meissen: { atk: 0.1, castle: 0.75 },
-  carinthia: { gen: 0.75, income: 1 }, lorraine: { market: 2 }, upperlorraine: { hold: 0.15, mine: 2 },
+  bavaria: { ally: 0.75, cost: { bishop: 22 } }, swabia: { cost: { cav: 16 } }, saxony: { levy: 1.2 }, meissen: { atk: 0.1, castle: 0.75 },
+  carinthia: { gen: 0.75, income: 1 }, lorraine: { bless: 5 }, upperlorraine: { hold: 0.15, mine: 2 },
   poland: { cost: { cav: 16 }, atk: 0.05 }, bohemia: { mine: 3, castle: 0.75 },
   ivrea: { cost: { foot: 7 }, levy: 1.25 }, canossa: { castle: 0.75, hold: 0.15 }, crescentii: { cost: { bishop: 20 }, bless: 5 },
   benevento: { cost: { cav: 17 }, levy: 1.25 }, salerno: { market: 3, port: 3 }, byzantium: { gf: 20, hold: 0.25, port: 3 },
@@ -130,7 +130,7 @@ const PROV = [
   ['utrecht', 'Utrecht', 5.12, 52.09, '', 0, 5, null, 1, 'Bishop Ansfried of Utrecht', 'de'],
   ['frisia', 'West Frisia', 4.85, 52.65, 'north', 0, 3, null, 0, 'Count Arnulf of West Frisia', 'de'],
   ['nijmegen', 'Nijmegen', 5.86, 51.8, '', 0, 4, null, 1, 'the Royal Reeve of Nijmegen', 'de'],
-  ['brussels', 'Brussels', 4.35, 50.85, '', 0, 5, 'lorraine', 1, '', 'de'],
+  ['brussels', 'Brussels', 4.35, 50.85, '', 0, 4, 'lorraine', 1, '', 'de'],
   ['antwerp', 'Antwerp', 4.4, 51.25, 'north', 0, 4, null, 0, 'the Margrave of Antwerp', 'de'],
   ['hainaut', 'Hainaut', 3.9, 50.4, '', 0, 4, null, 1, 'Count Reginar of Hainaut', 'de'],
   ['namur', 'Namur', 4.87, 50.4, '', 1, 4, null, 1, 'Count Albert of Namur', 'de'],
@@ -356,8 +356,8 @@ return {
       // the Greeks keep Apulia with strong garrisons; the catepan's own host is small, for now
       for (const p of provList()) if (p.owner === 'byzantium') { p.gar.foot += 6; p.gar.bow += 3; p.gar.cav += 1; }
       Object.assign(P('bari').gar, { foot: 16, bow: 6, cav: 4 });
-      // the counts and bishops of Lotharingia have kept their own castles since Charlemagne's grandsons
-      for (const p of provList()) if (!p.owner && p.r === 'de' && p.x < px(7.3) && p.lat > 49.4) { p.gar.foot = Math.round((p.gar.foot || 2) * 1.8) + 3; p.gar.bow = (p.gar.bow || 0) + 2; }
+      // the counts and bishops of Lotharingia and Saxony have kept their own castles since Charlemagne's grandsons
+      for (const p of provList()) if (!p.owner && p.r === 'de' && ((p.x < px(7.3) && p.lat > 49.4) || p.lat > 51.3)) { p.gar.foot = Math.round((p.gar.foot || 2) * 1.8) + 3; p.gar.bow = (p.gar.bow || 0) + 2; }
       // the palace of Charlemagne and the see of Cologne are no easy prizes
       Object.assign(P('aachen').gar, { foot: 12, bow: 4, cav: 3 }); Object.assign(P('cologne').gar, { foot: 11, bow: 4, cav: 2 });
       // Henry has the regalia and the Bavarian host; Eckard is the best soldier in Saxony; Bolesław brought his drużyna

@@ -32,7 +32,8 @@ function rulerOf(fid) {
 const inCrown = (fid, p) => !!(KPROV[p.id] && (FAC(fid).kingOf || []).some(k => KPROV[p.id].includes(k)));
 function levyMax(p) {
   if (!p.owner) return (2 + Math.floor(p.base / 2)) * (coreR(p.r) ? 1 : 2);
-  return (isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1) * (TR(p.owner).levy || 1);
+  // whole men only: a house's levy bonus (a quarter more, say) must not leave half a man on the wall
+  return Math.round((isCap(p) ? 6 : 2) * (inCrown(p.owner, p) ? 2 : 1) * (TR(p.owner).levy || 1));
 }
 const bishopsOf = fid => G.fac[fid].bishops;
 

@@ -34,6 +34,8 @@ function loadGameObj(obj) {
   // a campaign on another map: switch maps, then load it there
   if ((obj.map || 'france') !== MAP_ID) { if (!MAPS[obj.map || 'france']) return toast('That save is from a map this version does not have'); if (mapLocked(obj.map || 'france')) return openUnlock('map:' + obj.map); try { sessionStorage.setItem('cotf-load', JSON.stringify(obj)); } catch (e) { return toast('That save is too large to carry across maps'); } return switchMap(obj.map || 'france'); }
   G = obj; rebuildFmap(); ensureProvs();
+  // saves from before v6.44 may hold half a levyman: round them to whole men
+  for (const p of provList()) { p.militia = Math.round(p.militia || 0); for (const t in p.gar) p.gar[t] = Math.round(p.gar[t] || 0); }
   if (!G.army) G.army = 'a0';
   G.sel = null; G.reports = G.reports || []; PANEL.tab = null;
   $('#title').style.display = 'none'; closeModal(); setMusic('map'); closeDrawer();
