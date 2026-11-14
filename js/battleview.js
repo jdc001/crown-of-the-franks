@@ -266,6 +266,7 @@ function bvFinish() {
 }
 function finishBattle(V, res, why) {
   const p = V.p; tutorDid('battle');
+  const from = V.army.loc;
   if (V.kind === 'relief') resolveRelief(me(), V.army, p, res, V.cfg); else resolveAssault(me(), V.army, p, res, V.cfg);
   if (res.won && V.kind !== 'relief') setTimeout(() => flashProv(p.id), 300);
   sfx(res.won ? 'victory' : 'defeat'); buzz(res.won ? 50 : 80);
@@ -276,5 +277,17 @@ function finishBattle(V, res, why) {
   const row = (name, before, after) => `<tr><td>${name}</td><td>${uStr(before, true, false)}</td><td>${uStr(after, true, false)}</td></tr>`;
   showModal(`<div class="rep${res.won ? '' : ' badrep'}"><div class="sealmark">${ico(res.won ? 'star' : 'swords')}</div><h2>${head}</h2><p>${body}</p>
     <table class="stat"><tr><th></th><th>Before</th><th>After</th></tr>${row(V.names[0], V.a0, res.A)}${row(V.names[1], V.d0, res.D)}</table>
-    <div class="row ctr"><button class="btn gold big" onclick="closeModal();save();render();showReports()">Continue</button></div></div>`);
+    ${pullBackHtml(V.army, from, p)}<div class="row ctr"><button class="btn gold big" onclick="closeModal();save();render();showReports()">Continue</button></div></div>`);
+}
+
+// after a won field battle the army has marched into the county it took; the player may pull it back instead
+function pullBackHtml(A, from, p) {
+  if (!A || A.loc !== p.id || !from || from === p.id || !P(from) || !passable(me(), from) || !armySize(A)) return '';
+  window._pullBack = { a: A.id, from, to: p.id };
+  return `<div class="notebox">${ico('flag')} Army ${ARMY_NUM(A)} has marched into ${p.name} and holds it. <span class="sub">Leave it there, or bring it back to ${P(from).name} and leave ${p.name} empty.</span><div class="row" style="margin-top:6px"><button class="btn sm" onclick="pullBack()"><span class="lbl">${ico('back')}Pull back to ${P(from).name}</span></button></div></div>`;
+}
+function pullBack() {
+  const d = window._pullBack; if (!d) return; const A = army(me(), d.a); window._pullBack = null;
+  if (A && A.loc === d.to) { A.loc = d.from; note(`Army ${ARMY_NUM(A)} falls back to ${P(d.from).name}, leaving ${P(d.to).name} without a garrison.`); toast(`Army ${ARMY_NUM(A)} pulls back to ${P(d.from).name}`, 'back'); }
+  closeModal(); save(); render(); showReports();
 }

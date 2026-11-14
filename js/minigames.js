@@ -198,23 +198,31 @@ function payDanegeld() {
 function startRaid() {
   const r = G.raid; if (!r) return closeModal();
   const p = P(r.p), K = raidCompanies(p);
-  showModal(mgFrame([['mg-ships', 'Ships'], ['mg-rep', 'Driven off'], ['mg-pl', 'Plundered']], '<p class="sub ctr" style="margin:6px 0 0">Drag your companies onto the beach in a ship\'s lane. Tap a ship to loose arrows at it.</p>'), 'wide ctcard');
+  showModal(mgFrame([['mg-ships', 'Ships'], ['mg-rep', 'Driven off'], ['mg-pl', 'Plundered']], '<p class="sub ctr" style="margin:6px 0 0">Drag your companies onto the beach in a ship\'s lane. Tap a ship, or raiders on the sand, to loose arrows at them. A company near a landing party charges it.</p>'), 'wide ctcard');
   const S = MG = mgScene(RW, RH);
   const lanes = [...R_LANES].sort(() => Math.random() - .5);
   Object.assign(S, { kind: 'raid', p, boats: [], toks: [], rep: 0, pl: 0, lostTok: 0, cool: 0, arrows: [], fx: [], msg: `${r.ships} longships! Get your companies to the beach.` });
-  let t = 0.6; for (let i = 0; i < r.ships; i++) { S.boats.push({ lane: lanes[i % 5], x: -60 - Math.random() * 30, crew: 3 + rnd(4), at: t, st: 'wait', sp: 34 + Math.random() * 14 }); t += 1.6 + Math.random() * 2; }
+  let t = 0.6; for (let i = 0; i < r.ships; i++) { S.boats.push({ lane: lanes[i % 5], x: -60 - Math.random() * 30, crew: 3 + rnd(4), at: t, st: 'wait', sp: 27 + Math.random() * 10 }); t += 2.2 + Math.random() * 2.2; }
   for (let i = 0; i < K; i++) S.toks.push({ x: 480 + (i % 2) * 30, y: R_LANES[Math.round(i * 4 / Math.max(1, K - 1))] || 230, str: 4, alive: true });
   S.ground = makeLayer(RW, RH, S.dpr, x => drawRaidGround(x, S));
   let drag = null;
   S.cv.onpointerdown = e => {
     const q = S.pt(e);
     const tk = S.toks.filter(k => k.alive).sort((a, b) => Math.hypot(a.x - q.x, a.y - q.y) - Math.hypot(b.x - q.x, b.y - q.y))[0];
-    if (tk && Math.hypot(tk.x - q.x, tk.y - q.y) < 46) { drag = tk; S.cv.setPointerCapture && S.cv.setPointerCapture(e.pointerId); return; }
-    const b = S.boats.find(b => b.st === 'row' && Math.abs(b.x - q.x) < 50 && Math.abs(b.lane - q.y) < 32);
-    if (b && S.cool <= 0) { S.cool = 0.9; S.arrows.push({ x0: 520, y0: q.y < 220 ? 120 : 330, x1: b.x, y1: b.lane, t: 0 }); sfx('arrows'); if (Math.random() < 0.7) { b.crew--; if (b.crew <= 0) { b.st = 'sunk'; S.rep++; S.msg = 'The ship is shot to pieces and drifts away!'; sfx('miss'); } } }
+    if (tk && Math.hypot(tk.x - q.x, tk.y - q.y) < 46) { drag = S.drag = tk; S.cv.setPointerCapture && S.cv.setPointerCapture(e.pointerId); return; }
+    // a ship still rowing, or a landing party on the sand: the bowmen shoot at whichever is nearest the tap
+    const tgt = S.boats.filter(b => (b.st === 'row' && Math.abs(b.x - q.x) < 55 && Math.abs(b.lane - q.y) < 36) || (b.st === 'land' && Math.abs(b.rx + 10 - q.x) < 45 && Math.abs(b.lane - q.y) < 36))
+      .sort((a, c) => Math.abs((a.st === 'land' ? a.rx : a.x) - q.x) - Math.abs((c.st === 'land' ? c.rx : c.x) - q.x))[0];
+    if (tgt && S.cool <= 0) {
+      const tx = tgt.st === 'land' ? tgt.rx + 10 : tgt.x;
+      S.cool = 0.4; S.arrows.push({ x0: 560, y0: q.y < 220 ? 120 : 330, x1: tx, y1: tgt.lane, t: 0 }); sfx('arrows');
+      if (Math.random() < 0.85) { tgt.crew -= Math.random() < 0.3 ? 2 : 1;
+        if (tgt.crew <= 0) { if (tgt.st === 'row') { tgt.st = 'sunk'; S.msg = 'The ship is shot to pieces and drifts away!'; sfx('miss'); } else { tgt.st = 'gone'; S.msg = 'The last of the landing party falls on the sand!'; } S.rep++; } }
+      return;
+    }
   };
   S.cv.onpointermove = e => { if (!drag) return; const q = S.pt(e); drag.x = clamp(q.x, R_BEACH + 20, RW - 30); drag.y = clamp(q.y, 40, RH - 30); };
-  S.cv.onpointerup = S.cv.onpointercancel = () => { if (drag) { drag.y = R_LANES.reduce((a, l) => Math.abs(l - drag.y) < Math.abs(a - drag.y) ? l : a, R_LANES[0]); drag = null; } };
+  S.cv.onpointerup = S.cv.onpointercancel = () => { if (drag) { drag.y = R_LANES.reduce((a, l) => Math.abs(l - drag.y) < Math.abs(a - drag.y) ? l : a, R_LANES[0]); drag = S.drag = null; } };
   setMusic('battle'); sfx('horn');
   mgRun(S, dt => { raidUpdate(S, dt); if (MG === S) raidDraw(S); });
 }
@@ -232,7 +240,10 @@ function raidUpdate(S, dt) {
     if (b.st === 'wait' && S.t >= b.at) b.st = 'row';
     if (b.st === 'row') { b.x += b.sp * dt; if (b.x >= R_BEACH - 10) { b.x = R_BEACH - 10; const tk = S.toks.find(k => k.alive && Math.abs(k.y - b.lane) < 30 && k.x < R_LAND + 40); if (tk) { if (!raidFight(S, b, tk)) b.st = 'land'; } else { b.st = 'land'; S.msg = 'A ship beaches unopposed. Its crew run for the village!'; } if (b.st === 'land') { b.rx = R_BEACH + 10; } } }
     if (b.st === 'land') {
-      b.rx += 38 * dt;
+      b.rx += 34 * dt;
+      // a company close by charges the raiders without being told
+      const near = S.toks.filter(k => k.alive && k !== S.drag && Math.abs(k.y - b.lane) < 90 && Math.abs(k.x - b.rx) < 150).sort((a, c) => Math.hypot(a.x - b.rx, a.y - b.lane) - Math.hypot(c.x - b.rx, c.y - b.lane))[0];
+      if (near) { const dx = b.rx - near.x, dy = b.lane - near.y, d = Math.hypot(dx, dy) || 1; near.x += dx / d * 90 * dt; near.y += dy / d * 90 * dt; }
       const tk = S.toks.find(k => k.alive && Math.abs(k.y - b.lane) < 34 && Math.abs(k.x - b.rx) < 30);
       if (tk) raidFight(S, b, tk);
       else if (b.rx >= R_VILL) { b.st = 'gone'; S.pl++; S.msg = 'Raiders reach the village. Smoke rises over the roofs.'; sfx('fire'); S.fx.push({ x: R_VILL + 30, y: b.lane, t: 0, fire: true }); }
