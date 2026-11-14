@@ -13,7 +13,12 @@ function armyAt(id) {
   if (!here.length || here.some(a => a.id === G.army)) return;
   G.army = (here.find(a => !a.acted) || here[0]).id;
 }
-function pickArmy(id) { G.army = id; sfx('click'); render(); const a = army(me(), id); if (a.loc && !G.sel) focusProv(a.loc, VIEW.w); }
+// the lord's captive host has nothing to command: its button opens the ransom instead
+function openRansom() {
+  G.sel = null; render(); if (isPhone()) setSheet('full');
+  setTimeout(() => { const b = document.getElementById('ransombox'); if (b) { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 1200); } }, 60);
+}
+function pickArmy(id) { { const a = army(me(), id); if (a && slotState(a) === 'captive') { G.army = id; sfx('click'); return openRansom(); } } G.army = id; sfx('click'); render(); const a = army(me(), id); if (a.loc && !G.sel) focusProv(a.loc, VIEW.w); }
 const ARMY_NUM = a => ARMY_IDS.indexOf(a.id) + 1;
 function armyPay(a) { return atRest(me(), a) ? 0 : armyCost(a); }
 function slotState(a) {
@@ -67,7 +72,7 @@ function renderHeader() {
 // ================= SHARED FRAGMENTS =================
 function armyLine(a) {
   const g = armyGen(me(), a), st = slotState(a);
-  if (st === 'captive') return `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${G.fac[me()].captive.by ? ' of ' + fname(G.fac[me()].captive.by) : ''}. His host cannot take the field until he is ransomed.</div>`;
+  if (st === 'captive') return `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${G.fac[me()].captive.by ? ' of ' + fname(G.fac[me()].captive.by) : ''}. His host cannot take the field until he is ransomed.<div class="row" style="margin-top:6px"><button class="btn sm gold" onclick="openRansom()"><span class="lbl">${ico('chain')}Ransom him</span></button></div></div>`;
   if (!a.loc) return '<p class="sub">Nowhere</p>';
   return `<p>${a.siege ? `${ico('tent')} Besieging <b>${P(a.siege).name}</b>` : `At <b>${P(a.loc).name}</b>`}${g ? ` · ${a.id === 'a0' ? 'with' : 'led by'} <b>${g.n}</b>` : ''} · ${a.acted ? 'has fought' : `${a.mp} of ${MOVES} moves`}</p><p class="units">${uStr(a, false)} <span class="sub">· ${atRest(me(), a) ? 'at rest in the castle: no pay' : `on campaign: ${armyCost(a)} d a turn`}</span></p>`;
 }
@@ -212,7 +217,7 @@ function overviewPanel() {
   return `<div class="phead">${shield(me(), 46)}<div><h2>${esc(rulerOf(me()))}</h2><span class="sub">${esc(f.trait || (f.realm === 'Rebel' ? 'A rebel house, risen in civil war.' : ''))}</span></div></div>
     ${tiles}
     ${unrestBox()}${envoyBox()}${fairOpen() ? `<div class="notebox good">${ico('market')} <b>${SC.fair.open}</b> this turn only. Your carts are worth about ${fairCap()} d there.<div class="row" style="margin-top:6px"><button class="btn gold sm" onclick="openFair()"><span class="lbl">${ico('market')}Go to the fair</span></button></div></div>` : ''}
-    ${F.captive ? `<div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}` : ''}
+    ${F.captive ? `<div id="ransombox"><div class="notebox bad">${ico('chain')} ${rulerOf(me())} is a prisoner${F.captive.by ? ' of ' + fname(F.captive.by) : ''}. His host cannot take the field until he is ransomed; your generals' armies still can.</div>${ransom}</div>` : ''}
     ${prisoners ? acc('prisoners', 'Your prisoners', 'chain', prisoners, G.offers.length ? G.offers.length + ' offer' + (G.offers.length > 1 ? 's' : '') : '') : ''}
     ${acc('garrisons', 'Your garrisons', 'castle', garrisonsHtml(), owned(me()).reduce((a, p) => a + garMen(p), 0) + ' men')}
     ${acc('armies', 'Your armies', 'sword', armiesHtml() + `<p class="sub">Garrisons cost nothing. An army on campaign is paid every turn (foot ${UPKEEP.foot}, bow ${UPKEEP.bow}, horse ${UPKEEP.cav}, catapult ${UPKEEP.cat} d); after a full turn at rest in a castle of yours it is lodged free. Upkeep now ${upkeepOf(me())} d against ${grossIncome(me())} d of income. If the treasury runs dry, men desert.</p>`, `${men} men · ${upkeepOf(me())} d`)}
