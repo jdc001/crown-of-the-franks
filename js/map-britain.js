@@ -261,6 +261,8 @@ return {
     span: 'From Shetland to Cornwall', crowned: 'crowned at Westminster', church: 'the Archbishop of York',
     rules: 'For the first time since Cnut, one king rules England from end to end.',
   },
+  founder: 'King Alfred',
+  pnames: ['Edgar', 'Edmund', 'Leofric', 'Siward', 'Godric', 'Ælfric', 'Wulfstan', 'Osgod', 'Thurkill', 'Brand', 'Donnchad', 'Gruffydd', 'Eadric', 'Uhtred', 'Cospatrick'],
   houseOf: f => f.houseTxt,
   groups: [['The English', ['wessex', 'eastanglia', 'mercia', 'northumbria']], ['The Normans', ['normandy', 'boulogne']], ['The Northmen', ['norway', 'orkney', 'isles']], ['The Scots and the Welsh', ['scotland', 'gwynedd']], ['The Irish', null]],
   where: fid => ({ England: 'England is the prize: rich, crowded, and every claimant is coming for it.', Normandy: 'The Channel lies between you and the crown. The crossings are short, and the English coast is long.', Norway: 'The sea is your road. England is far, but the islands of the north are yours to gather.', Scotland: 'The rich north of England lies over the Tweed, and the Highlands guard your back.', Wales: 'The March of England is at your door, and the mountains are your castle.', Ireland: 'Ireland is far from London. Make yourself master of the island first, then cross the Irish Sea.' })[FACMAP[fid].realm] || '',

@@ -403,7 +403,7 @@ function addFaction(def, home) {
 }
 const NEW_COLORS = ['#8c4b2a', '#3d6b6b', '#7a3f8f', '#a0782a', '#4a6a2a', '#2a4a7a', '#8f2a5a', '#5a6a1a', '#9a5a7a', '#2a7a5a'];
 const ARMS_T = ['fess2', 'pallets', 'cross', 'barry', 'perpale', 'bendCot', 'perfess', 'semy'];
-const PNAMES = ['Louis', 'Robert', 'Odo', 'Hugh', 'Charles', 'Rudolf', 'Arnulf', 'Baldwin', 'Godfrey', 'Conrad', 'Lothair', 'Bernard', 'Geoffrey', 'Raymond', 'Theobald'];
+const PNAMES = SC.pnames || ['Louis', 'Robert', 'Odo', 'Hugh', 'Charles', 'Rudolf', 'Arnulf', 'Baldwin', 'Godfrey', 'Conrad', 'Lothair', 'Bernard', 'Geoffrey', 'Raymond', 'Theobald'];
 function freshColor() { const used = new Set(G.fdefs.filter(d => G.fac[d.id] && G.fac[d.id].alive).map(d => d.color)); return NEW_COLORS.find(c => !used.has(c)) || pick(NEW_COLORS); }
 
 // ================= NEW GAME =================

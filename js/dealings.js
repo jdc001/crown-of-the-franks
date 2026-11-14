@@ -13,7 +13,7 @@ function forgeNote(p, F) {
 }
 function openCharter(pid) {
   const p = P(pid);
-  mgIntro(`A charter for ${p.name}`, 'scroll', `In an abbey of yours the monks have found, or made, an old charter: the land of ${p.name} was granted to your forebears by Charlemagne himself. Trace the three strokes of the old hand as closely as you can, then press the seal while the wax is right. The better the copy, the likelier ${p.lord} accepts it.`,
+  mgIntro(`A charter for ${p.name}`, 'scroll', `In an abbey of yours the monks have found, or made, an old charter: the land of ${p.name} was granted to your forebears by ${SC.founder || 'Charlemagne'} himself. Trace the three strokes of the old hand as closely as you can, then press the seal while the wax is right. The better the copy, the likelier ${p.lord} accepts it.`,
     [[`${ico('scroll')}Take up the pen`, `startCharter('${pid}')`, 'gold big', `${FORGE_COST} d`], [`${ico('skip')}Leave it to the scribe`, `autoCharter('${pid}')`, '', `${FORGE_COST} d · average skill`], ['Not now', 'closeModal()', 'ghost']]);
 }
 function charterStrokes() {
@@ -80,7 +80,7 @@ function charterOutcome(p, q) {
 }
 function charterReport(p, q, res) {
   const pct_ = Math.round(q * 100);
-  if (res === 'ok') mgResult(`${p.name} swears to you`, `The charter is a likeness of ${pct_}%. ${p.lord} reads it, kisses the seal, and swears to your house as his forebears swore to Charlemagne. You receive half of ${p.name}'s income, and your armies may march through it.`, true, 'scroll');
+  if (res === 'ok') mgResult(`${p.name} swears to you`, `The charter is a likeness of ${pct_}%. ${p.lord} reads it, kisses the seal, and swears to your house as his forebears swore to ${SC.founder || 'Charlemagne'}. You receive half of ${p.name}'s income, and your armies may march through it.`, true, 'scroll');
   else if (res === 'caught') mgResult('The forgery is exposed!', `A likeness of only ${pct_}%. ${p.lord}'s clerks find the ink too fresh and the seal crooked, and send the charter to Rome. The Pope excommunicates ${rulerOf(me())} for 3 turns.`, false, 'interdict');
   else mgResult('The clerks are not convinced', `A likeness of ${pct_}%. ${p.lord} thanks you for the charter and does nothing. Your scriptorium can try again in ${FORGE_EVERY} turns.`, false, 'scroll');
 }
