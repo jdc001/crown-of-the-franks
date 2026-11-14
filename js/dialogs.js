@@ -114,7 +114,7 @@ function openLog() {
 }
 
 // ================= SETTINGS =================
-const APP_VERSION = '6.42';
+const APP_VERSION = '6.43';
 function openSettings() {
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, i]) => `<button class="${SET[key] === v ? 'on' : ''}" onclick="setOpt('${key}','${v}')">${ico(i)}${l}</button>`).join('')}</div>`;
   const sw = key => `<div class="sw${SET[key] ? ' on' : ''}" onclick="setOpt('${key}',${!SET[key]})"></div>`;
@@ -132,9 +132,9 @@ function openSettings() {
     <div class="setrow"><div class="l">Rival moves<small>After you end a turn, show the other houses' marches, sieges and conquests on the map</small></div>${seg('replay', [['near', 'Near me', 'home'], ['all', 'All', 'map'], ['off', 'Off', 'close']])}</div>
     <div class="setrow" style="flex-direction:column;align-items:stretch"><div class="l">The rival houses<small>How eagerly the computer houses turn on you. Takes effect from the next turn. A game counts, for trophies and points, as the easiest setting it was ever played on.</small></div>${diffSeg()}</div>
     <div class="setrow"><div class="l">Battle speed</div>${seg('speed', [[1, '1×', 'next'], [2, '2×', 'speed'], [4, '4×', 'skip']])}</div>
-    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
+    <div class="row"><button class="btn sm" onclick="openSaves()"><span class="lbl">${ico('scroll')}Saved games</span></button><button class="btn sm" onclick="closeModal();openHelp()"><span class="lbl">${ico('info')}How to play</span></button><button class="btn sm" onclick="closeModal();openBugReport()"><span class="lbl">${ico('flag')}Report a bug</span></button><button class="btn sm ghost" onclick="SET.seenHints={};saveSettings();toast('Tips will show again')">Reset tips</button>${G ? `<button class="btn sm ghost" onclick="closeModal();confirmNew()">New game</button>` : ''}</div>
     <p class="sub ctr" style="margin-top:12px">Add this page to your home screen for a full-screen game that also plays offline.</p>
-    <p class="sub ctr" style="font-size:13px">Anointed · ${SC.name} · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game collects nothing and sends nothing anywhere. <a href="privacy.html" target="_blank" style="color:inherit">Privacy and support</a>. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
+    <p class="sub ctr" style="font-size:13px">Anointed · ${SC.name} · version ${APP_VERSION}<br>Your campaigns, trophies and settings are kept only on this device. The game sends nothing anywhere unless you tap Report a bug. <a href="privacy.html" target="_blank" style="color:inherit">Privacy and support</a>. Export a save now and then: it carries your trophies and past games with it.</p>`, '', { closable: true });
 }
 function setOpt(k, v) {
   if (k === 'speed') v = Number(v);

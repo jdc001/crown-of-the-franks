@@ -697,3 +697,5 @@ body.nomotion #title .tbg, body.nomotion #title .hcrown .glint, body.nomotion #t
 #title .gsub { font-family: var(--head); font-size: clamp(14px, 2.6vw, 20px); letter-spacing: .18em; text-transform: uppercase; color: #e9d9a8; margin-top: 2px; text-shadow: 0 2px 6px #000c; }
 #ransombox.flash { animation: ransomflash 1.2s ease-out; border-radius: 10px; }
 @keyframes ransomflash { 0% { box-shadow: 0 0 0 0 #e2b33cdd; } 100% { box-shadow: 0 0 0 14px #e2b33c00; } }
+#bugbar { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; display: flex; gap: 8px; align-items: center; padding: 8px 10px 8px 14px; border-radius: 12px; background: #2a1d12f2; color: #f3e8cc; border: 1px solid #b8892c; box-shadow: 0 6px 20px #000a; font-size: 14px; }
+#bugbar .ic { width: 16px; height: 16px; vertical-align: -3px; }
